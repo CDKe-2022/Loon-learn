@@ -1,7 +1,10 @@
 # Learn-how-to-use-LOON
 搬运,仅用作记录,所有内容非原创
-Loon [教程](https://github.com/TiyNa/LoonManual)
 
+## Loon官方[教程](https://github.com/TiyNa/LoonManual)
+
+
+## 一部分大佬的图标库
 
 | 序号 | 点击名称快捷添加图标订阅 | 作者 |
 | :----: | :---- | :----: |
