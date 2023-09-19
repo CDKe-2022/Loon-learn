@@ -12,11 +12,11 @@
 
 [Script]
 # BiliBili每日等级任务
-cron "30 7 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/LOON-pattern/main/Loon/Bilibili/BiliBiliDailyBonus.js, tag=B站每日等级任务, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
+cron "30 7 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/Bilibili/BiliBiliDailyBonus.js, tag=B站每日等级任务, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
 
-http-request ^https?:\/\/app\.bilibili\.com\/x\/resource\/domain\? script-path=https://raw.githubusercontent.com/CDKe-2022/LOON-pattern/main/Loon/Bilibili/BiliBiliDailyBonus.js, tag=B站Cookie(APP), img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
+http-request ^https?:\/\/app\.bilibili\.com\/x\/resource\/domain\? script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/Bilibili/BiliBiliDailyBonus.js, tag=B站Cookie(APP), img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
 
-http-request ^https?:\/\/m.bilibili.com/$ script-path=https://raw.githubusercontent.com/CDKe-2022/LOON-pattern/main/Loon/Bilibili/BiliBiliDailyBonus.js, tag=B站Cookie(网页), img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
+http-request ^https?:\/\/m.bilibili.com/$ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/Bilibili/BiliBiliDailyBonus.js, tag=B站Cookie(网页), img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/bilibili-red.PNG?raw=true
 
 [MITM]
 hostname = app.bilibili.com, m.bilibili.com
