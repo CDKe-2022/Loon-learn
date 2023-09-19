@@ -1,0 +1,20 @@
+#!name=起点每日广告
+#!desc=定时任务及Cookie获取
+#!author= McDaSheng
+#!icon=https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png
+# 现将获取cookie与定时任务合并为一个模块
+# 保持开启,如检测到cookie变更会自动更新,解决cookie经常过期的问题(cookie仍有效不提醒更新)
+# 任务奖励：经验值/章节卡等
+# 订阅地址：https://raw.githubusercontent.com/CDKe-2022/LOON-pattern/main/Loon/%E8%B5%B7%E7%82%B9%E8%84%9A%E6%9C%AC/qidian.plugin
+# 更新时间：2023-09-18
+
+[Script]
+# BiliBili每日等级任务
+cron "30 10 * * *" script-path=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.js, timeout=300, tag=起点读书
+
+http-request https\:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.cookie.js, requires-body=true, timeout=60, tag=qidian.cookie_1
+
+http-response https\:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/mainPage script-path=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.taskId.js, requires-body=true, timeout=60, tag=qidian.taskId_2
+
+[MITM]
+hostname = h5.if.qidian.com
