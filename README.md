@@ -1,9 +1,18 @@
 # Learn-how-to-use-LOON
-搬运,仅用作记录,所有内容非原创
+****
+本文件内所有文件均来自搬运,仅用作记录,所有内容非原创
 
 ## Loon官方[教程](https://github.com/TiyNa/LoonManual)
+1. 导入loon[配置]（）
+2. 导入节点链接
+3. 插件下载
+   - 可莉
+   - loongallery
+   - yafamily
+   - 小叮当
+   - 骨钉
 
-
+****
 ## 一部分大佬的图标库
 
 | 序号 | 点击名称快捷添加图标订阅 | 作者 |
