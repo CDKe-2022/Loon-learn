@@ -8,13 +8,13 @@
 2. 导入节点链接
 3. 插件下载
   
-| 序号 | 居中对齐 | 右对齐 |
+| 序号 | 作者 | 链接 |
 | :---   | :---:    | ---:   |
-| 1  | :可莉    | [订阅地址](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1)  |
-| 2  | 内容5    | 内容6  |
-| 3  | 内容2    | 内容3  |
-| 4  | 内容5    | 内容6  |
-| 5  | 内容2    | 内容3  |
+| 1  | 可莉    | [订阅地址](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1)  |
+| 2  | loongallery    | [订阅地址](https://loon-gallery.vercel.app)  |
+| 3  | yafamily    | [订阅地址](https://yfamily.vercel.app)  |
+| 4  | chxm1023(小叮当)    | [订阅合集](https://github.com/chxm1023/Script_X/blob/main/Collections.plugin)  |
+| 5  | 骨钉    | [订阅合集](https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Guding.plugin)  |
 
 
    - 可莉                 [订阅地址](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1)
