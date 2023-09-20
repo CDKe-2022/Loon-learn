@@ -7,7 +7,7 @@
 1. 导入loon[配置](https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/Loon%E9%85%8D%E7%BD%AE.conf)
 2. 导入节点链接
 3. 插件下载
-   | 序号 | 作者 | 链接 |
+   | 序号 | 点击名称快捷添加图标订阅 | 作者 |
    | 1 | 可莉 | [订阅地址]([https://loon-gallery.vercel.app](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1) |
    | 2 | loongallery | [订阅地址](https://loon-gallery.vercel.app) |
    | 3 | yafamily | [订阅地址](https://yfamily.vercel.app) |
