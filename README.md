@@ -7,8 +7,8 @@
 1. 导入loon[配置](https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/Loon%E9%85%8D%E7%BD%AE.conf)
 2. 导入节点链接
 3. 插件下载
-   - 可莉 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  [订阅地址]([https://loon-gallery.vercel.app](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1)
-   - loongallery &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  [订阅地址](https://loon-gallery.vercel.app) 
+   - 可莉                 [订阅地址]([https://loon-gallery.vercel.app](https://getupnote.com/share/notes/zSn1ShBmzNYISKcTgjXE5oHMrNf2/4a3b6152-3dd3-46da-b479-8c30ef6ef8d1)
+   - loongallery          [订阅地址](https://loon-gallery.vercel.app) 
    - yafamily             [订阅地址](https://yfamily.vercel.app) 
    - chxm1023(小叮当)     [订阅合集](https://github.com/chxm1023/Script_X/blob/main/Collections.plugin) 
    - 骨钉                 [订阅合集](https://raw.githubusercontent.com/Guding88/Script/main/APPheji_Guding.plugin) 
