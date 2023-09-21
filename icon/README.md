@@ -1,6 +1,9 @@
 # 所有图标来自网络搬运，非本人创作
 
-## 图标库来源
+个人网络图标[合集](https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/Ke-All.json)
+
+
+## 图标库推荐
 
 
 | 序号 | 点击名称快捷添加图标订阅 | 作者 |
