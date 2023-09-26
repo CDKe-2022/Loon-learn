@@ -1,1 +1,11 @@
+#!name=
+#!desc=
+#!homepage=
+#!author=
+#!icon=
+
+[Rewrite]
+
+^(https:\/\/mobile.*\.api\.mgtv\.com\/.+)(&ticket=\w{32})(.*) 302 $1&ticket=9AAD3191831231159C5139E645ACEF1D$3 
+
 
