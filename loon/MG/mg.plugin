@@ -1,14 +1,13 @@
-#!name= MG
-#!desc= 解锁MGvip失败
+#!name=MG
+#!desc=解锁MGvip失败
 #!homepage= 
-#!author= 匿名
-#!icon=
+#!author=匿名
+#!icon=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/mangoTV.png?raw=true
 
 [Rewrite]
 
 ^(https:\/\/mobile.*\.api\.mgtv\.com\/v\d\/video\/.+ource.+)(&ticket=\w{32})(.*) url 302 $1&ticket=9AAD3191831231159C5139E645ACEF1D$3 
 
-http-response https:\/\/mobile.*\.api\.mgtv\.com\/v\d\/video\/.+ource.+ script-path=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.taskId.js, requires-body=true, timeout=60, tag=qidian.taskId_2, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
 
 
 
