@@ -5,11 +5,9 @@
 #!icon=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/mangoTV.png?raw=true
 
 [Rewrite]
+# 将 Quantumult X 的重写配置转换为 Loon 的插件配置
+^https:\/\/mobile.*\.api\.mgtv\.com\/v\d\/video\/.+ource.+\&ticket=\w{32}(.*) url 302 $0&ticket=9AAD3191831231159C5139E645ACEF1D$1
 
-^(https:\/\/mobile.*\.api\.mgtv\.com\/v\d\/video\/.+ource.+)(&ticket=\w{32})(.*) url 302 $1&ticket=9AAD3191831231159C5139E645ACEF1D$3 
-
-
-http-request ^https:\/\/mobile.*\.api\.mgtv\.com\/(.+)&ticket=(\w{32})(.*) script-path=localscript.js, tag=requestScript, enable=true, requires-body=true
 
 
 
