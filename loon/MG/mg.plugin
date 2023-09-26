@@ -8,5 +8,6 @@
 # 将 Quantumult X 的重写配置转换为 Loon 的插件配置
 ^(https:\/\/mobile.*\.api\.mgtv\.com\/.+)(&ticket=\w{32})(.*) 302 $1&ticket=9AAD3191831231159C5139E645ACEF1D$3 
 
-^https?:\/\/(www.)?(g|google)\.(cn|com\.hk) 302 https://www.google.com
+[MITM]
+hostname = *.mgtv.com
 
