@@ -1,0 +1,11 @@
+#!name=京东比价
+#!desc = 在京东应用内嵌入比价信息，点击商品标题即可查看
+#!author= zwf234
+#!date = 2023-10-02 18:05:47
+#!icon=
+
+[Script]
+http-response ^https?://api\.m\.jd\.com/(client\.action|api)\?functionId=(wareBusiness|serverConfig|basicConfig|lite_wareBusiness|pingou_item) script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/main/Resource/Script/JD/JD_Price.js, requires-body = true, tag = 京东比价
+
+[MITM]
+hostname = api.m.jd.com
