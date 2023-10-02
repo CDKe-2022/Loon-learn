@@ -5,7 +5,7 @@
 #!icon= https://github.com/CDKe-2022/Loon-learn/blob/main/icon/jingdong.png?raw=true
 
 [Script]
-http-response ^https?://api\.m\.jd\.com/(client\.action|api)\?functionId=(wareBusiness|serverConfig|basicConfig|lite_wareBusiness|pingou_item) script-path = https://service.2ti.st/QuanX/Script/jd_tb_price/main.js, img-url = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/jingdong.png?raw=true, requires-body = true, tag = 京东比价
+http-response ^https?://api\.m\.jd\.com/client\.action\?functionId=(wareBusiness|serverConfig|basicConfig) script-path = https://service.2ti.st/QuanX/Script/jd_tb_price/main.js, img-url = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/jingdong.png?raw=true, requires-body = true, tag = 京东比价
 
 [MITM]
 hostname = api.m.jd.com
