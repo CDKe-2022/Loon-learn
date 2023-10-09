@@ -6,7 +6,7 @@
 #!icon = 
 #!date = 2023-10-09 21:35:52
 
-[Rewrite]
+[Rule]
 URL-REGEX, ^https:\/\/sta-op\.douyucdn\.cn\/adxdsp, REJECT-DICT
 URL-REGEX, ^https:\/\/img2\.360buyimg\.com\/tgx\/jfs\/t1, REJECT-DICT
 URL-REGEX, ^https:\/\/res\.douyucdn\.cn\/resource, REJECT-DICT
