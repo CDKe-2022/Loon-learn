@@ -1,0 +1,15 @@
+#!name = 斗鱼去开屏广告
+#!desc = 过滤斗鱼主播开屏广告
+#!openUrl = 
+#!author = Ke
+#!homepage = 
+#!icon = 
+#!date = 2023-10-09 21:35:52
+
+[Rewrite]
+URL-REGEX, ^https:\/\/sta-op\.douyucdn\.cn\/adxdsp, REJECT-DICT
+URL-REGEX, ^https:\/\/img2\.360buyimg\.com\/tgx\/jfs\/t1, REJECT-DICT
+URL-REGEX, ^https:\/\/res\.douyucdn\.cn\/resource, REJECT-DICT
+
+[Mitm]
+hostname = sta-op.douyucdn.cn, img2.360buyimg.com, res.douyucdn.cn
