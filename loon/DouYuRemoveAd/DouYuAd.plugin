@@ -10,6 +10,9 @@
 URL-REGEX, ^https:\/\/sta-op\.douyucdn\.cn\/adxdsp, REJECT-DICT
 URL-REGEX, ^https:\/\/img2\.360buyimg\.com\/tgx\/jfs\/t1, REJECT-DICT
 URL-REGEX, ^https:\/\/res\.douyucdn\.cn\/resource, REJECT-DICT
+DOMAIN, sta-op.douyucdn.cn, REJECT
+DOMAIN, img2.360buyimg.com, REJECT
+DOMAIN, res.douyucdn.cn, REJECT
 
 [Mitm]
 hostname = sta-op.douyucdn.cn, img2.360buyimg.com, res.douyucdn.cn
