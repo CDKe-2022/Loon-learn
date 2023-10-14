@@ -1,9 +1,9 @@
 #!name = 去广告
 #!desc = 过滤广告
 #!openUrl = 
-#!author = 
+#!author = Cube
 #!homepage = 
-#!icon = 
+#!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/crown.jpg?raw=true
 #!date = 2023-10-09 21:35:52
 
 [Rule]
