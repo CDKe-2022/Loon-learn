@@ -19,9 +19,10 @@
 ^http[s]?.+audid-api.taobao.com reject
 
 [Script]
-http-request ^http[s]?:\/\/((.+ximalaya.+)|(.+xmcdn.+))\/mobile-playpage\/track\/v3\/baseInfo\/ts script-path=https://raw.githubusercontent.com/gjwj666/qx/main/ximalayatk.js, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/ximalaya.png, timeout=60, tag=ximalayatk_19
+http-request ^http[s]?:\/\/((.+ximalaya.+)|(.+xmcdn.+))\/mobile-playpage\/track\/v3\/baseInfo\/ts script-path=https://raw.githubusercontent.com/gjwj666/qx/main/ximalayatk.js, timeout=60, tag=ximalayatk_19
 
-http-response ^http[s]?:\/\/((.+ximalaya.+)|(.+xmcdn.+)).*\/(playpage\/tabs\/v2|v1\/album\/track\/ts|v1\/album\/price|v2\/homePage|business-vip-presale-mobile-web\/page\/ts|vip\/v1\/recommand|track\/v3\/baseInfo|v1\/module\/data\/dynamic|basicInfo\/dynamic\/ts).*$ script-path=https://raw.githubusercontent.com/gjwj666/qx/main/ximalayabd.js, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/ximalaya.png, requires-body=true, timeout=60, tag=ximalayabd_20
+http-response ^http[s]?:\/\/((.+ximalaya.+)|(.+xmcdn.+)).*\/(playpage\/tabs\/v2|v1\/album\/track\/ts|v1\/album\/price|v2\/homePage|business-vip-presale-mobile-web\/page\/ts|vip\/v1\/recommand|track\/v3\/baseInfo|v1\/module\/data\/dynamic|basicInfo\/dynamic\/ts).*$ script-path=https://raw.githubusercontent.com/gjwj666/qx/main/ximalayabd.js, requires-body=true, timeout=60, tag=ximalayabd_20
+
 
 
 [Mitm]
