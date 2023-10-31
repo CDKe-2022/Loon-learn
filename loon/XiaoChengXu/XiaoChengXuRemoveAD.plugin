@@ -1,1 +1,30 @@
+#!name = 小程序去广告
+#!desc = 微信小程序，收钱吧，顺丰速运，网易大神去广告
+#!author = 佚名
+#!openUrl = 
+#!homepage = 
+#!icon = 
+#!date = 2023-10-31 14:31:47
 
+[Rule]
+# 微信小程序去广告通用规则
+DOMAIN, wxsnsdy.wxs.qq.com, REJECT
+DOMAIN, wxsmsdy.video.qq.com, REJECT
+DOMAIN, wxsnsdythumb.wxs.qq.com, REJECT
+
+# 收钱吧 - 买单小程序去广告
+DOMAIN, ads-shopping.shouqianba.com, REJECT
+
+[Rewrite]
+# 收钱吧 - 买单小程序去广告
+^https:\/\/api\.pinduoduo\.com\/api\/ktt_gateway\/activity\/feeds\/personal_home_page\/ reject
+# 顺丰速运+ @可莉🅥
+^https:\/\/mcs-mimp-web\.sf-express\.com\/mcs-mimp\/integralPlanet\/getCxAdvertiseList reject-dict
+^https:\/\/ucmp-static\.sf-express\.com\/proxy\/wxbase\/wxTicket\/wxLiveStreamInfo\?pageNo reject-dict
+^https:\/\/ucmp\.sf-express\.com\/proxy\/operation-platform\/info-flow-adver\/query reject-dict
+^https:\/\/ucmp\.sf-express\.com\/proxy\/esgcempcore\/member(Goods\/pointMallService\/goodsList|Manage\/memberEquity\/queryRecommendEquity|ActLengthy\/fullGiveActivityService\/fullGiveInfo) reject-dict
+# 网易大神移除开屏广告和弹窗广告
+^https:\/\/god\.gameyw\.netease\.com\/v1\/ad reject
+
+[Mitm]
+hostname = api.pinduoduo.com, ads-shopping.shouqianba.com, hostname = mcs-mimp-web.sf-express.com, ucmp-static.sf-express.com, ucmp.sf-express.com, god.gameyw.netease.com
