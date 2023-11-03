@@ -43,17 +43,15 @@ DOMAIN-SUFFIX, u3.ucweb.com, REJECT
 
 # ======= B ======= #
 # 百度
-DOMAIN-SUFFIX, pos.baidu.com, REJECT
-# 百度地图
-DOMAIN, afd.baidu.com, REJECT
-DOMAIN, afdconf.baidu.com, REJECT
-DOMAIN, httpdns.baidubce.com, REJECT
-DOMAIN, lc.map.baidu.com, REJECT
-# 百度网盘
-DOMAIN, mobads.baidu.com, REJECT
-DOMAIN, sf3-fe-tos.pglstatp-toutiao.com, REJECT
-# 百度贴吧
-IP-CIDR, 180.76.76.200/32, REJECT
+DOMAIN-SUFFIX, pds.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, xg.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, otk.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, at-ipv6.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, ipcdn.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, ip.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, pds.pinduoduo.com, REJECT
+DOMAIN-SUFFIX, dxp.baidu.com, REJECT
+
 # 哔哩哔哩
 DOMAIN, mall.bilibili.com, REJECT
 DOMAIN, passport.bilibili.com, REJECT
