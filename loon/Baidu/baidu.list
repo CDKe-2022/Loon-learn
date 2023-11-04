@@ -1,12 +1,7 @@
-#!name = 百度去广告
-#!desc = 百度过滤广告
-#!openUrl = 
-#!author = Cube
-#!homepage = 
-#!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/removead2.png?raw=true
-#!date = 2023-10-09 21:35:52
-
-[Rule]
+# NAME: BaiDu
+# AUTHOR: cube
+# REPO: 
+# UPDATED: 2023-11-04
 # 百度地图
 DOMAIN, afd.baidu.com, REJECT
 DOMAIN, afdconf.baidu.com, REJECT
@@ -264,3 +259,13 @@ DOMAIN-SUFFIX,baidustatic.com, REJECT
 DOMAIN-SUFFIX,baiduvjsbvjknlsvsv.com, REJECT
 DOMAIN-SUFFIX,baiduyubaidu.com, REJECT
 DOMAIN-SUFFIX,baiduzhidahao.cc, REJECT
+#后续补充
+DOMAIN,nsclick.baidu.com,REJECT
+DOMAIN,novelapi.baidu.com,REJECT
+DOMAIN,tiebac.baidu.com,REJECT
+DOMAIN,minipro.baidu.com,REJECT
+DOMAIN,himg.bdimg.com,REJECT
+DOMAIN,vd3.bdstatic.com,DIRECT
+DOMAIN,vdse.bdstatic.com,REJECT
+DOMAIN-SUFFIX,baidu.com,DIRECT
+DOMAIN-SUFFIX,voice.baidu.com,REJECT
