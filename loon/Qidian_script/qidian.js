@@ -56,12 +56,12 @@ if (!$.session_2) {
 }
 
 (async () => {
-  for (var i = 0; i < 8; i++) {
+  for (var i = 0; i < 7; i++) {
     $.log(`🟡任务1执行次数: ${i + 1}次`);
     await task($.session);
     await $.wait($.timeout * 1000);
   }
-  for (var j = 0; j < 3; j++) {
+  for (var j = 0; j < 2; j++) {
     $.log(`🟡任务2执行次数: ${j + 1}次`);
     await task($.session_2);
     await $.wait($.timeout * 1000);
