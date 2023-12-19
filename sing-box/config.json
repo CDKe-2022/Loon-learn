@@ -108,8 +108,9 @@
       "outbounds": [
         "auto",
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -117,40 +118,45 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
       "tag": "🌌 Google",
       "type": "selector",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
       "tag": "📟 Telegram",
       "type": "selector",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
       "tag": "🐦 Twitter",
       "type": "selector",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
       "tag": "👤 Facebook",
       "type": "selector",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -158,8 +164,9 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -167,8 +174,9 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -176,8 +184,9 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -185,8 +194,9 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -200,8 +210,9 @@
       "tag": "🎬 MediaVideo",
       "type": "selector",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -209,8 +220,9 @@
       "type": "selector",
       "outbounds": [
         "direct",
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -233,8 +245,9 @@
       "tag": "auto",
       "type": "urltest",
       "outbounds": [
-        "SV1",
-        "SV2"
+        "Cloudflare8080",
+        "Cloudflare2052",
+        "Cloudflare443"
       ],
       "url": "http://www.gstatic.com/generate_204",
       "interval": "1m",
@@ -253,7 +266,7 @@
       "tag": "block"
     },
     {
-      "tag": "SV1",
+      "tag": "Cloudflare8080",
       "type": "vless",
       "server": "v4.tuopu.pp.ua", //修改优选ip或域名
       "server_port": 8080, //端口可更改为80 8080 8880 2052 2086 2095
@@ -270,7 +283,7 @@
       }
     },
     {
-      "tag": "SV2",
+      "tag": "Cloudflare2052",
       "type": "vless",
       "server": "jp.cloudflarest.link", //修改优选ip或域名
       "server_port": 2052, //端口可更改为80 8080 8880 2052 2086 2095
@@ -284,6 +297,30 @@
         },
         "early_data_header_name": "Sec-WebSocket-Protocol",
         "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "Cloudflare443",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua", //修改优选ip或域名
+      "server_port": 443, //端口可更改为80 8080 8880 2052 2086 2095
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759", //修改你的uuid
+      "packet_encoding": "xudp",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "zong.kehuang.eu.org" //修改你的host
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      },
+      "tls": {
+         "enabled": true,
+         "disable_sni": false,
+         "server_name": "zong.kehuang.eu.org",
+         "insecure": false,
+         "alpn": []
       }
     }
   ],
