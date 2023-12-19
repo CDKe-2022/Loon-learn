@@ -109,7 +109,8 @@
         "auto",
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -118,7 +119,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -126,7 +128,8 @@
       "type": "selector",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -134,7 +137,8 @@
       "type": "selector",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -142,7 +146,8 @@
       "type": "selector",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -150,7 +155,8 @@
       "type": "selector",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -159,7 +165,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -168,7 +175,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -177,7 +185,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -186,7 +195,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -201,7 +211,8 @@
       "type": "selector",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -210,7 +221,8 @@
       "outbounds": [
         "direct",
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ]
     },
     {
@@ -234,7 +246,8 @@
       "type": "urltest",
       "outbounds": [
         "Cloudflare8080",
-        "Cloudflare2052"
+        "Cloudflare2052",
+        "Cloudflare443"
       ],
       "url": "http://www.gstatic.com/generate_204",
       "interval": "1m",
@@ -284,6 +297,30 @@
         },
         "early_data_header_name": "Sec-WebSocket-Protocol",
         "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "Cloudflare443",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua", //修改优选ip或域名
+      "server_port": 443, //端口可更改为443，2053，2083，2087，2096，8443
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759", //修改你的uuid
+      "packet_encoding": "xudp",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "zong.kehuang.eu.org" //修改你的host
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      },
+      "tls": {
+         "enabled": true,
+         "disable_sni": false,
+         "server_name": "zong.kehuang.eu.org",
+         "insecure": false,
+         "alpn": []
       }
     }
   ],
