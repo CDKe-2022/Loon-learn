@@ -1,3 +1,11 @@
+#!name = 虎牙去广告
+#!desc = 去除虎牙部分广告
+#!author = 不知道
+#!openUrl = 
+#!homepage =
+#!icon =
+#!date = 2023-12-20 14:31:47
+
 [Rule]
 DOMAIN, pp-cdnfile2pcdn.msstatic.com, REJECT
 DOMAIN, livewebbs2pcdn.msstatic.com, REJECT
