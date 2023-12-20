@@ -1,0 +1,14 @@
+[Rule]
+DOMAIN, pp-cdnfile2pcdn.msstatic.com, REJECT
+DOMAIN, livewebbs2pcdn.msstatic.com, REJECT
+DOMAIN, huyafile.msstatic.com, REJECT
+DOMAIN, livewebbs2.msstatic.com, REJECT
+DOMAIN, business.msstatic.com, REJECT
+
+[Rewrite]
+^https?:\/\/business\.msstatic\.com\/advertiser\/material reject
+^https?:\/\/cdnfile1\.msstatic\.com\/cdnfile\/appad\/ reject-img
+^https?://live-ads\.huya\.com/live/getAllEntrance.*$ reject-dict
+
+[Mitm]
+hostname = business.msstatic.com, cdnfile1.msstatic.com, live-ads.huya.com
