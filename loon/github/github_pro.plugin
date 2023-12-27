@@ -1,0 +1,28 @@
+#!name = GithubPro
+#!desc = 除了Ai功能，其他功能都可用
+#!author = Yu9191
+#!openUrl = https://github.com/CDKe-2022/Loon-learn
+#!homepage = https://github.com/CDKe-2022/Loon-learn
+#!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/github.png?raw=true
+#!date = 2023-12-27 18:05:47
+
+[Rewrite]
+https://api.github.com/graphql url script-response-body https://raw.githubusercontent.com/Yu9191/Rewrite/main/Github.js
+
+[Mitm]
+hostname = api.github.com
+
+*/
+
+let obj = JSON.parse($response.body);
+if (obj.data && obj.data.viewer) {
+  obj.data.viewer.isProPlan = true;
+  obj.data.viewer.isEmployee = true;
+  obj.data.viewer.hasAppleIapSubscription = true;
+
+  $done({
+    body: JSON.stringify(obj)
+  });
+} else {
+  $done({});
+}
