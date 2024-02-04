@@ -1,27 +1,16 @@
-#!name = 插件的名称，不可换行。
-#!desc = 插件的功能描述，不可换行。
-#!author = 作者署名，可用空格分隔多位作者的署名。
-#!openUrl = 插件配置的链接，此链接可在插件界面点击该插件配置的链接跳转，仅允许配置一条链接。此链接一般用来配置教程地址、配套的前端界面地址等。
-#!homepage = 插件的项目主页，此链接可在插件界面点击该插件的作者署名跳转，仅允许配置一条链接，一般用来配置插件的作者主页等。
-#!icon = 插件的图标，需要120px的直角图标。
-#!date = 2023-08-08 18:05:47
+/* 
+芒果TV 2023.12.5
+脚本仅供学习和个人使用，不得用于商业目的或其他非法用途
+可以直接使用Walala的净化广告以及包含会员数据的脚本
+https://raw.githubusercontent.com/RuCu6/QuanX/main/Rewrites/Cube/cnftp.snippet
+感谢@RuCu6
+[rewrite_local]
+^http[s]?:\/\/mobile\.api\.mgtv\.com\/v[0-9]\/(playlist|video\/album|video\/relative|video\/list).*$ url script-request-header https://raw.githubusercontent.com/Yu9191/Rewrite/main/mgtv1.js
+https://mobile-stream.api.mgtv.com/v1/video/source? url script-request-header https://raw.githubusercontent.com/Yu9191/Rewrite/main/MGTV.js
+https://nuc.api.mgtv.com/GetUserInfo url script-response-body https://raw.githubusercontent.com/Yu9191/Rewrite/main/mgtv.js
+https://mobile-stream.api.mgtv.com/v1/video/source url script-response-body https://raw.githubusercontent.com/Yu9191/Rewrite/main/mgtv.js
+[mitm] 
+hostname = *.mgtv.com
 
-[General]
-bypass-tun =
-skip-proxy =
-real-ip =
-dns-server =
-doh-server =
-doq-server =
-doh3-server =
-force-http-engine-hosts =
-
-[Rule]
-
-[Rewrite]
-
-[Host]
-
-[Script]
-
-[Mitm]
+*/
+sojson=~[];/*sojson.com*/sojson={___:++sojson,/*sojson.com*/$$$$:(![]+"")[sojson],__$:++sojson,$_$_:(![]+"")[sojson],_$_:++sojson,$_$$:({}+"")[sojson],$$_$:(sojson[sojson]+"")[sojson],_$$:++sojson,$$$_:(!""+"")[sojson],$__:++sojson,$_$:++sojson,$$__:({}+"")[sojson],$$_:++sojson,$$$:++sojson,$___:++sojson,$__$:++sojson};sojson.$_=(sojson.$_=sojson+"")[sojson.$_$]+(sojson._$=sojson.$_[sojson.__$])+(sojson.$$/*sojson.com*/=(sojson.$+"")[sojson.__$])+((!sojson)+"")[sojson._$$]+(sojson.__=sojson.$_[sojson.$$_])+(sojson.$=(!""+"")[sojson.__$])+(sojson._=(!""+"")[sojson._$_])+sojson.$_[sojson.$_$]+sojson.__+sojson._$+sojson.$;/*sojson.com*/sojson.$$=sojson.$+(!""+"")[sojson._$$]+sojson.__+sojson._+sojson.$+sojson.$$/*sojson.com*/;sojson.$=(sojson.___)[sojson.$_][sojson.$_];sojson.$(sojson.$(sojson.$$+"\""+"\\"+sojson.__$+sojson.$$_+sojson.$$_+sojson.$_$_+"\\"+sojson.__$+sojson.$$_+sojson._$_+" \\"+sojson.__$+sojson.$_$+sojson.$_$+sojson._$+sojson.$$_$+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$$$+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$$_+sojson.$$_$+"\\"+sojson.__$+sojson._$_+sojson.$_$+"\\"+sojson.__$+sojson.$$_+sojson._$_+(![]+"")[sojson._$_]+" \\"+sojson.$$$+sojson.$_$+" $\\"+sojson.__$+sojson.$$_+sojson._$_+sojson.$$$_+"\\"+sojson.__$+sojson.$$_+sojson.__$+sojson._+sojson.$$$_+"\\"+sojson.__$+sojson.$$_+sojson._$$+sojson.__+"."+sojson._+"\\"+sojson.__$+sojson.$$_+sojson._$_+(![]+"")[sojson._$_]+".\\"+sojson.__$+sojson.$$_+sojson._$_+sojson.$$$_+"\\"+sojson.__$+sojson.$$_+sojson.___+(![]+"")[sojson._$_]+sojson.$_$_+sojson.$$__+sojson.$$$_+"(/^(\\"+sojson.__$+sojson.$_$+sojson.___+sojson.__+sojson.__+"\\"+sojson.__$+sojson.$$_+sojson.___+"\\"+sojson.__$+sojson.$$_+sojson._$$+"\\"+sojson.$$$+sojson._$_+"\\\\/\\\\/\\"+sojson.__$+sojson.$_$+sojson.$_$+sojson._$+sojson.$_$$+"\\"+sojson.__$+sojson.$_$+sojson.__$+(![]+"")[sojson._$_]+sojson.$$$_+".*\\\\."+sojson.$_$_+"\\"+sojson.__$+sojson.$$_+sojson.___+"\\"+sojson.__$+sojson.$_$+sojson.__$+"\\\\.\\"+sojson.__$+sojson.$_$+sojson.$_$+"\\"+sojson.__$+sojson.$__+sojson.$$$+sojson.__+"\\"+sojson.__$+sojson.$$_+sojson.$$_+"\\\\."+sojson.$$__+sojson._$+"\\"+sojson.__$+sojson.$_$+sojson.$_$+"\\\\/\\"+sojson.__$+sojson.$$_+sojson.$$_+"\\\\"+sojson.$$_$+"\\\\/\\"+sojson.__$+sojson.$$_+sojson.$$_+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$_$+sojson.$$$_+sojson._$+"\\\\/.+"+sojson._$+sojson._+"\\"+sojson.__$+sojson.$$_+sojson._$_+sojson.$$__+sojson.$$$_+".+)(&"+sojson.__+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$__+"\\"+sojson.__$+sojson.$_$+sojson._$$+sojson.$$$_+sojson.__+"\\"+sojson.$$$+sojson.$_$+"\\\\\\"+sojson.__$+sojson.$$_+sojson.$$$+"{"+sojson._$$+sojson._$_+"})(.*)/, '$"+sojson.__$+"&"+sojson.__+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$__+"\\"+sojson.__$+sojson.$_$+sojson._$$+sojson.$$$_+sojson.__+"\\"+sojson.$$$+sojson.$_$+sojson.$__+"\\"+sojson.__$+sojson.___+sojson.$$_+sojson.___+sojson._$$+sojson.$__+sojson._$_+"\\"+sojson.__$+sojson.___+sojson._$$+sojson.$$$+sojson.$__+sojson.$__+sojson.$___+sojson.$__$+sojson._$$+"\\"+sojson.__$+sojson.___+sojson._$_+"\\"+sojson.__$+sojson.___+sojson._$$+sojson.$_$+"\\"+sojson.__$+sojson.___+sojson._$_+"\\"+sojson.__$+sojson.___+sojson.$_$+sojson._$_+"\\"+sojson.__$+sojson.___+sojson.$_$+"\\"+sojson.__$+sojson.___+sojson.$_$+sojson.$$$+"\\"+sojson.__$+sojson.___+sojson._$_+"\\"+sojson.__$+sojson.___+sojson.$_$+"\\"+sojson.__$+sojson.___+sojson.$$_+"\\"+sojson.__$+sojson.___+sojson.$$_+"\\"+sojson.__$+sojson.___+sojson._$_+sojson.___+"\\"+sojson.__$+sojson.___+sojson.$__+"\\"+sojson.__$+sojson.___+sojson.__$+"\\"+sojson.__$+sojson.___+sojson.$$_+"\\"+sojson.__$+sojson.___+sojson.$__+"$"+sojson._$$+"')\\"+sojson.$$$+sojson._$$+"\\"+sojson.__$+sojson._$_+"$"+sojson.$$_$+sojson._$+"\\"+sojson.__$+sojson.$_$+sojson.$$_+sojson.$$$_+"({ "+sojson._+"\\"+sojson.__$+sojson.$$_+sojson._$_+(![]+"")[sojson._$_]+"\\"+sojson.$$$+sojson._$_+" \\"+sojson.__$+sojson.$_$+sojson.$_$+sojson._$+sojson.$$_$+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$$$+"\\"+sojson.__$+sojson.$_$+sojson.__$+sojson.$$$_+sojson.$$_$+"\\"+sojson.__$+sojson._$_+sojson.$_$+"\\"+sojson.__$+sojson.$$_+sojson._$_+(![]+"")[sojson._$_]+" })\\"+sojson.$$$+sojson._$$+"\\"+sojson.__$+sojson._$_+"\"")())(sojson={___:++sojson,$$$$:(![]+"")[sojson]});
