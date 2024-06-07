@@ -23,6 +23,9 @@ DOMAIN,device-api.urbanairship.com
 DOMAIN,remote-data.urbanairship.com
 DOMAIN,logx.optimizely.com
 DOMAIN,uk-script.dotmetrics.net
+DOMAIN,static.chartbeat.com
+DOMAIN,ping.chartbeat.net
+DOMAIN,rm-script.dotmetrics.net
 DOMAIN-SUFFIX,bbc
 DOMAIN-SUFFIX,bbc.co
 DOMAIN-SUFFIX,bbc.co.uk
@@ -40,4 +43,6 @@ DOMAIN-SUFFIX,bbcverticals.com
 DOMAIN-SUFFIX,bidi.net.uk
 DOMAIN-KEYWORD,bbcfmt
 DOMAIN-KEYWORD,uk-live
+IP-CIDR,120.232.218.102/32,no-resolve
 USER-AGENT,BBCiPlayer*
+
