@@ -1,1 +1,16 @@
-#
+#!name = BBC
+#!desc = 去除BBC部分广告
+#!author = HK
+#!openUrl = 
+#!homepage =
+#!icon =
+#!date = 2024-06-07 22:44:47
+
+[Rule]
+
+
+[Rewrite]
+^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-200
+
+[Mitm]
+hostname = securepubads.g.doubleclick.net
