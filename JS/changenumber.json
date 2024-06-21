@@ -31,6 +31,7 @@ function toChineseUppercase(num) {
         result = sectionStr + result;
         i++;
     }
+
     return result.replace(/零+$/, '').replace(/零+/, '零');
 }
 
