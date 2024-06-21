@@ -1,0 +1,38 @@
+function toChineseUppercase(num) {
+    const digits = '零壹贰叁肆伍陆柒捌玖';
+    const units = ['', '拾', '佰', '仟'];
+    const bigUnits = ['', '万', '亿', '兆'];
+    let str = num.toString();
+    let result = '';
+    let i = 0;
+    let zeroCount = 0;
+    while (str.length > 0) {
+        const section = str.slice(-4);
+        str = str.slice(0, -4);
+        let sectionStr = '';
+        let hasZero = false;
+        for (let j = 0; j < section.length; j++) {
+            const digit = +section[j];
+            if (digit === 0) {
+                zeroCount++;
+                hasZero = true;
+            } else {
+                if (hasZero) {
+                    sectionStr = digits[0] + sectionStr;
+                    zeroCount = 0;
+                    hasZero = false;
+                }
+                sectionStr = digits[digit] + units[j] + sectionStr;
+            }
+        }
+        if (sectionStr.length > 0) {
+            sectionStr += bigUnits[i];
+        }
+        result = sectionStr + result;
+        i++;
+    }
+    return result.replace(/零+$/, '').replace(/零+/, '零');
+}
+
+const num = parseInt(prompt("请输入阿拉伯数字："));
+alert(toChineseUppercase(num));
