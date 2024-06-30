@@ -1,0 +1,16 @@
+#!name = 斗鱼
+#!desc = 去除斗鱼部分广告
+#!author = HK
+#!openUrl = 
+#!homepage =
+#!icon = 
+#!date = 2024-06-30 22:44:47
+
+[Rule]
+
+
+[Rewrite]
+^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/ reject-200
+
+[Mitm]
+hostname = rtbapi.douyucdn.cn
