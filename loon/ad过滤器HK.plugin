@@ -7,7 +7,8 @@
 #!date = 2024-07-01 09:04:47
 
 [Rule]
-
+DOMAIN-KEYWORD,pagead2,REJECT
+DOMAIN-KEYWORD,amazon-adsystem,REJECT
 
 [Rewrite]
 #BBC部分广告
@@ -15,5 +16,6 @@
 
 #斗鱼开屏广告
 ^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/ reject-200
+
 [Mitm]
 hostname = securepubads.g.doubleclick.net, rtbapi.douyucdn.cn
