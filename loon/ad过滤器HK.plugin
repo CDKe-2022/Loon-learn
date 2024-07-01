@@ -1,16 +1,19 @@
-#!name = BBC
-#!desc = 去除BBC部分广告
+#!name = ad过滤器HK
+#!desc = 去除BBC、斗鱼部分广告
 #!author = HK
 #!openUrl = 
 #!homepage =
-#!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/BBC%20News.png
-#!date = 2024-06-07 22:44:47
+#!icon = 
+#!date = 2024-07-01 09:04:47
 
 [Rule]
 
 
 [Rewrite]
+#BBC部分广告
 ^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-200
 
+#斗鱼开屏广告
+^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/ reject-200
 [Mitm]
 hostname = securepubads.g.doubleclick.net
