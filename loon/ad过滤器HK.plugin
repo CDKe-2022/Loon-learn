@@ -16,4 +16,4 @@
 #斗鱼开屏广告
 ^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/ reject-200
 [Mitm]
-hostname = securepubads.g.doubleclick.net
+hostname = securepubads.g.doubleclick.net, rtbapi.douyucdn.cn
