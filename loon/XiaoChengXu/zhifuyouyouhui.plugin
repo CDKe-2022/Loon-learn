@@ -2,7 +2,7 @@
 #!desc=添加重写进入"微信支付有优惠"小程序即可获取 Token，支持多账号，仅支持 NE 环境。
 #!author= FoKit
 #!date = 2023-09-21 18:05:47
-#!icon=
+#!icon=https://raw.githubusercontent.com/FoKit/Scripts/main/images/wechat_pay_coupon.png
 # 更新时间：2024-07-02
 
 [Script]
