@@ -1,5 +1,5 @@
 #!name = ad过滤器HK
-#!desc = 去除BBC、斗鱼部分广告
+#!desc = 去除BBC部分广告
 #!author = HK
 #!openUrl = 
 #!homepage =
@@ -14,8 +14,5 @@ DOMAIN-KEYWORD,amazon-adsystem,REJECT
 #BBC部分广告
 ^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-200
 
-#斗鱼开屏广告
-^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/ reject-200
-
 [Mitm]
-hostname = securepubads.g.doubleclick.net, rtbapi.douyucdn.cn
+hostname = securepubads.g.doubleclick.net
