@@ -1,6 +1,10 @@
-#!name=咪咕视频
-#!desc=咪咕视频VIP部分解锁
-#!icon=https://github.com/Toperlock/Quantumult/raw/main/icon/Doraemon/Doraemon-1097.png
+#!name= 咪咕视频
+#!desc= 咪咕视频VIP部分解锁
+#!author = 佚名
+#!openUrl = 
+#!homepage = 
+#!icon = 
+#!date = 2024-07-31 10:20:00
 
 [Rewrite]
 # > 开屏广告
