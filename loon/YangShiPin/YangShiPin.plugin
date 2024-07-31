@@ -1,0 +1,18 @@
+#!name=YangShiPin_QX
+#!desc=YangShiPin_QX
+#!icon=https://github.com/Toperlock/Quantumult/raw/main/icon/Doraemon/Doraemon-1053.png
+
+[Rewrite]
+# > 央视频 去广告
+^https?:\/\/cdn\.cmgadx\.com\/sdk\/pool\/.+\.json - reject-dict
+
+[Script]
+http-request ^http:\/\/(liveinfo|bkliveinfo|playvv)\.ysp\.cctv\.cn\/(playvinfo\?.+|.*) script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/yangshipin.js, timeout=60, tag=yangshipin
+
+# 解锁[电视]内会员 如果登录提示错误的话 手动屏蔽下面这条
+http-request ^https:\/\/liveinfo\.ysp\.cctv\.cn\/ script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/yangshipin.js, timeout=60, tag=yangshipin
+
+http-request ^https:\/\/m\.yangshipin\.cn\/static\/\w/\w+\/index\.html$ script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/yangshipin.js, timeout=60, tag=yangshipin
+
+[MITM]
+hostname = *.ysp.cctv.cn, cdn.cmgadx.com
