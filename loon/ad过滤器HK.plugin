@@ -12,7 +12,7 @@ DOMAIN-KEYWORD,amazon-adsystem,REJECT
 
 [Rewrite]
 #BBC部分广告
-^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-200
+^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
 
 [Mitm]
 hostname = securepubads.g.doubleclick.net
