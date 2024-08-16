@@ -1,18 +1,28 @@
-#!name = BBC
-#!desc = 去除BBC部分广告
+#!name = AD过滤器
+#!desc = 去除BBC、CNN、永辉超市、华尔街见闻app广告
 #!author = HK
 #!openUrl = 
 #!homepage =
 #!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/BBC%20News.png
-#!date = 2024-07-01 09:04:47
+#!system = iOS
+#!loon_version = 3.2.1(372)
+#!tag = 去广告
+#!date = 2024-08-16 09:04:47
 
 [Rule]
+#BBC
 DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
 
 [Rewrite]
 #BBC部分广告
 ^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
+#华尔街见闻
+^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ reject-dict
+#CNN
+^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
+#永辉超市
+^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
 
 [Mitm]
-hostname = securepubads.g.doubleclick.net
+hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com
