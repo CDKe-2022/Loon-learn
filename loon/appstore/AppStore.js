@@ -3,7 +3,7 @@ const headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36"
 };
 
-// 脚本运行环境判断并执行请求
+// 判断运行环境并执行相应的请求
 if (typeof $task !== 'undefined') {
     $task.fetch({ url: url, headers: headers }).then(response => {
         handleResponse(response.body);
@@ -43,8 +43,8 @@ function handleResponse(body, requestHeaders) {
     let notificationContent = '';
     for (let i = 0; i < freeAppList.length && i < appCount; i++) {
         const app = freeAppList[i];
-        const description = truncateDescription(app.description, 30);
-        notificationContent += `🆓 ${app.name} | 原价：￥${app.originalPrice}\n描述：${description}\n\n`;
+        const description = truncateDescription(app.description, 50); // 增加描述长度至50
+        notificationContent += `🆓 ${app.name}\n原价：￥${app.originalPrice}\n描述：${description}\n\n`;
     }
 
     if (typeof $notify !== 'undefined') {
