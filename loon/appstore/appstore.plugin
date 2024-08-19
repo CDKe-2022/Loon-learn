@@ -6,6 +6,6 @@
 #!date = 2023-09-21 18:05:47
 
 [Script]
-cron "17 17 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/appstore/appstore.js, timeout=300, tag=AppStore限免APP, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/appstore.png?raw=true
+cron "17 17 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/appstore/AppStore.js, timeout=300, tag=AppStore限免APP, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/appstore.png?raw=true
 
 [Mitm]
