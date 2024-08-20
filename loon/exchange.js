@@ -25,70 +25,58 @@ const currencyNames = {
     MYR: ["马来西亚林吉特", "🇲🇾"],
 };
 
-// 记录程序启动日志
-$.log("程序启动，开始获取汇率数据");
-
 // 发起HTTP GET请求，获取当前基准货币的汇率数据
-$.http.get({
-    url: "https://api.exchangerate-api.com/v4/latest/CNY" // 汇率API的URL
-})
-    .then((response) => {
-        // 记录请求完成日志
-        $.log("HTTP请求完成，开始解析数据");
-
-        // 解析响应数据
-        const data = JSON.parse(response.body);
-        $.log(`数据解析成功，基准货币：${base}, 日期：${data.date}`);
-
-        // 获取基准货币的信息
-        const source = currencyNames[base];
-
-        // 生成其他货币的汇率信息
-        const info = Object.keys(currencyNames).reduce((accumulator, key) => {
-            let line = "";
-            // 排除基准货币，并检查数据中是否有该货币的汇率
-            if (key !== base && data.rates.hasOwnProperty(key)) {
-                // 获取汇率并转为浮点数
-                const rate = parseFloat(data.rates[key]);
-                // 获取目标货币的信息
-                const target = currencyNames[key];
-                $.log(`汇率计算中：1 ${source[0]} = ${rate} ${target[0]}`);
-
-                // 汇率大于1时，表示1单位基准货币可兑换多少目标货币
-                if (rate > 1) {
-                    line = `${target[1]} 1${source[0]}兑${roundNumber(rate, digits)}${target[0]}\n`;
-                } else {
-                    // 汇率小于1时，表示1单位目标货币可兑换多少基准货币
-                    line = `${target[1]} 1${target[0]}兑${roundNumber(1 / rate, digits)}${source[0]}\n`;
-                }
-            }
-            // 累加汇率信息
-            return accumulator + line;
-        }, "");
-
-        // 记录汇率信息生成日志
-        $.log("汇率信息生成完成，开始发送通知");
-
-        // 发送通知，展示汇率信息
-        $.notify(
-            `[今日汇率] 基准：${source[1]} ${source[0]}`,
-            `⏰ 更新时间：${data.date}`,
-            `📈 汇率情况：\n${info}`
-        );
+fetchExchangeRates(base)
+    .then(data => processExchangeRates(data))
+    .catch(error => {
+        $.notify(`[错误]`, `获取汇率失败`, `原因：${error.message}`);
+        console.error(error);
     })
-    .then(() => {
-        // 记录完成日志
-        $.log("通知发送完成，程序结束");
-        $.done(); // 请求完成后，调用.done()结束
-    });
+    .finally(() => $.done());
+
+// 获取汇率数据
+function fetchExchangeRates(baseCurrency) {
+    const url = `https://api.exchangerate-api.com/v4/latest/${baseCurrency}`;
+    return $.http.get({ url })
+        .then(response => JSON.parse(response.body))
+        .catch(error => {
+            throw new Error("API请求失败，请检查网络连接或API地址是否正确。");
+        });
+}
+
+// 处理并通知汇率信息
+function processExchangeRates(data) {
+    const source = currencyNames[base];
+    const info = Object.keys(currencyNames).reduce((accumulator, key) => {
+        if (key !== base && data.rates.hasOwnProperty(key)) {
+            const rate = parseFloat(data.rates[key]);
+            const target = currencyNames[key];
+            return accumulator + formatExchangeRate(rate, source, target);
+        }
+        return accumulator;
+    }, "");
+
+    $.notify(
+        `[今日汇率] 基准：${source[1]} ${source[0]}`,
+        `⏰ 更新时间：${data.date}`,
+        `📈 汇率情况：\n${info}`
+    );
+}
+
+// 格式化汇率信息
+function formatExchangeRate(rate, source, target) {
+    if (rate > 1) {
+        return `${target[1]} 1${source[0]}兑${roundNumber(rate, digits)}${target[0]}\n`;
+    } else {
+        return `${target[1]} 1${target[0]}兑${roundNumber(1 / rate, digits)}${source[0]}\n`;
+    }
+}
 
 // 辅助函数：用于对数字进行四舍五入处理
 function roundNumber(num, scale) {
     if (!("" + num).includes("e")) {
-        // 如果数字不包含科学计数法表示，直接四舍五入
         return +(Math.round(num + "e+" + scale) + "e-" + scale);
     } else {
-        // 如果数字包含科学计数法表示，处理后再四舍五入
         let arr = ("" + num).split("e");
         let sig = "";
         if (+arr[1] + scale > 0) {
@@ -104,18 +92,18 @@ function roundNumber(num, scale) {
 
 // 辅助函数：用于检测脚本运行环境并提供API支持
 function ENV() {
-    const e = "undefined" != typeof $task, // 是否为Quantumult X
-        t = "undefined" != typeof $loon, // 是否为Loon
-        s = "undefined" != typeof $httpClient && !t, // 是否为Surge
-        i = "function" == typeof require && "undefined" != typeof $jsbox; // 是否为JSBox
+    const e = "undefined" != typeof $task,
+        t = "undefined" != typeof $loon,
+        s = "undefined" != typeof $httpClient && !t,
+        i = "function" == typeof require && "undefined" != typeof $jsbox;
     return {
-        isQX: e, // Quantumult X 环境
-        isLoon: t, // Loon 环境
-        isSurge: s, // Surge 环境
-        isNode: "function" == typeof require && !i, // Node.js 环境
-        isJSBox: i, // JSBox 环境
-        isRequest: "undefined" != typeof $request, // 是否为HTTP请求环境
-        isScriptable: "undefined" != typeof importModule // 是否为Scriptable环境
+        isQX: e,
+        isLoon: t,
+        isSurge: s,
+        isNode: "function" == typeof require && !i,
+        isJSBox: i,
+        isRequest: "undefined" != typeof $request,
+        isScriptable: "undefined" != typeof importModule
     };
 }
 
@@ -127,13 +115,12 @@ function HTTP(e = { baseURL: "" }) {
 
     // 遍历HTTP方法，创建HTTP请求方法（GET, POST, 等）
     ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH"].forEach(l => u[l.toLowerCase()] = (u =>
-        (function(u, l) {
-            // 如果传入的是字符串，则包装为对象
+        (function (u, l) {
             l = "string" == typeof l ? { url: l } : l;
             const h = e.baseURL;
             h && !r.test(l.url || "") && (l.url = h ? h + l.url : l.url);
             const a = (l = { ...e, ...l }).timeout;
-            const c = { onRequest: () => {}, onResponse: e => e, onTimeout: () => {}, ...l.events };
+            const c = { onRequest: () => { }, onResponse: e => e, onTimeout: () => { }, ...l.events };
             let f, d;
 
             // 请求处理流程，针对不同环境进行请求处理
@@ -176,3 +163,19 @@ function API(e = "untitled", t = !1) {
                 return null;
             })();
             this.initCache();
+            Promise.prototype.delay = function (e) {
+                return this.then(function (t) {
+                    return ((e, t) => new Promise(function (s) { setTimeout(s.bind(null, t), e) }))(e, t)
+                })
+            }
+        }
+
+        // 初始化缓存，根据环境选择合适的存储方式
+        initCache() {
+            if (s && (this.cache = JSON.parse($prefs.valueForKey(this.name) || "{}")),
+                (i || n) && (this.cache = JSON.parse($persistentStore.read(this.name) || "{}")),
+                o) {
+                let e = "root.json";
+                this.node.fs.existsSync(e) || this.node.fs.writeFileSync(e, JSON.stringify({}), { flag: "wx" }, e => console.log(e)),
+                    this.root = {},
+                    e = `${this.name}.json`,
