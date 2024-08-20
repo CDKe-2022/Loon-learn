@@ -179,3 +179,22 @@ function API(e = "untitled", t = !1) {
                 this.node.fs.existsSync(e) || this.node.fs.writeFileSync(e, JSON.stringify({}), { flag: "wx" }, e => console.log(e)),
                     this.root = {},
                     e = `${this.name}.json`,
+                    this.node.fs.existsSync(e) ? this.cache = JSON.parse(this.node.fs.readFileSync(e)) : this.cache = this.root;
+            }
+        }
+
+        // 发送通知
+        notify(title, subtitle = '', message = '') {
+            if (s) $notify(title, subtitle, message);
+            if (i || n) $notification.post(title, subtitle, message);
+            if (u) importModule("Notification").post(title, subtitle, message);
+            if (o) console.log(`${title}\n${subtitle}\n${message}`);
+        }
+
+        done() {
+            if (s || i || n) $done();
+            if (u) Script.complete();
+            if (o) console.log("Done");
+        }
+    }(e, t);
+}
