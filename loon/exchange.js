@@ -29,8 +29,9 @@ const currencyNames = {
 fetchExchangeRates(base)
     .then(data => processExchangeRates(data))
     .catch(error => {
+        const errorMessage = `[错误] 获取汇率失败 - 原因：${error.message}`;
         $.notify(`[错误]`, `获取汇率失败`, `原因：${error.message}`);
-        console.error(error);
+        console.error(errorMessage);
     })
     .finally(() => $.done());
 
@@ -56,11 +57,15 @@ function processExchangeRates(data) {
         return accumulator;
     }, "");
 
-    $.notify(
-        `[今日汇率] 基准：${source[1]} ${source[0]}`,
-        `⏰ 更新时间：${data.date}`,
-        `📈 汇率情况：\n${info}`
-    );
+    const title = `[今日汇率] 基准：${source[1]} ${source[0]}`;
+    const subtitle = `⏰ 更新时间：${data.date}`;
+    const message = `📈 汇率情况：\n${info}`;
+    
+    // 输出到日志
+    console.log(`${title}\n${subtitle}\n${message}`);
+    
+    // 发送通知
+    $.notify(title, subtitle, message);
 }
 
 // 格式化汇率信息
@@ -183,14 +188,18 @@ function API(e = "untitled", t = !1) {
             }
         }
 
-        // 发送通知
+        // 发送通知并输出到日志
         notify(title, subtitle = '', message = '') {
+            // 输出到日志
+            console.log(`${title}\n${subtitle}\n${message}`);
+
             if (s) $notify(title, subtitle, message);
             if (i || n) $notification.post(title, subtitle, message);
             if (u) importModule("Notification").post(title, subtitle, message);
             if (o) console.log(`${title}\n${subtitle}\n${message}`);
         }
 
+        // 结束脚本执行
         done() {
             if (s || i || n) $done();
             if (u) Script.complete();
