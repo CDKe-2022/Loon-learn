@@ -3,7 +3,7 @@
 #!author = Sliverkiss
 #!openUrl = 
 #!homepage = 
-#!icon = 
+#!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/sunfeng.png
 #!system = iOS, iPadOS, tvOS, macOS
 #!system_version = 17
 #!loon_version = 3.2.1(379)
@@ -13,5 +13,5 @@
 [Script]
 http-response ^https:\/\/mcs-mimp-web\.sf-express\.com\/mcs-mimp\/share\/weChat\/shareGiftReceiveRedirect.+ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/shunfeng.js, requires-body=true, timeout=60, tag=顺丰速运获取token
 
-[Host]
+[Mitm]
 hostname = mcs-mimp-web.sf-express.com
