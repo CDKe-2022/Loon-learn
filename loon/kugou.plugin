@@ -1,0 +1,32 @@
+#!name = 酷狗概念版去广告
+#!desc = 移除开屏、内部弹窗广告。
+#!openUrl = 
+#!author = hk
+#!tag = 去广告
+#!system = 
+#!system_version = 
+#!loon_version = 3.2.1(745)
+#!homepage = 
+#!icon = 
+#!date = 2024-09-16 08:42:59
+
+[Rule]
+
+
+[Rewrite]
+# 歌词页面广告
+^http:\/\/mobilelog\.kugou\.com\/adtrackconfig\.json reject
+^http:\/\/kmr\.service\.kugou\.com\/v1\/album reject
+^https:\/\/gateway\.kugou\.com\/ads\.gateway\/v2\/ reject-dict
+^https:\/\/gateway\.kugou\.com\/yutc\/youth\/v1\/system\/profile\? reject-dict
+^https:\/\/ad\.tencentmusic\.com\/sdk\/ reject-dict
+^https:\/\/gateway\.kugou\.com\/youth\/api\/user\/v1\/init\? reject-dict
+^https:\/\/pgdt\.gtimg\.cn\/141\/20204\/snscosdownload\/ reject-dict
+
+
+[Script]
+# 首页轮播图和视频流广告
+http-response ^https:\/\/us\.l\.qq\.com\/exapp\? script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/master/Resource/Script/Douyu/Douyu_remove_ads.js, requires-body = true, tag = 移除首页轮播图和视频流广告
+
+[MitM]
+hostname = ad.tencentmusic.com, us.l.qq.com, gateway.kugou.com, 
