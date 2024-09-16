@@ -13,9 +13,7 @@
 [Rule]
 DOMAIN,adsfilebssdlbig.tx.kugou.com,REJECT-DROP
 DOMAIN,imge.tx.kugou.com,REJECT-DROP
-DOMAIN,gateway.kugou.com,REJECT
 DOMAIN,push.mobile.kugou.com,REJECT
-DOMAIN,kmrserviceretry.kugou.com,REJECT-DROP
 DOMAIN,adstats.tencentmusic.com,REJECT
 DOMAIN,d.kglink.cn,REJECT-DROP
 DOMAIN,ocsp.digicert.com,REJECT
