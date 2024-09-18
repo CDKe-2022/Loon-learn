@@ -13,6 +13,9 @@
 #BBC
 DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
+#永辉超市
+DOMAIN,lbs.netease.im,REJECT
+URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 
 [Rewrite]
 #BBC部分广告
