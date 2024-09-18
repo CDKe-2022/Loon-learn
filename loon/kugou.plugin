@@ -20,6 +20,14 @@ DOMAIN,ocsp.digicert.com,REJECT
 DOMAIN,d.kugou.com,REJECT
 DOMAIN-SUFFIX,adstats,REJECT
 DOMAIN-KEYWORD,adservice,REJECT
+DOMAIN,imgewebp.ali.kugou.com,REJECT-DROP
+DOMAIN,ad.mmbiz.oa.com,REJECT-DROP
+DOMAIN,pgdt.gtimg.cn,REJECT-DROP
+DOMAIN-SUFFIX,l.qq.com,REJECT-DROP
+DOMAIN-SUFFIX,gdt.qq.com,REJECT-DROP
+DOMAIN,gatewayretry.kugou.com,REJECT
+DOMAIN,acsing.kugou.com,REJECT-DROP
+DOMAIN,serveraddr.service.kugou.com,REJECT-DROP
 
 [Rewrite]
 # 歌词页面广告
