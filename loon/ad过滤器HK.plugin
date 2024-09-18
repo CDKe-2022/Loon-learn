@@ -23,6 +23,9 @@ DOMAIN-KEYWORD,amazon-adsystem,REJECT
 ^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
 #永辉超市
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
+^https:\/\/api\.yonghuivip\.com\/web\/search\/recommend\/meal\/info\/815\? reject-200
+^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 reject-200
+^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/waterfall reject-200
 
 [Mitm]
 hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com
