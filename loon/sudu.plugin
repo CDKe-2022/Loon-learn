@@ -1,0 +1,21 @@
+#!name = suduku.com
+#!desc = 去除suduku.com的广告
+#!author = HK
+#!openUrl = 
+#!homepage = 
+#!icon = 
+#!date = 2024-09-023 18:05:47
+
+[Rule]
+DOMAIN-KEYWORD,unityads,REJECT
+DOMAIN,events.mz.unity3d.com,REJECT
+DOMAIN,noti-asia.adsmoloco.com,REJECT
+DOMAIN,adx.ads.vungle.com,REJECT
+DOMAIN,nt-adservfnt-asia.dsp-api.moloco.com,REJECT
+DOMAIN,ads.inmobi.com,REJECT
+
+[Rewrite]
+
+[Host]
+
+[Mitm]
