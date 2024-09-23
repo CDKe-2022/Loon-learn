@@ -15,7 +15,9 @@ DOMAIN,nt-adservfnt-asia.dsp-api.moloco.com,REJECT
 DOMAIN,ads.inmobi.com,REJECT
 
 [Rewrite]
+# unityads
+^https:\/\/(gateway\.unityads\.unity3d\.com|webview\.unityads\.unity3d\.com|scar\.unityads\.unitychina\.cn)\/.*$ reject-dict
+
 
 [Host]
-
-[Mitm]
+hostname = gateway.unityads.unity3d.com, webview.unityads.unity3d.com, scar.unityads.unitychina.cn
