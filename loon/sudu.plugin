@@ -7,7 +7,6 @@
 #!date = 2024-09-023 18:05:47
 
 [Rule]
-DOMAIN-KEYWORD,unityads,REJECT
 DOMAIN,events.mz.unity3d.com,REJECT
 DOMAIN,noti-asia.adsmoloco.com,REJECT
 DOMAIN,adx.ads.vungle.com,REJECT
@@ -18,6 +17,14 @@ DOMAIN,ads.inmobi.com,REJECT
 # unityads
 ^https:\/\/(gateway\.unityads\.unity3d\.com|webview\.unityads\.unity3d\.com|scar\.unityads\.unitychina\.cn)\/.*$ reject-dict
 
+# 屏蔽广告请求
+^https:\/\/.*\.your-ad-server\.com\/.*$ reject
+
+# 如果找到广告请求的具体路径，比如加载广告的 API，可以直接拦截
+^https:\/\/example-ad-server\.com\/ads\/load reject
+
+# 屏蔽视频广告请求
+^https:\/\/.*\.your-video-ad-server\.com\/video_ad.*$ reject
 
 [Host]
 hostname = gateway.unityads.unity3d.com, webview.unityads.unity3d.com, scar.unityads.unitychina.cn
