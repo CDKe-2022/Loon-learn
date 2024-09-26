@@ -12,8 +12,29 @@ DOMAIN,noti-asia.adsmoloco.com,REJECT
 DOMAIN,adx.ads.vungle.com,REJECT
 DOMAIN,nt-adservfnt-asia.dsp-api.moloco.com,REJECT
 DOMAIN,ads.inmobi.com,REJECT
+DOMAIN,lan.sdk.linkedin.com,REJECT-DROP
+DOMAIN,view.adjust.com,REJECT
+DOMAIN,analytics.adjust.net.in,REJECT-DROP
+DOMAIN,games.tresensa.com,REJECT-DROP
+DOMAIN,publisher-event.unityads.unity3d.com,REJECT
+DOMAIN,analytics.adjust.com,REJECT-DROP
+DOMAIN,tpat.api.vungle.com,REJECT
+DOMAIN,ae.iads.unity3d.com,REJECT
+DOMAIN,gw-ext.mediation.unity3d.com,REJECT
+DOMAIN,o-sdk.mediation.unity3d.com,REJECT
+DOMAIN,res1.applovin.com,REJECT
+DOMAIN,rt.applovin.com,REJECT
+DOMAIN,events.ads.vungle.com,REJECT
+DOMAIN,nt-adservfnt-us.dsp-api.moloco.com,REJECT
 
 [Rewrite]
+
+^https:\/\/cached-ad\.fyber\.com\/ad\? response-body-json-del data.iaAd data.CDATA
+^https:\/\/app-analytics-services\.com\/a reject
+^https:\/\/analytics\.adjust\.com\/sdk_click reject-dict
+^https:\/\/auction-load\.unityads\.unity3d\.com\/v6\/games\/ reject-dict
+^https:\/\/adx\.ads\.vungle\.com\/api\/v7\/ads response-body-json-del data.ads data.request
+
 # unityads
 ^https:\/\/(gateway\.unityads\.unity3d\.com|webview\.unityads\.unity3d\.com|scar\.unityads\.unitychina\.cn)\/.*$ reject-dict
 
@@ -27,4 +48,4 @@ DOMAIN,ads.inmobi.com,REJECT
 ^https:\/\/.*\.your-video-ad-server\.com\/video_ad.*$ reject
 
 [Host]
-hostname = gateway.unityads.unity3d.com, webview.unityads.unity3d.com, scar.unityads.unitychina.cn
+hostname = gateway.unityads.unity3d.com, webview.unityads.unity3d.com, scar.unityads.unitychina.cn, cached-ad.fyber.com,app-analytics-services.com,analytics.adjust.com,auction-load.unityads.unity3d.com,adx.ads.vungle.com
