@@ -1,13 +1,11 @@
 #!name = 酷狗概念版去广告
-#!desc = 移除开屏、内部弹窗广告。
-#!openUrl = 
-#!author = hk
+#!desc = 移除开屏、内部弹窗广告,需要重新安装软件。
+#!openUrl = https://github.com/CDKe-2022
+#!author = hk[https://github.com/CDKe-2022]
 #!tag = 去广告
-#!system = 
-#!system_version = 
 #!loon_version = 3.2.1(745)
-#!homepage = 
-#!icon = 
+#!homepage = https://github.com/CDKe-2022
+#!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/kugou.png?raw=true
 #!date = 2024-09-16 08:42:59
 
 [Rule]
