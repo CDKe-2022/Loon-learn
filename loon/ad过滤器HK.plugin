@@ -21,7 +21,7 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 #BBC部分广告
 ^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
 #华尔街见闻
-^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ reject-dict
+^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
 #CNN
 ^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
 #永辉超市
