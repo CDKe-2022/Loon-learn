@@ -39,10 +39,12 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 # 去除直播页面下方广告
 ^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list response-body-json-del data.fix_entrance data.pendant_top data.sub_act_entrance data.pendant_mobile_b
 ^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\? reject-dict
+^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\? response-body-json-del data.ad
+^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\? response-body-json-del data.list[2].ad
 
 [Script]
 # 首页轮播图和视频流广告
 http-response ^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 script-path = https://gitlab.com/lodepuly/vpn_tool/-/raw/master/Resource/Script/Douyu/Douyu_remove_ads.js, requires-body = true, tag = 移除首页轮播图和视频流广告
 
 [MitM]
-hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn
+hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn, apiv3.douyucdn.cn
