@@ -1,5 +1,5 @@
 #!name = AD过滤器
-#!desc = 去除BBC、CNN、永辉超市、华尔街见闻app广告
+#!desc = 去除BBC、CNN、永辉超市、华尔街见闻、航旅纵横广告
 #!author = HK
 #!openUrl = 
 #!homepage =
@@ -30,5 +30,11 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 reject-200
 ^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/waterfall reject-200
 
+#航旅纵横
+^https:\/\/static\.umetrip\.com\/app\/lucky_draw\/ reject-200
+^https:\/\/bkclient\.umetrip\.com\.cn\/gateway\/api\/umetrip\/native reject-200
+^https:\/\/umerp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-200
+^https:\/\/discardrp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-dict
+
 [Mitm]
-hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com
+hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, *.umetrip.com
