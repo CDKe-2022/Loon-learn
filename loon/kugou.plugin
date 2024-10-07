@@ -1,7 +1,6 @@
-#!name = 酷狗概念版去广告
-#!desc = 移除开屏、内部弹窗广告,需要重新安装软件。
+#!name = 酷狗概念版-VIP
+#!desc = 每日凌晨09点10分自动领取VIP，第一使用打开酷狗概念版天天签到领VIP页面获取参数，提示获取成功即可，去除启动广告
 #!openUrl = https://github.com/CDKe-2022
-#!author = hk[https://github.com/CDKe-2022]
 #!tag = 去广告
 #!loon_version = 3.2.1(745)
 #!homepage = https://github.com/CDKe-2022
@@ -9,38 +8,29 @@
 #!date = 2024-09-16 08:42:59
 
 [Rule]
-DOMAIN,adsfilebssdlbig.tx.kugou.com,REJECT-DROP
-DOMAIN,imge.tx.kugou.com,REJECT-DROP
-DOMAIN,push.mobile.kugou.com,REJECT
-DOMAIN,adstats.tencentmusic.com,REJECT
-DOMAIN,d.kglink.cn,REJECT-DROP
-DOMAIN,ocsp.digicert.com,REJECT
-DOMAIN,d.kugou.com,REJECT
-DOMAIN-SUFFIX,adstats,REJECT
-DOMAIN-KEYWORD,adservice,REJECT
-DOMAIN,imgewebp.ali.kugou.com,REJECT-DROP
-DOMAIN,ad.mmbiz.oa.com,REJECT-DROP
-DOMAIN,pgdt.gtimg.cn,REJECT-DROP
-DOMAIN-SUFFIX,l.qq.com,REJECT-DROP
-DOMAIN-SUFFIX,gdt.qq.com,REJECT-DROP
-DOMAIN,gatewayretry.kugou.com,REJECT
-DOMAIN,acsing.kugou.com,REJECT-DROP
-DOMAIN,serveraddr.service.kugou.com,REJECT-DROP
-
-[Rewrite]
-# 歌词页面广告
-^http:\/\/mobilelog\.kugou\.com\/adtrackconfig\.json reject
-^http:\/\/kmr\.service\.kugou\.com\/v1\/album reject
-^https:\/\/gateway\.kugou\.com\/ads\.gateway\/v2\/ reject-dict
-^https:\/\/gateway\.kugou\.com\/yutc\/youth\/v1\/system\/profile\? reject-dict
-^https:\/\/ad\.tencentmusic\.com\/sdk\/ reject-dict
-^https:\/\/gateway\.kugou\.com\/youth\/api\/user\/v1\/init\? reject-dict
-^https:\/\/pgdt\.gtimg\.cn\/141\/20204\/snscosdownload\/ reject-dict
+URL-REGEX,https://gateway.kugou.com/ads.gateway/.*,REJECT
+URL-REGEX,https://gateway3.kugou.com/ads.gateway/.*,REJECT
+URL-REGEX,https://gatewayretry.kugou.com/ads.gateway/.*,REJECT
+URL-REGEX,https://gateway.kugou.com/youth/api/user/v1/init.*,REJECT
+URL-REGEX,^http:\/\/mobilelog\.kugou\.com\/adtrackconfig\.json$,REJECT
+URL-REGEX,https://tmeadcomm.y.qq.com/maproxy/getPbCompressAd,REJECT
+DOMAIN-SUFFIX,adservice.kugou.com,REJECT
+DOMAIN-SUFFIX,install2.kugou.com,REJECT
+DOMAIN-SUFFIX,adstats.tencentmusic.com,REJECT
+DOMAIN-SUFFIX,tmead.y.qq.com,REJECT
+DOMAIN-SUFFIX,ad.tencentmusic.com,REJECT
+DOMAIN-SUFFIX,api-adservices.apple.com,REJECT
+DOMAIN-SUFFIX,us.l.qq.com,REJECT
+DOMAIN-SUFFIX,p.l.qq.com,REJECT
+DOMAIN-SUFFIX,mc.tencentmusic.com,REJECT
+DOMAIN-SUFFIX,mdt.qq.com,REJECT
+DOMAIN-SUFFIX,gdt.qq.com,REJECT
+DOMAIN-SUFFIX,e.qq.com,REJECT
 
 [Script]
-cron "10 0 * * *" script-path=https://gist.githubusercontent.com/Alex0510/1c389019c264a7d3ddbe4dbcf77d4295/raw/kugou_auto.js, tag=酷狗领取VIP
+cron "10 09 * * *" script-path=https://gist.githubusercontent.com/Alex0510/1c389019c264a7d3ddbe4dbcf77d4295/raw/kugou_auto.js, tag=酷狗领取VIP
 
 http-request https://(gateway|gatewayretry|gateway3).kugou.com/youth/v1/(recharge/receive_vip_listen_song|activity/get_month_vip_record).* script-path=https://gist.githubusercontent.com/Alex0510/1c389019c264a7d3ddbe4dbcf77d4295/raw/kugou.js, tag=酷狗数据
 
 [MitM]
-hostname = ad.tencentmusic.com, *.kugou.com, 
+hostname = *.kugou.com, 
