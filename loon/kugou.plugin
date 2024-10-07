@@ -1,9 +1,7 @@
 #!name = 酷狗概念版-VIP
 #!desc = 每日凌晨09点10分自动领取VIP，第一使用打开酷狗概念版天天签到领VIP页面获取参数，提示获取成功即可，去除启动广告
-#!openUrl = https://github.com/CDKe-2022
 #!tag = 去广告
 #!loon_version = 3.2.1(745)
-#!homepage = https://github.com/CDKe-2022
 #!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/kugou.png?raw=true
 #!date = 2024-09-16 08:42:59
 
@@ -33,4 +31,4 @@ cron "10 09 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-
 http-request https://(gateway|gatewayretry|gateway3).kugou.com/youth/v1/(recharge/receive_vip_listen_song|activity/get_month_vip_record).* script-path=https://gist.githubusercontent.com/Alex0510/1c389019c264a7d3ddbe4dbcf77d4295/raw/kugou.js, tag=酷狗数据
 
 [MitM]
-hostname = *.kugou.com, 
+hostname = *.kugou.com
