@@ -1,0 +1,6 @@
+#!name=local
+#!desc=local
+#!icon=https://github.com/Toperlock/Quantumult/raw/main/icon/Doraemon/Doraemon-1020.png
+
+[Script]
+http-request 30 0 * * * script-path=https://raw.githubusercontent.com/Alex0510/Eric/refs/heads/master/surge/Script/SLVPN.js, tag=瞬连vpn
