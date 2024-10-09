@@ -1,51 +1,13 @@
 #!name = suduku.com
 #!desc = 去除suduku.com的广告
-#!author = HK
+#!author = Yu9191
 #!openUrl = 
 #!homepage = 
 #!icon = 
 #!date = 2024-09-023 18:05:47
 
-[Rule]
-DOMAIN,events.mz.unity3d.com,REJECT
-DOMAIN,noti-asia.adsmoloco.com,REJECT
-DOMAIN,adx.ads.vungle.com,REJECT
-DOMAIN,nt-adservfnt-asia.dsp-api.moloco.com,REJECT
-DOMAIN,ads.inmobi.com,REJECT
-DOMAIN,lan.sdk.linkedin.com,REJECT-DROP
-DOMAIN,view.adjust.com,REJECT
-DOMAIN,analytics.adjust.net.in,REJECT-DROP
-DOMAIN,games.tresensa.com,REJECT-DROP
-DOMAIN,publisher-event.unityads.unity3d.com,REJECT
-DOMAIN,analytics.adjust.com,REJECT-DROP
-DOMAIN,tpat.api.vungle.com,REJECT
-DOMAIN,ae.iads.unity3d.com,REJECT
-DOMAIN,gw-ext.mediation.unity3d.com,REJECT
-DOMAIN,o-sdk.mediation.unity3d.com,REJECT
-DOMAIN,res1.applovin.com,REJECT
-DOMAIN,rt.applovin.com,REJECT
-DOMAIN,events.ads.vungle.com,REJECT
-DOMAIN,nt-adservfnt-us.dsp-api.moloco.com,REJECT
+[Script]
+http-response ^https:\/\/buy\.itunes\.apple\.com\/verifyReceipt script-path=https://raw.githubusercontent.com/Yu9191/Rewrite/main/itunes/shudu.js, requires-body=true, timeout=60, tag=shudu
 
-[Rewrite]
-
-^https:\/\/cached-ad\.fyber\.com\/ad\? response-body-json-del data.iaAd data.CDATA
-^https:\/\/app-analytics-services\.com\/a reject
-^https:\/\/analytics\.adjust\.com\/sdk_click reject-dict
-^https:\/\/auction-load\.unityads\.unity3d\.com\/v6\/games\/ reject-dict
-^https:\/\/adx\.ads\.vungle\.com\/api\/v7\/ads response-body-json-del data.ads data.request
-
-# unityads
-^https:\/\/(gateway\.unityads\.unity3d\.com|webview\.unityads\.unity3d\.com|scar\.unityads\.unitychina\.cn)\/.*$ reject-dict
-
-# 屏蔽广告请求
-^https:\/\/.*\.your-ad-server\.com\/.*$ reject
-
-# 如果找到广告请求的具体路径，比如加载广告的 API，可以直接拦截
-^https:\/\/example-ad-server\.com\/ads\/load reject
-
-# 屏蔽视频广告请求
-^https:\/\/.*\.your-video-ad-server\.com\/video_ad.*$ reject
-
-[Host]
-hostname = gateway.unityads.unity3d.com, webview.unityads.unity3d.com, scar.unityads.unitychina.cn, cached-ad.fyber.com,app-analytics-services.com,analytics.adjust.com,auction-load.unityads.unity3d.com,adx.ads.vungle.com
+[MITM]
+hostname = buy.itunes.apple.com
