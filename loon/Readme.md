@@ -46,10 +46,14 @@ force-http-engine-hosts =
 5.将分享的脚本填入 Script那一栏；
 
 插件中加个开关按钮
+
+```
 [Argument]
 CaptureCookie = switch, false, true, tag = 捕获Cookie, desc = 此开关控制插件是否捕获Cookie
 
 [Script]
 # 捕获Cookie
 http-request ^https:\/\/moapi\.wps\.cn\/app\/ios\/v1\/app$ script-path = WPS_checkin.js, requires-body = true, tag = 捕获Cookie, enable = {CaptureCookie}
+
+```
 
