@@ -44,7 +44,7 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 
 [Script]
 # 首页轮播图和视频流广告
-http-response ^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 script-path = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/DouYu/DouYu_removeAD_2.js, requires-body = true, tag = 移除首页轮播图和视频流广告
+http-response ^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 script-path = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/DouYu/DouYu_removeAD_JQ.js, requires-body = true, tag = 移除首页轮播图和视频流广告
 
 [MitM]
 hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn, apiv3.douyucdn.cn
