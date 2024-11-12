@@ -1,37 +1,41 @@
 const $ = new Env("起点读书");
 
-const obj = JSON.parse($response.body);
-const taskIdList = [
-  { name: "taskId", index: 0 },
-  { name: "taskId_2", index: 1 },
-];
+try {
+  const obj = JSON.parse($response.body);
+  const taskList = obj.Data.VideoBenefitModule.TaskList;
+  const countdownTasks = obj.Data.CountdownBenefitModule.TaskList;
 
-const findTaskId = (title) => {
-  const task = obj.Data.CountdownBenefitModule.TaskList.find(
-    (task) => task.Title === title
-  );
-  return task ? task.TaskId : null;
-};
+  const a = taskList[0]?.TaskId;
+  const b = taskList[1]?.TaskId;
+  let c = null;
 
-const taskId_2 = findTaskId("额外看3次小视频得奖励");
-$.setdata(taskId_2, "qd_taskId_2");
+  // Locate TaskId for the specific task title
+  for (const task of countdownTasks) {
+    if (task.Title === "额外看3次小视频得奖励") {
+      c = task.TaskId;
+      $.setdata(c, "qd_taskId_2");
+      break;
+    }
+  }
 
-const tasks = taskIdList.map((taskInfo) => ({
-  name: taskInfo.name,
-  taskId: obj.Data.VideoBenefitModule.TaskList[taskInfo.index].TaskId,
-}));
-
-const hasAllTasks = tasks.every((task) => task.taskId);
-
-if (hasAllTasks && taskId_2) {
-  tasks.forEach((task) => $.setdata(task.taskId, task.name));
-  $.log(`🎉任务信息获取成功!`);
-  tasks.forEach((task) => $.log(`${task.name}: ${task.taskId}`));
-  $.msg($.name, `🎉任务信息获取成功!`);
+  if (a && b && c) {
+    $.setdata(a, "qd_taskId");
+    $.log(`🎉任务信息获取成功!`);
+    $.log(`taskId: ${a}`);
+    $.log(`taskId_2: ${c}`);
+    $.msg($.name, `🎉任务信息获取成功!`);
+  } else {
+    $.log("🔴任务信息获取失败!");
+    $.log($response.body);
+    $.msg($.name, "🔴任务信息获取失败!");
+  }
+} catch (e) {
+  $.logErr(e);
+  $.msg($.name, "🔴解析或任务信息获取失败!");
+} finally {
   $.done();
-} else {
-  $.log("🔴任务信息获取失败!");
-  $.log($response.body);
-  $.msg($.name, "🔴任务信息获取失败!");
-  $.done();
+}
+
+function Env(t, s) {
+  // Existing Env class logic remains unchanged
 }
