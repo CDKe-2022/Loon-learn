@@ -37,7 +37,7 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 ^https:\/\/venus\.douyucdn\.cn\/venus\/config\/static\/update.+keyCodeSet=flow_config response-body-json-replace greatGodGameSitterSwitch 0 followMoreAnchorEntrance 0 sdklivebanner 0 homeActFloatSwitch 0 bringGoodsSwitch 0 qqGameSwitch 0
 
 # 去除直播页面下方广告
-^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list response-body-json-del data.fix_entrance data.pendant_top data.sub_act_entrance data.pendant_mobile_b
+^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list response-body-json-del data.fix_entrance data.pendant_top data.sub_act_entrance data.pendant_mobile_b data.pendant_mobile_c
 ^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\? reject-dict
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\? response-body-json-del data.ad
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\? response-body-json-del data.list[2].ad
