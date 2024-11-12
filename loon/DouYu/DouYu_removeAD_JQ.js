@@ -7,23 +7,9 @@ def removeAds: map(select(.ad | not));
 # 尝试解析响应的JSON数据并进行处理
 if url | contains("/mgapi/livenc/home/getRecV3") then
     .data |= (
-        if .rec_cont then
-            .rec_cont = removeAds(.rec_cont)
-        else
-            .
-        end
+        .rec_cont |= removeAds // .
         |
-        if .rec_card then
-            .rec_card |= map(
-                if .card_banner then
-                    .card_banner = removeAds(.card_banner)
-                else
-                    .
-                end
-            )
-        else
-            .
-        end
+        .rec_card |= map(.card_banner |= removeAds // .)
     )
 end;
 
