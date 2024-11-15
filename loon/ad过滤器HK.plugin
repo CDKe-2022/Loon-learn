@@ -28,7 +28,7 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
 ^https:\/\/api\.yonghuivip\.com\/web\/search\/recommend\/meal\/info\/815\? reject-200
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 reject-200
-^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/waterfall reject-200
+^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? reject-200
 
 #航旅纵横
 ^https:\/\/static\.umetrip\.com\/app\/lucky_draw\/ reject-200
