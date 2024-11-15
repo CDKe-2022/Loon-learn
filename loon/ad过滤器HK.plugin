@@ -13,8 +13,10 @@
 #BBC
 DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
-#永辉超市
+#永辉超市(开屏广告getui)
 DOMAIN,lbs.netease.im,REJECT
+DOMAIN-SUFFIX,getui.com,REJECT-DROP
+DOMAIN-SUFFIX,getui.net,REJECT-DROP
 URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 
 [Rewrite]
