@@ -38,11 +38,8 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4\/expiredRemind\/ reject-200
 ^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? reject-200
 
-#航旅纵横
-#^https:\/\/static\.umetrip\.com\/app\/lucky_draw\/ reject-200
-#^https:\/\/bkclient\.umetrip\.com\.cn\/gateway\/api\/umetrip\/native reject-200
-#^https:\/\/umerp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-200
-#^https:\/\/discardrp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-dict
+#航旅纵横开屏广告
+^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
 
 [Mitm]
-hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, *.umetrip.com,acs.m.taobao.com 
+hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com 
