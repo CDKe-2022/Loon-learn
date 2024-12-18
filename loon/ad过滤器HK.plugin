@@ -41,7 +41,7 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 #航旅纵横
 ^https:\/\/static\.umetrip\.com\/app\/lucky_draw\/ reject-200
 ^https:\/\/bkclient\.umetrip\.com\.cn\/gateway\/api\/umetrip\/native reject-200
-^https:\/\/umerp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-200
+#^https:\/\/umerp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-200
 ^https:\/\/discardrp\.umetrip\.com\/gateway\/api\/umetrip\/native reject-dict
 
 [Mitm]
