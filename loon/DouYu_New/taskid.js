@@ -21,12 +21,12 @@ var a = obj.Data.DailyBenefitModule.TaskList[0].TaskId;  // 第一个任务的 I
 var b = obj.Data.DailyBenefitModule.TaskList[1].TaskId;  // 第二个任务的 ID
 var c;  // 用于存储额外任务的 TaskId
 
-// 遍历 SurpriseBenefitModule 模块中的任务列表，查找特定标题的任务
-for (var i = 0; i < obj.Data.SurpriseBenefitModule.TaskList.length; i++) {
+// 遍历 VideoRewardTab 模块中的任务列表，查找特定标题的任务
+for (var i = 0; i < obj.Data.VideoRewardTab.TaskList.length; i++) {
   // 如果任务标题为 "额外看3次小视频得奖励"
-  if (obj.Data.SurpriseBenefitModule.TaskList[i].Title == "额外看3次小视频得奖励") {
+  if (obj.Data.VideoRewardTab.TaskList[i].Title == "额外看3次小视频得奖励") {
     // 获取该任务的 TaskId，并保存
-    c = obj.Data.SurpriseBenefitModule.TaskList[i].TaskId;
+    c = obj.Data.VideoRewardTab.TaskList[i].TaskId;
     // 将 TaskId 存储到本地数据中，键为 "qd_taskId_2"
     $.setdata(c, "qd_taskId_2");
     break;  // 找到目标任务后退出循环
