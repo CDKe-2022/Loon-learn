@@ -21,7 +21,7 @@ for (var i = 0; i < obj.Data.VideoRewardTab.TaskList.length; i++) {
     obj.Data.VideoRewardTab.TaskList[i].Title ==
     "额外看3次小视频得奖励"
   ) {
-    c = obj.Data.CountdownBenefitModule.TaskList[i].TaskId;
+    c = obj.Data.VideoRewardTab.TaskList[i].TaskId;
     $.setdata(c, "qd_taskId_2");
     break;
   } else {
