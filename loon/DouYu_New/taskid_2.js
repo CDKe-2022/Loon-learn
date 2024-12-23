@@ -12,8 +12,8 @@ hostname = h5.if.qidian.com
 const $ = new Env("起点读书");
 
 var obj = JSON.parse($response.body);
-var a = obj.Data.Data.DailyBenefitModule.TaskList[0].TaskId;
-var b = obj.Data.Data.DailyBenefitModule.TaskList[1].TaskId;
+var a = obj.Data.DailyBenefitModule.TaskList[0].TaskId;
+var b = obj.Data.DailyBenefitModule.TaskList[1].TaskId;
 var c;
 
 for (var i = 0; i < obj.Data.VideoRewardTab.TaskList.length; i++) {
