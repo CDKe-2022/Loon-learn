@@ -12,16 +12,16 @@ hostname = h5.if.qidian.com
 const $ = new Env("起点读书");
 
 var obj = JSON.parse($response.body);
-var a = obj.Data.VideoBenefitModule.TaskList[0].TaskId;
-var b = obj.Data.VideoBenefitModule.TaskList[1].TaskId;
+var a = obj.Data.DailyBenefitModule.TaskList[0].TaskId;
+var b = obj.Data.DailyBenefitModule.TaskList[1].TaskId;
 var c;
 
-for (var i = 0; i < obj.Data.CountdownBenefitModule.TaskList.length; i++) {
+for (var i = 0; i < obj.Data.VideoRewardTab.TaskList.length; i++) {
   if (
-    obj.Data.CountdownBenefitModule.TaskList[i].Title ==
+    obj.Data.VideoRewardTab.TaskList[i].Title ==
     "额外看3次小视频得奖励"
   ) {
-    c = obj.Data.CountdownBenefitModule.TaskList[i].TaskId;
+    c = obj.Data.VideoRewardTab.TaskList[i].TaskId;
     $.setdata(c, "qd_taskId_2");
     break;
   } else {
@@ -34,7 +34,7 @@ if ((a = b) && c) {
   $.log(`🎉任务信息获取成功!`);
   $.log(`taskId_2: ${a}`);
   $.log(`taskId_2: ${c}`);
-  $.msg($.name, `🎉任务信息获取成功!`, `可以禁用脚本`);
+  $.msg($.name, `🎉任务信息获取成功!`);
   $.done();
 } else {
   $.log("🔴任务信息获取失败!");
