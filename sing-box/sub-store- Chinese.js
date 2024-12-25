@@ -1,0 +1,1552 @@
+{
+  "dns": {
+    "fakeip": {
+      "enabled": true,
+      "inet4_range": "198.18.0.0/15",
+      "inet6_range": "fc00::/18"
+    },
+    "servers": [
+      {
+        "tag": "google",
+        "address": "https://8.8.8.8/dns-query",
+        "detour": "proxy"
+      },
+      {
+        "tag": "tx",
+        "address": "https://120.53.53.53/dns-query",
+        "detour": "direct"
+      },
+      {
+        "tag": "fakeip",
+        "address": "fakeip"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "tx",
+        "disable_cache": true
+      },
+      {
+        "clash_mode": "Direct",
+        "server": "tx"
+      },
+      {
+        "clash_mode": "Global",
+        "server": "fakeip"
+      },
+      {
+        "inbound": "tun",
+        "query_type": [
+          "A",
+          "AAAA"
+        ],
+        "server": "fakeip",
+        "rewrite_ttl": 1
+      },
+      {
+        "rule_set": "geolocation-!cn",
+        "server": "google"
+      }
+    ],
+    "final": "tx",
+    "independent_cache": true
+  },
+  "route": {
+    "rules": [
+      {
+        "port": 53,
+        "outbound": "dns-out"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "Direct",
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "Global",
+        "outbound": "GLOBAL"
+      },
+      {
+        "rule_set": "bilibili",
+        "outbound": "bilibili"
+      },
+      {
+        "rule_set": [
+          "geoip-netflix",
+          "geosite-netflix"
+        ],
+        "outbound": "netflix"
+      },
+      {
+        "rule_set": "bahamut",
+        "outbound": "bahamut"
+      },
+      {
+        "rule_set": "youtube",
+        "outbound": "youtube"
+      },
+      {
+        "rule_set": "openai",
+        "outbound": "openai"
+      },
+      {
+        "rule_set": [
+          "geoip-google",
+          "geosite-google"
+        ],
+        "outbound": "google"
+      },
+      {
+        "rule_set": [
+          "geoip-apple",
+          "geosite-apple"
+        ],
+        "outbound": "apple"
+      },
+      {
+        "rule_set": [
+          "geoip-telegram",
+          "geosite-telegram"
+        ],
+        "outbound": "telegram"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn"
+        ],
+        "outbound": "cn"
+      },
+      {
+        "rule_set": "geolocation-!cn",
+        "outbound": "proxy"
+      },
+      {
+        "inbound": [
+          "tun",
+          "mixed"
+        ],
+        "outbound": "loop"
+      }
+    ],
+    "rule_set": [
+      {
+        "tag": "geoip-apple",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geoip/apple.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geosite-apple",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/apple.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "bahamut",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/bahamut.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "bilibili",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/bilibili.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/cn.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geoip-google",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geoip/google.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geosite-google",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/google.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geolocation-!cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/geolocation-!cn.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geoip-netflix",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geoip/netflix.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geosite-netflix",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/netflix.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "openai",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/openai.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geoip-telegram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geoip/telegram.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "geosite-telegram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/telegram.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "youtube",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/youtube.srs",
+        "download_detour": "direct"
+      }
+    ],
+    "final": "final",
+    "auto_detect_interface": true
+  },
+  "outbounds": [
+    {
+      "tag": "proxy",
+      "type": "selector",
+      "outbounds": [
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto",
+        "direct"
+      ],
+      "default": "手动选择👋-auto"
+    },
+    {
+      "tag": "google",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "apple",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "telegram",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "bilibili",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "netflix",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "bahamut",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "youtube",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "openai",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "cn",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "final",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "香港🇭🇰",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "台湾",
+      "type": "selector",
+      "outbounds": [
+        "COMPATIBLE"
+      ]
+    },
+    {
+      "tag": "日本🇯🇵",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "新加坡🇸🇬",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "美国🇺🇸",
+      "type": "selector",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "手动选择👋",
+      "type": "selector",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "Cloudflare(worker)",
+        "Cloudflare(IPv6)",
+        "Cloudflare(2082)",
+        "Cloudflare(2095)",
+        "workers-trojan-443",
+        "workers-trojan-8080",
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "香港🇭🇰-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "台湾-auto",
+      "type": "urltest",
+      "outbounds": [
+        "COMPATIBLE"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "日本🇯🇵-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "新加坡🇸🇬-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "美国🇺🇸-auto",
+      "type": "urltest",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "手动选择👋-auto",
+      "type": "urltest",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "Cloudflare(worker)",
+        "Cloudflare(IPv6)",
+        "Cloudflare(2082)",
+        "Cloudflare(2095)",
+        "workers-trojan-443",
+        "workers-trojan-8080",
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "GLOBAL",
+      "type": "selector",
+      "outbounds": [
+        "direct",
+        "proxy",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "direct",
+      "type": "direct"
+    },
+    {
+      "tag": "dns-out",
+      "type": "dns"
+    },
+    {
+      "tag": "loop",
+      "type": "socks",
+      "server": "127.0.0.1",
+      "server_port": 7891
+    },
+    {
+      "tag": "COMPATIBLE",
+      "type": "direct"
+    },
+    {
+      "tag": "【HY2】Eusevr｜🇩🇪德国v6",
+      "type": "hysteria2",
+      "server": "2a02:180:6:1::12a",
+      "server_port": 47396,
+      "password": "6f871e36-28ac-474d-a49c-657b99f64136",
+      "tls": {
+        "enabled": true,
+        "server_name": "2a02:180:6:1::12a",
+        "insecure": true
+      }
+    },
+    {
+      "tag": "【VMESS】Eusevr｜🇩🇪德国v6",
+      "type": "vmess",
+      "server": "2a02:180:6:1::12a",
+      "server_port": 2082,
+      "uuid": "6f871e36-28ac-474d-a49c-657b99f64136",
+      "security": "auto",
+      "alter_id": 0,
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "www.bing.com"
+        },
+        "path": "/6f871e36-28ac-474d-a49c-657b99f64136-vm"
+      }
+    },
+    {
+      "tag": "Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/",
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "Cloudflare(IPv6)",
+      "type": "vless",
+      "server": "v6.tuopu.pp.ua",
+      "server_port": 80,
+      "uuid": "95591b82-b2db-49f6-9070-287710b510bf",
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "ipv6.kehuang2022.workers.dev"
+        },
+        "path": "/providerl.yaml"
+      }
+    },
+    {
+      "tag": "Cloudflare(2082)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 2082,
+      "uuid": "7387baba-2840-4826-8efa-fa340a2ddb32",
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "2082.cdhuangke.workers.dev"
+        },
+        "path": "/",
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "Cloudflare(2095)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 2095,
+      "uuid": "e1e22214-4033-427b-8972-b37ce4b52a6b",
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "2095.cdhuangke.workers.dev"
+        },
+        "path": "/",
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "workers-trojan-443",
+      "type": "trojan",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "password": "tuopu000",
+      "tls": {
+        "enabled": true,
+        "server_name": "trojan443.tuopu.pp.ua",
+        "insecure": false
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "trojan443.tuopu.pp.ua"
+        },
+        "path": "/"
+      },
+      "tcp_fast_open": true
+    },
+    {
+      "tag": "workers-trojan-8080",
+      "type": "trojan",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "password": "tuopu000",
+      "tls": {
+        "enabled": true,
+        "server_name": "trojan8080.tuopu.pp.ua",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "trojan8080.tuopu.pp.ua"
+        },
+        "path": "/",
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      },
+      "tcp_fast_open": true
+    },
+    {
+      "tag": "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.hk.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.us.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.sg.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.jp.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=hk.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=sg.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=us.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.wto.org",
+      "server_port": 8443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=jp.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.hk.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.us.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.sg.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.jp.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=hk.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=sg.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=us.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+      "type": "vless",
+      "server": "www.visa.com.新加坡🇸🇬",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=jp.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.hk.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.us.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.sg.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.jp.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 折腾HK Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=hk.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 折腾SG Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=sg.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 折腾US Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=us.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "官方优选 ➮ 折腾JP Cloudflare(worker)",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=jp.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.hk.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.us.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.sg.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=proxyip.jp.fxxk.dedyn.io"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 折腾HK Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=hk.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 折腾SG Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=sg.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 折腾US Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=us.cf.zhetengsha.eu.org"
+      }
+    },
+    {
+      "tag": "折腾啥 ➮ 折腾JP Cloudflare(worker)",
+      "type": "vless",
+      "server": "cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+      "tls": {
+        "enabled": true,
+        "server_name": "zong.kehuang.eu.org",
+        "insecure": true
+      },
+      "transport": {
+        "type": "ws",
+        "headers": {
+          "Host": "zong.kehuang.eu.org"
+        },
+        "path": "/proxyIP=jp.cf.zhetengsha.eu.org"
+      }
+    }
+  ],
+  "inbounds": [
+    {
+      "tag": "tun",
+      "type": "tun",
+      "inet4_address": "172.19.0.0/30",
+      "inet6_address": "fdfe:dcba:9876::0/126",
+      "stack": "system",
+      "auto_route": true,
+      "sniff": true,
+      "platform": {
+        "http_proxy": {
+          "enabled": true,
+          "server": "127.0.0.1",
+          "server_port": 7890
+        }
+      }
+    },
+    {
+      "tag": "mixed",
+      "type": "mixed",
+      "listen": "127.0.0.1",
+      "listen_port": 7890,
+      "sniff": true
+    },
+    {
+      "tag": "loop-in",
+      "type": "mixed",
+      "listen": "127.0.0.1",
+      "listen_port": 7891,
+      "sniff": true,
+      "domain_strategy": "prefer_ipv4"
+    }
+  ],
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+      "external_ui_download_detour": "proxy"
+    },
+    "cache_file": {
+      "enabled": true,
+      "store_fakeip": true
+    }
+  },
+  "log": {
+    "disabled": false,
+    "level": "debug",
+    "timestamp": true
+  }
+}
