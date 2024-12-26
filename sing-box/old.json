@@ -1,0 +1,223 @@
+{
+  "log": {
+    "level": "debug",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "proxyDns",
+        "address": "https://8.8.8.8/dns-query",
+        "detour": "proxy"
+      },
+      {
+        "tag": "localDns",
+        "address": "https://223.5.5.5/dns-query",
+        "detour": "direct"
+      },
+      {
+        "tag": "block",
+        "address": "rcode://success"
+      },
+      {
+        "tag": "remote",
+        "address": "fakeip"
+      }
+    ],
+    "rules": [
+      {
+        "domain": [
+          "ghproxy.com",
+          "cdn.jsdelivr.net",
+          "testingcf.jsdelivr.net"
+        ],
+        "server": "localDns"
+      },
+      {
+        "geosite": "category-ads-all",
+        "server": "block"
+      },
+      {
+        "outbound": "any",
+        "server": "localDns",
+        "disable_cache": true
+      },
+      {
+        "geosite": "cn",
+        "server": "localDns"
+      },
+      {
+        "clash_mode": "direct",
+        "server": "localDns"
+      },
+      {
+        "clash_mode": "global",
+        "server": "proxyDns"
+      },
+      {
+        "geosite": "geolocation-!cn",
+        "server": "proxyDns"
+      },
+      {
+        "query_type": [
+          "A",
+          "AAAA"
+        ],
+        "server": "remote"
+      }
+    ],
+    "fakeip": {
+      "enabled": true,
+      "inet4_range": "198.18.0.0/15",
+      "inet6_range": "fc00::/18"
+    },
+    "independent_cache": true,
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "auto_route": true,
+      "domain_strategy": "prefer_ipv4",
+      "endpoint_independent_nat": true,
+      "inet4_address": "172.19.0.1/30",
+      "inet6_address": "2001:0470:f9da:fdfa::1/64",
+      "mtu": 9000,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "stack": "system",
+      "strict_route": true,
+      "type": "tun"
+    },
+    {
+      "domain_strategy": "prefer_ipv4",
+      "listen": "127.0.0.1",
+      "listen_port": 2333,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "tag": "socks-in",
+      "type": "socks",
+      "users": []
+    },
+    {
+      "domain_strategy": "prefer_ipv4",
+      "listen": "127.0.0.1",
+      "listen_port": 2334,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "tag": "mixed-in",
+      "type": "mixed",
+      "users": []
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "proxy",
+      "type": "selector",
+      "default": "自动选择",
+      "outbounds": [
+        "自动选择",
+        "direct",
+        "Cloudflare8080",
+        "Cloudflare443",
+        "🇺🇸美国06-电信"
+      ]
+    },
+    {
+      "tag": "Cloudflare8080",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua", //修改优选ip或域名
+      "server_port": 8080, //端口可更改为80 8080 8880 2052 2086 2095
+      "uuid": "2375e4d8-b380-4fe6-a77a-76d06b004b66", //修改你的uuid
+      "packet_encoding": "xudp",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "8080.kehuang.link" //修改你的host
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      }
+    },
+    {
+      "tag": "Cloudflare443",
+      "type": "vless",
+      "server": "v4.tuopu.pp.ua", //修改优选ip或域名
+      "server_port": 443, //端口可更改为80 8080 8880 2052 2086 2095
+      "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759", //修改你的uuid
+      "packet_encoding": "xudp",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "zong.kehuang.eu.org" //修改你的host
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol",
+        "max_early_data": 2048
+      },
+      "tls": {
+         "enabled": true,
+         "disable_sni": false,
+         "server_name": "zong.kehuang.eu.org",
+         "insecure": false,
+         "alpn": []
+      }
+    },
+    {"type": "vless", 
+     "tag": "🇺🇸美国06-电信", 
+     "server": "us6free.gaosu.homes", 
+     "server_port": 13107, "uuid": "00e3a361-774c-4566-ab9e-3aa96a68e07f", 
+     "packet_encoding": "xudp", 
+     "flow": "xtls-rprx-vision", 
+     "tls": {
+         "enabled": true, 
+         "insecure": true, 
+         "server_name": "www.bing.com", 
+         "reality": {
+             "enabled": true, 
+             "public_key": "W9Bz6wDeuxAxNMScu0fqujuxZPBPb1EbKpCd0fopsQU", 
+             "short_id": "13205e65"
+             }, 
+         "utls": {
+             "enabled": true, 
+             "fingerprint": "chrome"
+             }
+        }
+    },
+    {"tag": "direct", "type": "direct"},
+    {"tag": "block", "type": "block"},
+    {"tag": "dns-out", "type": "dns"},
+    {
+      "tag": "自动选择", 
+      "type": "urltest", 
+      "outbounds": [
+        "Cloudflare8080", 
+        "Cloudflare443", 
+        "🇺🇸美国06-电信"
+      ],
+      "url": "http://www.bing.com/",
+      "interval": "1m",
+      "tolerance": 50
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "final": "proxy",
+    "geoip": {
+      "download_url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db",
+      "download_detour": "direct"
+    },
+    "geosite": {
+      "download_url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.db",
+      "download_detour": "direct"
+    },
+    "rules": [
+      {"geosite": "category-ads-all", "outbound": "block"},
+      {"outbound": "dns-out", "protocol": "dns"},
+      {"clash_mode": "direct", "outbound": "direct"},
+      {"clash_mode": "global", "outbound": "proxy"},
+      {"geoip": ["cn", "private"], "outbound": "direct"},
+      {"geosite": "cn", "outbound": "direct"}
+    ]
+  }
+}
