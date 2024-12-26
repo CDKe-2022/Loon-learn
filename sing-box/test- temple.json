@@ -3,7 +3,7 @@
     "disabled": false,
     "level": "info",
     "timestamp": true
-  }
+  },
   "dns": {
     "servers": [
       {
@@ -59,7 +59,7 @@
       "inet4_range": "198.18.0.0/15",
       "inet6_range": "fc00::/18"
     }
-  }
+  },
   "inbounds": [
     {
       "tag": "tun",
@@ -878,7 +878,6 @@
         "path": "/proxyIP=jp.cf.zhetengsha.eu.org"
       }
     }
-  ],
   ],
   "route": {
     "rules": [
