@@ -94,7 +94,477 @@
     }
   ],
   "outbounds": [
-        {
+{
+      "tag": "proxy",
+      "type": "selector",
+      "outbounds": [
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto",
+        "direct"
+      ],
+      "default": "手动选择👋-auto"
+    },
+    {
+      "tag": "google",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "apple",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "telegram",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "bilibili",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "netflix",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "bahamut",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "youtube",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "openai",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "cn",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "direct"
+    },
+    {
+      "tag": "final",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "香港🇭🇰",
+        "香港🇭🇰-auto",
+        "台湾",
+        "台湾-auto",
+        "日本🇯🇵",
+        "日本🇯🇵-auto",
+        "新加坡🇸🇬",
+        "新加坡🇸🇬-auto",
+        "美国🇺🇸",
+        "美国🇺🇸-auto",
+        "手动选择👋",
+        "手动选择👋-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "香港🇭🇰",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "台湾",
+      "type": "selector",
+      "outbounds": [
+        "COMPATIBLE"
+      ]
+    },
+    {
+      "tag": "日本🇯🇵",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "新加坡🇸🇬",
+      "type": "selector",
+      "outbounds": [
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "美国🇺🇸",
+      "type": "selector",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "手动选择👋",
+      "type": "selector",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "Cloudflare(worker)",
+        "Cloudflare(IPv6)",
+        "Cloudflare(2082)",
+        "Cloudflare(2095)",
+        "workers-trojan-443",
+        "workers-trojan-8080",
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ]
+    },
+    {
+      "tag": "香港🇭🇰-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "台湾-auto",
+      "type": "urltest",
+      "outbounds": [
+        "COMPATIBLE"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "日本🇯🇵-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "新加坡🇸🇬-auto",
+      "type": "urltest",
+      "outbounds": [
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "美国🇺🇸-auto",
+      "type": "urltest",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },
+    {
+      "tag": "手动选择👋-auto",
+      "type": "urltest",
+      "outbounds": [
+        "【HY2】Eusevr｜🇩🇪德国v6",
+        "【VMESS】Eusevr｜🇩🇪德国v6",
+        "Cloudflare(worker)",
+        "Cloudflare(IPv6)",
+        "Cloudflare(2082)",
+        "Cloudflare(2095)",
+        "workers-trojan-443",
+        "workers-trojan-8080",
+        "官方优选 WTO ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 WTO ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 WTO ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 WTO ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾US Cloudflare(worker)",
+        "官方优选 WTO ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 Visa ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 Visa ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 Visa ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 Visa ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾US Cloudflare(worker)",
+        "官方优选 Visa ➮ 折腾JP Cloudflare(worker)",
+        "官方优选 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "官方优选 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "官方优选 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "官方优选 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "官方优选 ➮ 折腾HK Cloudflare(worker)",
+        "官方优选 ➮ 折腾SG Cloudflare(worker)",
+        "官方优选 ➮ 折腾US Cloudflare(worker)",
+        "官方优选 ➮ 折腾JP Cloudflare(worker)",
+        "折腾啥 ➮ 香港🇭🇰 Cloudflare(worker)",
+        "折腾啥 ➮ 美国🇺🇸 Cloudflare(worker)",
+        "折腾啥 ➮ 新加坡🇸🇬 Cloudflare(worker)",
+        "折腾啥 ➮ 日本🇯🇵 Cloudflare(worker)",
+        "折腾啥 ➮ 折腾HK Cloudflare(worker)",
+        "折腾啥 ➮ 折腾SG Cloudflare(worker)",
+        "折腾啥 ➮ 折腾US Cloudflare(worker)",
+        "折腾啥 ➮ 折腾JP Cloudflare(worker)"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m",
+      "tolerance": 50
+    },   
+    {
       "tag": "GLOBAL",
       "type": "selector",
       "outbounds": [
@@ -1068,7 +1538,7 @@
       }
     ],
     "final": "final",
-    "auto_detect_interface": true,
+    "auto_detect_interface": true
   },
   "experimental": {
     "clash_api": {
