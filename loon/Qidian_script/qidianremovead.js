@@ -1,27 +1,24 @@
-// 获取请求的URL和方法
+/*
+脚本引用 https://raw.githubusercontent.com/app2smile/rules/master/js/qidian.js
+*/
+// 2024-06-12 10:06:16
 let url = $request.url;
 let method = $request.method;
-
-// 如果响应体为空，则终止脚本执行
 if (!$response.body) {
     console.log(`$response.body为undefined:${url}`);
     $done({});
 }
 
-// 解析响应体为JSON对象
 let body = JSON.parse($response.body);
 
-// 定义通知标题
 const noticeTitle = "起点App脚本错误";
 const getMethod = "GET";
 const postMethod = "POST";
 
-// 检查响应体中是否包含Data字段
 if (!body.Data) {
     console.log(`body:${$response.body}`);
     $notification.post(noticeTitle, "起点", "Data为空");
 } else {
-  // 根据不同的URL和请求方法进行处理
     if (url.includes("v4/client/getsplashscreen") && method === getMethod) {
         console.log('起点-开屏页');
         if (!body.Data.List) {
@@ -44,12 +41,14 @@ if (!body.Data) {
         }
 
     } else if (url.includes("v2/deeplink/geturl") && method === getMethod) {
-        console.log('起点-不跳转精选页');
-        if (body.Data.ActionUrl === 'QDReader://Bookstore') {
-            body.Data = null;
+        console.log(`起点-不跳转精选页:${body.Data.ActionUrl}`);
+        if (body.Data.ActionUrl) {
+            // QDReader://Bookstore
+            // QDReader://Bookstore?query={"abGroupId": "b", "lastReadBarEnabled": "1"}
             console.log('成功');
+            body.Data.ActionUrl = '';
         } else {
-            console.log('无需处理,body:' + $response.body);
+            console.log('无需处理');
         }
     } else if (url.includes("v1/adv/getadvlistbatch?positions=iOS_tab") && method === getMethod) {
         console.log('起点-iOS_tab');
@@ -65,10 +64,9 @@ if (!body.Data) {
             }
         }
     } else if (url.includes("v2/dailyrecommend/getdailyrecommend") && method === getMethod) {
-        // 需全新应用
         console.log('起点-每日导读');
-        if (body.Data.length) {
-            body.Data = [];
+        if (body.Data.Items?.length) {
+            body.Data.Items = [];
             console.log('成功');
         } else {
             console.log('每日导读无数据');
@@ -82,7 +80,7 @@ if (!body.Data) {
             console.log('无需处理');
         }
     } else if (url.includes("v1/client/getconf") && method === postMethod) {
-        console.log('起点-getconf');
+        console.log('起点-client/getconf');
         // 精选 和 发现 中间的活动配置
         if (!body.Data.ActivityPopup?.Data) {
             console.log(`body:${$response.body}`);
@@ -98,7 +96,10 @@ if (!body.Data) {
         } else {
             console.log(`无需修改WolfEye:${body.Data.WolfEye}`);
         }
-
+        if(body.Data.CloudSetting?.TeenShowFreq === '1'){
+            body.Data.CloudSetting.TeenShowFreq = '0';
+            console.log('去除青少年模式弹框');
+        }
         // QDReader://Bookshelf 书架右下角悬浮活动
         if (body.Data.ActivityIcon?.Type !== 0) {
             console.log(`body:${$response.body}`);
