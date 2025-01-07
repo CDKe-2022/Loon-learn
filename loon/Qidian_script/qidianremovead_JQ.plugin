@@ -1,5 +1,5 @@
 #!name=起点去广告
-#!desc=去除起点开屏等广告
+#!desc=去除起点开屏、不跳转精选页、去除广告列表、去除每日导读、去除悬浮书架广告、去除活动弹窗、青少年模式弹窗
 #!author= app2smile
 #!tag = 去广告
 #!date = 2025-01-07 18:05:47
@@ -7,9 +7,6 @@
 # 更新时间：2025-01-07
 
 [Rewrite]
-#起点去广告
-http-response ^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/(v4\/client\/getsplashscreen|v2\/(deeplink\/geturl|dailyrecommend\/getdailyrecommend)|v1\/(client\/getconf$|bookshelf\/getHoverAdv|adv\/getadvlistbatch\?positions=iOS_tab))
-
 #起点开屏广告（成功）
 ^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v4\/client\/getsplashscreen\? response-body-json-jq 'del(.Data.List)' '.Data.EnableGDT="0"'
 #url.includes：匹配URL，确定具体接口。
