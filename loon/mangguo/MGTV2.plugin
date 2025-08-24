@@ -1,6 +1,10 @@
-#!name=mgtv
-#!desc=mgtv
-#!icon=https://github.com/Toperlock/Quantumult/raw/main/icon/Doraemon/Doraemon-1086.png
+#!name = 芒果tvvip
+#!desc = 解锁芒果
+#!author = Yu9191
+#!openUrl = 
+#!homepage = 
+#!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/mangoTV.png?raw=true
+#!date = 2024-02-05 10:20:00
 
 [Rewrite]
 ^https?://mobile.da.mgtv.com\/m\/page - reject
