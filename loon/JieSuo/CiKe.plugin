@@ -1,0 +1,17 @@
+#!name = 刺客信条燎原
+#!desc = 根据B站绯虹上弦月2的教程改的，作用刷金币。使用方法：进入游戏，选择标准任务，区域1最后一个“清理门户”，选择速攻。金币不能超过21亿，我这里设置的是10亿。
+#!openUrl = 
+#!author = 绯虹上弦月2
+#!tag = 去广告
+#!system = 
+#!system_version = 
+#!loon_version = 3.2.1(745)
+#!icon = 
+#!date = 2025-08-25
+
+[Rewrite]
+# #刺客信条燎原，刷钱用复写
+^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.mapMissionId = "RegionA_Bronze_01" | .loot=[{"_id":"SC","_amount":1000000000}]'
+
+[MitM]
+hostname = latest.live.acr.ubisoft.com
