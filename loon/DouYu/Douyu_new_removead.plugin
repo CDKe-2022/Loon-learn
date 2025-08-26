@@ -41,6 +41,7 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 ^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\? reject-dict
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\? response-body-json-del data.ad
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\? response-body-json-del data.list[2].ad
+^https:\/\/apiv3\.douyucdn\.cn\/japi\/ecl\/api\/query\/user\/goods\/list\? response-body-json-jq 'del(.data.details)'
 
 [Script]
 # 首页轮播图和视频流广告
