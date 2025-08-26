@@ -1,0 +1,18 @@
+#!name = 达美乐披萨
+#!desc = 在微信中参加活动获取cookie，再运行。
+#!author = Sliverkiss
+#!openUrl = 
+#!homepage = 
+#!icon = 
+#!system = iOS, iPadOS, tvOS, macOS
+#!system_version = 17
+#!loon_version = 3.2.1(379)
+#!tag = Sliverkiss
+#!date = 2025-08-26 18:05:47
+
+[Script]
+cron "15 10 * * *" script-path=https://gist.githubusercontent.com/Sliverkiss/6b4da0d367d13790a9fd1d928c82bdf8/raw/dlm.js, timeout=300, tag=达美乐披萨
+http-request ^https:\/\/game\.dominos\.com\.cn\/.+\/game\/gameDone script-path=https://gist.githubusercontent.com/Sliverkiss/6b4da0d367d13790a9fd1d928c82bdf8/raw/dlm.js, requires-body=true, timeout=10, tag=达美乐披萨获取token
+
+[Mitm]
+hostname = game.dominos.com.cn
