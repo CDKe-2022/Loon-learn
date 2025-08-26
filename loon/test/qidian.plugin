@@ -1,0 +1,21 @@
+#!name=起点每日广告
+#!desc=定时任务及Cookie获取
+#!author= McDaSheng
+#!date = 2025-08-26 18:05:47
+#!icon=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
+# 现将获取cookie与定时任务合并为一个模块
+# 保持开启,如检测到cookie变更会自动更新,解决cookie经常过期的问题(cookie仍有效不提醒更新)
+# 任务奖励：经验值/章节卡等
+# 订阅地址：https://raw.githubusercontent.com/CDKe-2022/LOON-pattern/main/Loon/%E8%B5%B7%E7%82%B9%E8%84%9A%E6%9C%AC/qidian.plugin
+# 更新时间：2023-09-18
+
+[Script]
+# 起点每日看广告
+cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.js, timeout=300, tag=起点读书, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
+
+http-request https\:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.cookie.js, requires-body=true, timeout=60, tag=qidian.cookie_1, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
+
+http-response ^https:\/\/h5\.if\.qidian\.com\/argus\/api\/v2\/video\/adv\/mainPage script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.taskId.js, requires-body=true, timeout=60, tag=qidian.taskId_2, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
+
+[MITM]
+hostname = h5.if.qidian.com
