@@ -5,7 +5,7 @@ const taskId = $persistentStore.read("qd_taskId");       // 任务1 ID
 const taskId2 = $persistentStore.read("qd_taskId_2");    // 任务2 ID
 const session = $persistentStore.read("qd_session");     // 广告1 请求配置(JSON字符串)
 const session2 = $persistentStore.read("qd_session_2");  // 广告2 请求配置(JSON字符串)
-const timeout = ($persistentStore.read("qd_timeout") || 20) * 1000; // 每次任务间隔(默认20秒)
+const timeout = ($persistentStore.read("qd_timeout") || 0.2) * 1000; // 每次任务间隔(默认20秒)
 
 // 参数检查函数：如果缺少信息则提示
 function check(name, val) {
