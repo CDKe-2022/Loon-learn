@@ -20,19 +20,22 @@ try {
   };
 
   // ===== 工具函数 =====
-  const removeAds = data => Array.isArray(data) ? data.filter(item => !item.ad) : data;
+  // 过滤掉含有 ad 字段的元素
+  const removeAds = arr => Array.isArray(arr) ? arr.filter(item => !item.ad) : arr;
+
+  // 删除指定键
   const deleteKeys = (data, keys) => keys.forEach(key => delete data[key]);
 
   // ===== 接口处理逻辑 =====
 
-  // 1. 推荐页数据过滤广告
+  // 1. 推荐页广告过滤
   if (url.includes(URL_PATTERNS.GET_REC_V3) && obj.data) {
     if (obj.data.rec_cont) {
       obj.data.rec_cont = removeAds(obj.data.rec_cont);
     }
 
     if (obj.data.rec_card) {
-      // 兼容 rec_card 是数组 或 对象 的情况
+      // 兼容 rec_card 是数组或对象
       if (Array.isArray(obj.data.rec_card)) {
         obj.data.rec_card = obj.data.rec_card.map(card => ({
           ...card,
@@ -48,12 +51,12 @@ try {
     }
   }
 
-  // 2. 直播间资源列表，删除无用字段
+  // 2. 删除直播间资源列表里的无用字段
   if (url.includes(URL_PATTERNS.ROOM_RES_LIST) && obj.data) {
     deleteKeys(obj.data, REMOVABLE_KEYS);
   }
 
-  // 3. 配置更新，关闭指定开关
+  // 3. 配置更新：关闭开关
   if (URL_PATTERNS.FLOW_CONFIG_UPDATE.test(url) && obj.data) {
     Object.keys(FLOW_CONFIG_KEYS).forEach(key => {
       if (obj.data.hasOwnProperty(key)) {
@@ -62,10 +65,8 @@ try {
     });
   }
 
-  // 返回修改后的数据
   $done({ body: JSON.stringify(obj) });
 
 } catch (e) {
-  // 出错时直接返回原始响应，避免接口报错
   $done({ body: $response.body });
 }
