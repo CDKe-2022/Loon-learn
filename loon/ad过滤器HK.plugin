@@ -41,5 +41,8 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 #航旅纵横开屏广告
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
 
+#虎牙
+^https:\/\/us\.l\.qq\.com\/exapp.* response-body-json-jq '.data |= with_entries(.value.list = [])'
+
 [Mitm]
-hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com 
+hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, us.l.qq.com
