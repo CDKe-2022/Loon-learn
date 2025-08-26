@@ -1,1 +1,17 @@
-1
+#!name = 网上国网
+#!desc = 网上国网电费查询
+#!author = Yuheng0101
+#!openUrl = 
+#!homepage = 
+#!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/icon/wangshangguowang.png
+#!system = iOS, iPadOS, tvOS, macOS
+#!system_version = 17
+#!loon_version = 3.2.1(379)
+#!tag = 电费
+#!date = 2025-08-26 18:05:47
+
+[Script]
+http-request ^https?:\/\/api\.wsgw-rewrite\.com\/electricity\/bill\/all script-path=https://raw.githubusercontent.com/dompling/Script/master/wsgw/index.js,requires-body=true, timeout=60, tag=网上国网, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/icon/wangshangguowang.png
+
+[Mitm]
+hostname = api.wsgw-rewrite.com
