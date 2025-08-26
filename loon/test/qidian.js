@@ -5,7 +5,7 @@ $.taskId = $.getdata("qd_taskId");
 $.taskId_2 = $.getdata("qd_taskId_2");
 $.session = $.getdata("qd_session");
 $.session_2 = $.getdata("qd_session_2");
-$.timeout = $.getdata("qd_timeout") || 20;
+$.timeout = $.getdata("qd_timeout") || 0.5;
 
 // 参数检查
 function checkParam(name, value) {
