@@ -1,5 +1,5 @@
 #!name = 顺丰签到
-#!desc = 每日顺丰签到
+#!desc = 每日顺丰签到以及Cookie获取
 #!author = Sliverkiss
 #!openUrl = 
 #!homepage = 
@@ -11,6 +11,7 @@
 #!date = 2024-09-08 18:05:47
 
 [Script]
+cron "5 9 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/shunfeng.js, timeout=60, tag=顺丰每日签到, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/sunfeng.png
 http-response ^https:\/\/mcs-mimp-web\.sf-express\.com\/mcs-mimp\/share\/weChat\/shareGiftReceiveRedirect.+ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/JieSuo/shunfeng.js, requires-body=true, timeout=60, tag=顺丰速运获取token
 
 [Mitm]
