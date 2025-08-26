@@ -1,109 +1,58 @@
-const $ = new Env("起点读书");
+const NAME = "起点读书";
 
-// 配置参数
-$.taskId = $.getdata("qd_taskId");
-$.taskId_2 = $.getdata("qd_taskId_2");
-$.session = $.getdata("qd_session");
-$.session_2 = $.getdata("qd_session_2");
-$.timeout = $.getdata("qd_timeout") || 0.5;
+// ========== 读取配置 ==========
+const taskId = $persistentStore.read("qd_taskId");       // 任务1 ID
+const taskId2 = $persistentStore.read("qd_taskId_2");    // 任务2 ID
+const session = $persistentStore.read("qd_session");     // 广告1 请求配置(JSON字符串)
+const session2 = $persistentStore.read("qd_session_2");  // 广告2 请求配置(JSON字符串)
+const timeout = ($persistentStore.read("qd_timeout") || 20) * 1000; // 每次任务间隔(默认20秒)
 
-// 参数检查
-function checkParam(name, value) {
-  if (!value) {
-    $.log(`⚠️${name}信息不全! 请通过重写获取信息`);
-    $.msg($.name, `⚠️${name}信息不全!`, "请通过重写获取信息");
-  }
+// 参数检查函数：如果缺少信息则提示
+function check(name, val) {
+  if (!val) $notification.post(NAME, `⚠️${name}信息不全`, "请通过重写获取信息");
 }
-checkParam("任务1", $.taskId);
-checkParam("任务2", $.taskId_2);
-checkParam("广告1", $.session);
-checkParam("广告2", $.session_2);
+check("任务1", taskId);
+check("任务2", taskId2);
+check("广告1", session);
+check("广告2", session2);
 
-// 主流程
+// ========== 主任务执行流程 ==========
 (async () => {
+  // 任务1：执行7次
   for (let i = 0; i < 7; i++) {
-    $.log(`🟡任务1执行次数: ${i + 1}`);
-    await task($.session);
-    await $.wait($.timeout * 1000);
+    log(`任务1 第${i + 1}次`);
+    await run(session);
+    await wait(timeout);
   }
+  // 任务2：执行2次
   for (let j = 0; j < 2; j++) {
-    $.log(`🟡任务2执行次数: ${j + 1}`);
-    await task($.session_2);
-    await $.wait($.timeout * 1000);
+    log(`任务2 第${j + 1}次`);
+    await run(session2);
+    await wait(timeout);
   }
-})()
-  .catch((e) => $.logErr(e))
-  .finally(() => {
-    $.log("✅执行完成");
-    $.done();
-  });
+  log("✅执行完成");
+  $done(); // 结束脚本
+})();
 
-// 任务函数
-async function task(session) {
-  let options = JSON.parse(session);
-  return $.http.post(options).then((resp) => {
-    let obj = JSON.parse(resp.body || "{}");
-    if (obj.Result == 0) {
-      $.log("🎉成功!");
-    } else {
-      $.log("🔴失败!");
-      $.log(resp.body);
-    }
+// ========== 执行单个任务 ==========
+function run(s) {
+  return new Promise((res) => {
+    $httpClient.post(JSON.parse(s), (err, resp, data) => {
+      if (!err) {
+        try {
+          const obj = JSON.parse(data); // 解析返回JSON
+          log(obj.Result == 0 ? "🎉成功!" : `🔴失败! ${data}`);
+        } catch {
+          log("❌返回解析失败");
+        }
+      } else {
+        log(`请求错误: ${err}`);
+      }
+      res();
+    });
   });
 }
 
-// ================== Loon 精简环境 ==================
-function Env(name) {
-  return new (class {
-    constructor(name) {
-      this.name = name;
-      this.startTime = Date.now();
-      this.log(`🔔${this.name}, 开始!`);
-    }
-    getdata(key) {
-      return $persistentStore.read(key);
-    }
-    setdata(val, key) {
-      return $persistentStore.write(val, key);
-    }
-    get(t, cb) {
-      $httpClient.get(t, (err, resp, data) => {
-        if (resp) resp.body = data;
-        cb(err, resp, data);
-      });
-    }
-    post(t, cb) {
-      $httpClient.post(t, (err, resp, data) => {
-        if (resp) resp.body = data;
-        cb(err, resp, data);
-      });
-    }
-    http = {
-      get: (t) =>
-        new Promise((res, rej) =>
-          this.get(t, (err, resp) => (err ? rej(err) : res(resp)))
-        ),
-      post: (t) =>
-        new Promise((res, rej) =>
-          this.post(t, (err, resp) => (err ? rej(err) : res(resp)))
-        ),
-    };
-    msg(title, subt = "", desc = "") {
-      $notification.post(title, subt, desc);
-    }
-    log(...msg) {
-      console.log(msg.join(" "));
-    }
-    logErr(err) {
-      this.log(`❌错误: ${err}`);
-    }
-    wait(ms) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-    done() {
-      let end = (Date.now() - this.startTime) / 1000;
-      this.log(`🔔${this.name}, 结束! ⏱ ${end} 秒`);
-      $done();
-    }
-  })(name);
-}
+// ========== 工具函数 ==========
+const log = (msg) => console.log(`[${NAME}] ${msg}`);     // 打印日志
+const wait = (ms) => new Promise((r) => setTimeout(r, ms)); // 延时
