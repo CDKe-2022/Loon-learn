@@ -21,12 +21,12 @@ checkParam("广告2", $.session_2);
 
 // 主流程
 (async () => {
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 8; i++) {
     $.log(`🟡任务1执行次数: ${i + 1}`);
     await task($.session);
     await $.wait($.timeout * 1000);
   }
-  for (let j = 0; j < 2; j++) {
+  for (let j = 0; j < 3; j++) {
     $.log(`🟡任务2执行次数: ${j + 1}`);
     await task($.session_2);
     await $.wait($.timeout * 1000);
