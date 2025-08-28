@@ -1,5 +1,5 @@
 #!name = AD过滤器
-#!desc = 去除BBC、CNN、永辉超市、华尔街见闻、航旅纵横、大麦广告
+#!desc = 去除永辉超市、华尔街见闻、航旅纵横、大麦广告
 #!author = HK
 #!openUrl = 
 #!homepage =
@@ -7,17 +7,10 @@
 #!system = iOS
 #!loon_version = 3.2.1(372)
 #!tag = 去广告
-#!date = 2024-08-16 09:04:47
+#!date = 2025-08-28 09:04:47
 
-[Rule]
-#BBC
-DOMAIN-KEYWORD,pagead2,REJECT
-DOMAIN-KEYWORD,amazon-adsystem,REJECT
 
 [Rewrite]
-#-----------BBC部分广告-----------
-^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
-
 #----------华尔街见闻----------
 ^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
 
