@@ -17,15 +17,16 @@
 ^https:\/\/fairy\.mobileapi\.hupu\.com\/gallery\/getmod2 - reject-200
 ^https:\/\/games\.mobileapi\.hupu\.com\/3\/8\.0\.86\/bplcommentapi\/bpl\/score_tab\/groups - reject-dict
 ^https:\/\/games\.mobileapi\.hupu\.com\/3\/8\.0\.86\/bplapi\/banner\/getLocationBanners - reject-dict
+# 1. 去掉 hotList 顶部 banner
+^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/buffer\/hotList response-body-json-jq 'del(.result.topBanner)'
+# 2. 去掉 preview/banners 的 data
+^https:\/\/fairy\.mobileapi\.hupu\.com\/mang\/preview\/banners response-body-json-jq 'del(.data)'
+# 3. 过滤 bbsallapi/lego/data → 删除指定入口 + 删除「我的应用」
+^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bbsallapi\/lego\/data response-body-json-jq 'if .data and .data.cards then (.data.cards[]? | select(.code=="multiIcon") | .components |= map(select(.data.title as $t | ["个性换肤","专家预测","邀请好友","版主中心","JRs战术板","草稿箱","58同城"] | index($t) | not))) | .data.cards |= map(select((.components[]?.data.title? // "") != "我的应用")) else . end'
+# 4. 去掉用户 more 页 vipInfo
+^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bplapi\/user\/v1\/more response-body-json-jq 'del(.result.vipInfo)'
 
-[Script]
-http-response ^https:\/\/fairy\.mobileapi\.hupu\.com\/mang\/preview\/banners script-path=https://kelee.one/Resource/JavaScript/HUPU/HUPU_remove_ads.js, requires-body=true, tag=移除虎扑广告
 
-http-response ^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bbsallapi\/lego\/data script-path=https://kelee.one/Resource/JavaScript/HUPU/HUPU_remove_ads.js, requires-body=true, tag=移除虎扑广告
-
-http-response ^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/buffer\/hotList script-path=https://kelee.one/Resource/JavaScript/HUPU/HUPU_remove_ads.js, requires-body=true, tag=移除虎扑广告
-
-http-response ^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bplapi\/user\/v1\/more script-path=https://kelee.one/Resource/JavaScript/HUPU/HUPU_remove_ads.js, requires-body=true, tag=移除虎扑广告
 
 [MITM]
 hostname = games.mobileapi.hupu.com, fairy.mobileapi.hupu.com, bbs.mobileapi.hupu.com, goblin.hupu.com
