@@ -15,19 +15,19 @@ DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
 
 [Rewrite]
-#BBC部分广告
+#-----------BBC部分广告-----------
 ^https:\/\/securepubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
-#华尔街见闻
+
+#----------华尔街见闻----------
 ^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
-#CNN
+
+#----------CNN----------
 ^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
 
-#大麦去开屏广告
+#----------大麦去开屏广告----------
 ^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.damai\.wireless\.home\.welcome\/1\.3\? response-body-json-del data.adList
 
-#永辉超市
-^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
-^https:\/\/api\.yonghuivip\.com\/web\/search\/recommend\/meal\/info\/815\? reject-200
+#-------------永辉超市------------
 #YH开屏广告
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}'
 #YH首页弹窗广告
@@ -35,10 +35,10 @@ DOMAIN-KEYWORD,amazon-adsystem,REJECT
 #YH主页右下角悬浮优惠券
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""'
 
-#航旅纵横开屏广告
+#----------航旅纵横开屏广告----------
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
 
-#虎牙
+#----------虎牙-----------
 ^https:\/\/us\.l\.qq\.com\/exapp.* response-body-json-jq '.data |= with_entries(.value.list = [])'
 
 [Mitm]
