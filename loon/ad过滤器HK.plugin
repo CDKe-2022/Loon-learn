@@ -15,8 +15,6 @@ DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
 #永辉超市(开屏广告getui)
 DOMAIN,lbs.netease.im,REJECT
-DOMAIN-SUFFIX,getui.com,REJECT-DROP
-DOMAIN-SUFFIX,getui.net,REJECT-DROP
 URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 
 [Rewrite]
@@ -37,6 +35,8 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 #^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? reject-200
 #^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4\/expiredRemind\/ reject-200
 ^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? reject-200
+#开屏广告
+^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}'
 
 #航旅纵横开屏广告
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
