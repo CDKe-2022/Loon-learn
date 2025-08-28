@@ -13,9 +13,6 @@
 #BBC
 DOMAIN-KEYWORD,pagead2,REJECT
 DOMAIN-KEYWORD,amazon-adsystem,REJECT
-#永辉超市(开屏广告getui)
-DOMAIN,lbs.netease.im,REJECT
-URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 
 [Rewrite]
 #BBC部分广告
@@ -31,11 +28,12 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 #永辉超市
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
 ^https:\/\/api\.yonghuivip\.com\/web\/search\/recommend\/meal\/info\/815\? reject-200
-^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 reject-200
 #YH开屏广告
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}'
 #YH首页弹窗广告
 ^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []'
+#YH主页右下角悬浮优惠券
+^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""'
 
 #航旅纵横开屏广告
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
