@@ -32,9 +32,10 @@ URL-REGEX,^http:\/\/image\.yonghuivip\.com\/sku\/card\/icon\/coupon,REJECT
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/ reject-dict
 ^https:\/\/api\.yonghuivip\.com\/web\/search\/recommend\/meal\/info\/815\? reject-200
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 reject-200
-^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? reject-200
-#开屏广告
+#YH开屏广告
 ^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}'
+#YH首页弹窗广告
+^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []'
 
 #航旅纵横开屏广告
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
