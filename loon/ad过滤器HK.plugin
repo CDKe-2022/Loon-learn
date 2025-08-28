@@ -15,7 +15,7 @@
 ^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
 
 #----------CNN----------
-^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads reject-dict
+^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads\? response-body-json-jq '.ad_networks = [] | .settings.click_urls = [] | .settings.imp_urls = [] | .settings.nofill_urls = []'
 
 #----------大麦去开屏广告----------
 ^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.damai\.wireless\.home\.welcome\/1\.3\? response-body-json-del data.adList
@@ -35,4 +35,4 @@
 ^https:\/\/us\.l\.qq\.com\/exapp.* response-body-json-jq '.data |= with_entries(.value.list = [])'
 
 [Mitm]
-hostname = securepubads.g.doubleclick.net, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, us.l.qq.com
+hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, us.l.qq.com
