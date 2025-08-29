@@ -11,12 +11,12 @@
 
 [Argument]
 # ===== 广告屏蔽控制面板 =====
-WallstreetAds = switch, true, false, tag = 华尔街见闻, desc = 控制是否屏蔽华尔街见闻广告
-CNNAds = switch, true, false, tag = CNN, desc = 控制是否屏蔽 CNN 广告
-DamaiAds = switch, true, false, tag = 大麦, desc = 控制是否屏蔽大麦开屏广告
-YHAds = switch, true, false, tag = 永辉超市, desc = 控制是否屏蔽永辉超市广告
-UmetripAds = switch, true, false, tag = 航旅纵横, desc = 控制是否屏蔽航旅纵横开屏广告
-HuyaAds = switch, true, false, tag = 虎牙, desc = 控制是否屏蔽虎牙广告
+WallstreetAds = switch, true, tag = 华尔街见闻, desc = 控制是否屏蔽华尔街见闻广告
+CNNAds = switch, true, tag = CNN, desc = 控制是否屏蔽 CNN 广告
+DamaiAds = switch, true, tag = 大麦, desc = 控制是否屏蔽大麦开屏广告
+YHAds = switch, true, tag = 永辉超市, desc = 控制是否屏蔽永辉超市广告
+UmetripAds = switch, true, tag = 航旅纵横, desc = 控制是否屏蔽航旅纵横开屏广告
+HuyaAds = switch, true, tag = 虎牙, desc = 控制是否屏蔽虎牙广告
 
 [Rewrite]
 # ---------- 华尔街见闻 ----------
@@ -30,11 +30,11 @@ HuyaAds = switch, true, false, tag = 虎牙, desc = 控制是否屏蔽虎牙广�
 
 # ---------- 永辉超市 ----------
 # 开屏广告
-^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}' enable = {YHAds}
+^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}', argument=[{YHAds}]
 # 首页弹窗广告
-^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []' enable = {YHAds}
+^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []', argument=[{YHAds}]
 # 主页右下角悬浮优惠券
-^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""' enable = {YHAds}
+^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""', argument=[{YHAds}]
 
 # ---------- 航旅纵横 ----------
 ^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict enable = {UmetripAds}
