@@ -1,7 +1,7 @@
 #!name = AD过滤器
 #!desc = 去除华尔街见闻、CNN、大麦、永辉超市、航旅纵横广告
 #!author = HK[https://github.com/CDKe-2022]
-#!openUrl = 
+#!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/ad%E8%BF%87%E6%BB%A4%E5%99%A8HK.plugin
 #!homepage =https://github.com/CDKe-2022
 #!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/BBC%20News.png
 #!system = iOS
