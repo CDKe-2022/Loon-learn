@@ -2,7 +2,7 @@
 #!desc=定时任务及Cookie获取,去除起点开屏、不跳转精选页、去除广告列表、去除每日导读、去除悬浮书架广告、去除活动弹窗、青少年模式弹窗
 #!author= McDaSheng app2smile
 #!tag = 去广告
-#!openurl=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidian.plugin
+#!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidian.plugin
 #!date = 2025-08-26 18:05:47
 #!icon=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
 # 现将获取cookie与定时任务合并为一个模块
