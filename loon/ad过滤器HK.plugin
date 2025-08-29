@@ -1,47 +1,38 @@
 #!name = AD过滤器
-#!desc = 去除永辉超市、华尔街见闻、航旅纵横、大麦广告
-#!author = HK
+#!desc = 去除华尔街见闻、CNN、大麦、永辉超市、航旅纵横广告
+#!author = HK[https://github.com/CDKe-2022]
 #!openUrl = 
-#!homepage =
+#!homepage =https://github.com/CDKe-2022
 #!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/BBC%20News.png
 #!system = iOS
 #!loon_version = 3.2.1(372)
 #!tag = 去广告
 #!date = 2025-08-28 09:04:47
 
-[Argument]
-# ===== 广告屏蔽控制面板 =====
-WallstreetAds = switch, true, tag = 华尔街见闻, desc = 控制是否屏蔽华尔街见闻广告
-CNNAds = switch, true, tag = CNN, desc = 控制是否屏蔽 CNN 广告
-DamaiAds = switch, true, tag = 大麦, desc = 控制是否屏蔽大麦开屏广告
-YHAds = switch, true, tag = 永辉超市, desc = 控制是否屏蔽永辉超市广告
-UmetripAds = switch, true, tag = 航旅纵横, desc = 控制是否屏蔽航旅纵横开屏广告
-HuyaAds = switch, true, tag = 虎牙, desc = 控制是否屏蔽虎牙广告
 
 [Rewrite]
-# ---------- 华尔街见闻 ----------
-^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items enable = {WallstreetAds}
+# =====华尔街见闻 =====
+#华尔街见闻开屏广告
+^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
 
-# ---------- CNN ----------
-^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads\? response-body-json-jq '.ad_networks = [] | .settings.click_urls = [] | .settings.imp_urls = [] | .settings.nofill_urls = []' enable = {CNNAds}
+# =====CNN =====
+^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads\? response-body-json-jq '.ad_networks = [] | .settings.click_urls = [] | .settings.imp_urls = [] | .settings.nofill_urls = []'
 
-# ---------- 大麦 ----------
-^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.damai\.wireless\.home\.welcome\/1\.3\? response-body-json-del data.adList enable = {DamaiAds}
+# =====大麦 =====
+#大麦开屏广告
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.damai\.wireless\.home\.welcome\/1\.3\? response-body-json-del data.adList
 
-# ---------- 永辉超市 ----------
-# 开屏广告
-^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}', argument=[{YHAds}]
-# 首页弹窗广告
-^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []', argument=[{YHAds}]
-# 主页右下角悬浮优惠券
-^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""', argument=[{YHAds}]
+# =====永辉超市 =====
+#YH开屏广告
+^https:\/\/api\.yonghuivip\.com\/web\/shensuan\/ad\/getAd\? response-body-json-jq '.data.adData = {}'
+#YH首页弹窗广告
+^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []'
+#YH主页右下角悬浮优惠券
+^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""'
 
-# ---------- 航旅纵横 ----------
-^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict enable = {UmetripAds}
-
-# ---------- 虎牙 ----------
-^https:\/\/us\.l\.qq\.com\/exapp.* response-body-json-jq '.data |= with_entries(.value.list = [])' enable = {HuyaAds}
-
+# =====航旅纵横 =====
+#开屏广告
+^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
 
 [Mitm]
-hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, us.l.qq.com
+hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com
