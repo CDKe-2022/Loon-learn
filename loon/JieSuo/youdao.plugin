@@ -1,27 +1,12 @@
-#!name = 插件的名称，不可换行。
-#!desc = 插件的功能描述，不可换行。
-#!author = 作者署名，可用空格分隔多位作者的署名。
-#!openUrl = 插件配置的链接，此链接可在插件界面点击该插件配置的链接跳转，仅允许配置一条链接。此链接一般用来配置教程地址、配套的前端界面地址等。
-#!homepage = 插件的项目主页，此链接可在插件界面点击该插件的作者署名跳转，仅允许配置一条链接，一般用来配置插件的作者主页等。
-#!icon = 插件的图标，需要120px的直角图标。
-#!date = 2023-08-08 18:05:47
-
-[General]
-bypass-tun =
-skip-proxy =
-real-ip =
-dns-server =
-doh-server =
-doq-server =
-doh3-server =
-force-http-engine-hosts =
-
-[Rule]
+#!name = 有道词典
+#!desc = 有道词典会员解锁
+#!author = 佚名
+#!openUrl = 
+#!icon = 
+#!date = 2025-08-29 18:05:47
 
 [Rewrite]
-
-[Host]
-
-[Script]
+^https:\/\/dict\.youdao\.com\/vip\/user\/status\? response-body-json-replace vip true svip true expire 4102362549000 svipExpire 4102362549000
 
 [Mitm]
+hostname = dict.youdao.com
