@@ -1,6 +1,7 @@
 #!name=咪咕音乐
-#!desc=MGYY2
+#!desc=咪咕音乐解锁并去广告
 #!icon=https://github.com/Toperlock/Quantumult/raw/main/icon/Doraemon/Doraemon-1001.png
+#!date = 2025-08-29 18:05:47
 
 [Rewrite]
 # > 去广告
