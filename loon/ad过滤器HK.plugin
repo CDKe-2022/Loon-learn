@@ -11,14 +11,6 @@
 
 
 [Rewrite]
-# =====波点音乐 =====
-# 移除波点音乐我的页面广告banner
-^https:\/\/bd-api\.kuwo\.cn\/api\/service\/banner\/positions\? reject-dict
-# 移除搜索框热搜
-^https:\/\/bd-api\.kuwo\.cn\/api\/search\/topic\/word\/list\? reject-dict
-#波点音乐左上角商城
-^https:\/\/bd-api\.kuwo\.cn\/api\/service\/global\/config\/scene response-body-json-jq '.data.showShopEntry=false | .data.idolTabShow=true'
-
 # =====CNN =====
 ^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads\? response-body-json-jq '.ad_networks = [] | .settings.click_urls = [] | .settings.imp_urls = [] | .settings.nofill_urls = []'
 
@@ -49,4 +41,4 @@
 
 
 [Mitm]
-hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com, bd.api.kuwo.cn, bd-api.kuwo.cn
+hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com
