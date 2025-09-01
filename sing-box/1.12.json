@@ -192,22 +192,63 @@
         "final": "Global",
         "auto_detect_interface": true
     },
-    "outbounds": [
-        {
-            "tag": "Global",
-            "type": "selector",
-            "interrupt_exist_connections": true,
-            "outbounds": []
+"outbounds": [
+    {
+        "tag": "Global",
+        "type": "selector",
+        "interrupt_exist_connections": true,
+        "outbounds": [
+            "cf-worker-vless",
+            "de-v6-vmess"
+        ]
+    },
+    {
+        "tag": "cf-worker-vless",
+        "type": "vless",
+        "server": "v4.tuopu.pp.ua",
+        "server_port": 443,
+        "uuid": "1e2bb933-23d5-4cf6-ad21-99131ce6a759",
+        "flow": "",
+        "tls": {
+            "enabled": true,
+            "server_name": "zong.kehuang.eu.org"
         },
-        {
-            "tag": "direct",
-            "type": "direct",
-            "domain_resolver": {
-                "server": "local",
-                "strategy": "prefer_ipv4"
+        "transport": {
+            "type": "ws",
+            "path": "/?ed=2048",
+            "headers": {
+                "Host": "zong.kehuang.eu.org"
             }
         }
-    ],
+    },
+    {
+        "tag": "de-v6-vmess",
+        "type": "vmess",
+        "server": "[2a02:180:6:1::12a]",
+        "server_port": 8880,
+        "uuid": "a67bc1b6-12c9-431d-84a5-9abfd34d9452",
+        "alter_id": 0,
+        "security": "auto",
+        "tls": {
+            "enabled": false
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/a67bc1b6-12c9-431d-84a5-9abfd34d9452-vm",
+            "headers": {
+                "Host": "www.bing.com"
+            }
+        }
+    },
+    {
+        "tag": "direct",
+        "type": "direct",
+        "domain_resolver": {
+            "server": "local",
+            "strategy": "prefer_ipv4"
+        }
+    }
+],
     "inbounds": [
         {
             "type": "mixed",
