@@ -199,7 +199,12 @@
         "interrupt_exist_connections": true,
         "outbounds": [
             "cf-worker-vless",
-            "de-v6-vmess"
+            "de-v6-vmess",
+            "cf-ipv6-vless",
+            "cf-2082-vless",
+            "cf-2095-vless",
+            "trojan-443",
+            "trojan-8080"
         ]
     },
     {
@@ -237,6 +242,97 @@
             "path": "/a67bc1b6-12c9-431d-84a5-9abfd34d9452-vm",
             "headers": {
                 "Host": "www.bing.com"
+            }
+        }
+    },
+    {
+        "tag": "cf-ipv6-vless",
+        "type": "vless",
+        "server": "v6.tuopu.pp.ua",
+        "server_port": 80,
+        "uuid": "95591b82-b2db-49f6-9070-287710b510bf",
+        "flow": "",
+        "tls": {
+            "enabled": false
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/providerl.yaml",
+            "headers": {
+                "Host": "ipv6.kehuang2022.workers.dev"
+            }
+        }
+    },
+    {
+        "tag": "cf-2082-vless",
+        "type": "vless",
+        "server": "bestcf.030101.xyz",
+        "server_port": 2082,
+        "uuid": "7387baba-2840-4826-8efa-fa340a2ddb32",
+        "flow": "",
+        "tls": {
+            "enabled": false
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/?ed=2048",
+            "headers": {
+                "Host": "2082.cdhuangke.workers.dev"
+            }
+        }
+    },
+    {
+        "tag": "cf-2095-vless",
+        "type": "vless",
+        "server": "104.18.100.162",
+        "server_port": 2095,
+        "uuid": "e1e22214-4033-427b-8972-b37ce4b52a6b",
+        "flow": "",
+        "tls": {
+            "enabled": false
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/?ed=2048",
+            "headers": {
+                "Host": "2095.cdhuangke.workers.dev"
+            }
+        }
+    },
+    {
+        "tag": "trojan-443",
+        "type": "trojan",
+        "server": "104.19.110.56",
+        "server_port": 443,
+        "password": "tuopu000",
+        "tls": {
+            "enabled": true,
+            "server_name": "trojan443.tuopu.pp.ua"
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/",
+            "headers": {
+                "Host": "trojan443.tuopu.pp.ua"
+            }
+        }
+    },
+    {
+        "tag": "trojan-8080",
+        "type": "trojan",
+        "server": "104.18.198.28",
+        "server_port": 443,
+        "password": "tuopu000",
+        "tls": {
+            "enabled": true,
+            "server_name": "trojan8080.tuopu.pp.ua",
+            "insecure": true
+        },
+        "transport": {
+            "type": "ws",
+            "path": "/?ed=2048",
+            "headers": {
+                "Host": "trojan8080.tuopu.pp.ua"
             }
         }
     },
