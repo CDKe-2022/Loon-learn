@@ -1,5 +1,5 @@
 #!name = AD过滤器
-#!desc = 去除CNN、大麦、华尔街见闻、航旅纵横、永辉超市广告,有道会员解锁
+#!desc = 去除百度、CNN、大麦、华尔街见闻、航旅纵横、永辉超市广告,有道会员解锁
 #!author = 佚名[https://github.com/CDKe-2022]
 #!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/ad%E8%BF%87%E6%BB%A4%E5%99%A8HK.plugin
 #!homepage =https://github.com/CDKe-2022
@@ -11,6 +11,12 @@
 
 
 [Rewrite]
+# =====百度 =====
+#百度文章和评论之间的banner广告
+^https:\/\/mbd\.baidu\.com\/newspage\/api\/getmobads\?fejoin response-body-json-jq 'del(.data.banner)'
+#百度开屏广告，视频评论广告
+^https?:\/\/mbd\.baidu\.com\/searchbox\?action=update&uuid=.* response-body-json-jq 'try (.data.splash.splash.data.list = []) catch .'
+
 # =====CNN =====
 ^https:\/\/pubads\.g\.doubleclick\.net\/gampad\/ads\? response-body-json-jq '.ad_networks = [] | .settings.click_urls = [] | .settings.imp_urls = [] | .settings.nofill_urls = []'
 
@@ -41,4 +47,4 @@
 
 
 [Mitm]
-hostname = api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com
+hostname = mbd.baidu.com, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com
