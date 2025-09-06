@@ -32,10 +32,10 @@
     header { padding: 20px 0 28px; margin-bottom: 28px; }
     .app-name {
       text-align: center;
-      font-size: 2.2rem;
-      font-weight: 800;
+      font-size: 1.8rem;
+      font-weight: 900;
       color: var(--primary-color);
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
     /* 左右两栏布局 */
@@ -66,20 +66,25 @@
 
     .meta {
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: 0.8rem;
       font-weight: 500;
       margin: 6px 0;
       display: flex;
       align-items: center;
     }
-    .stars { display: inline-flex; align-items: center; margin-left: 8px; }
-    .stars svg { width: 20px; height: 20px; margin-right: 2px; }
+    .meta strong {
+      color: var(--text-color);
+      margin-left: 0.5px;
+      font-weight: 400;
+    }
+    .stars { display: inline-flex; align-items: center; margin-left: 6px; }
+    .stars svg { width: 18px; height: 18px; margin-right: 1px; }
 
     section {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      padding: 24px;
-      margin-bottom: 22px;
+      padding: 12px;
+      margin-bottom: 10px;
       border-radius: var(--radius);
       box-shadow: var(--shadow-sm);
       transition: all 0.3s ease;
@@ -93,12 +98,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
     .label {
       font-weight: 700;
       color: var(--primary-color);
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       border-left: 4px solid var(--primary-color);
       padding-left: 10px;
     }
@@ -107,15 +112,18 @@
       color: var(--primary-color);
       cursor: pointer;
       user-select: none;
-      margin-left: auto;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: rgba(0, 122, 255, 0.1);
+      transition: background 0.4s;
     }
     .toggle-btn svg {
       width: 14px;
       height: 14px;
-      transition: transform 0.3s ease;
+      transition: transform 0.4s ease;
     }
     .toggle-btn.collapsed svg {
       transform: rotate(180deg);
@@ -132,7 +140,7 @@
       word-wrap: break-word;
       margin: 0;
       padding: 16px;
-      background: #f9f9fb;
+      background: #f0f0e8;
       border-radius: 12px;
       border: 1px solid #ececec;
       overflow-x: auto;
@@ -143,10 +151,10 @@
     footer {
       font-size: 0.85rem;
       text-align: center;
-      margin-top: 40px;
-      padding: 20px 10px;
+      margin-top: 20px;
+      padding: 18px 16px;
       color: var(--text-muted);
-      background: linear-gradient(to right, #fafafa, #ffffff);
+      background: #f8f9fd;
       border-top: 1px dashed var(--border-color);
       border-radius: 0 0 var(--radius) var(--radius);
     }
