@@ -9,31 +9,31 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(145deg, #f0f4ff 0%, #e6f0ff 100%);
-            min-height: 100vh; padding: 40px 20px 30px; color: #2d3748; line-height: 1.6;
+            min-height: 100vh; padding: 30px 20px 30px; color: #2d3748; line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
         .header {
-            text-align: center; margin-bottom: 24px;
+            text-align: center; margin-bottom: 16px;
         }
         .header h1 {
             font-size: 36px; font-weight: 800; letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #4a6cf7, #2b5cb8);
+            background: linear-gradient(135deg, #4a6cf7, #e53e3e); /* 蓝→红 */
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 10px;
+            margin: 8px 0; display: flex; justify-content: center; align-items: center; gap: 10px;
         }
         .header h1 i { font-size: 28px; }
         .divider {
             height: 3px; background: linear-gradient(to right, transparent, #4a6cf7, transparent);
-            border-radius: 3px; max-width: 200px; margin: 0 auto; opacity: 0.7;
+            border-radius: 3px; max-width: 180px; margin: 0 auto; opacity: 0.7;
         }
         .card {
             background: rgba(255,255,255,0.95); border-radius: 24px;
             box-shadow: 0 15px 35px rgba(74,108,247,0.15), 0 5px 15px rgba(0,0,0,0.07);
-            padding: 26px; margin-top: 20px; transition: all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+            padding: 26px; margin-top: 16px; transition: all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
             backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.6);
         }
         .card:active { transform: scale(0.99); }
-        .input-group { margin-bottom: 24px; }
+        .input-group { margin-bottom: 22px; }
         .input-group label {
             display: flex; align-items: center; font-weight: 700; color: #3a5066;
             margin-bottom: 10px; font-size: 17px; letter-spacing: -0.2px;
@@ -74,9 +74,19 @@
         .result-detail {
             font-size: 14px; color: #718096; margin-top: 6px; font-weight: 500;
         }
+        .clear-btn {
+            width: 48px; height: 48px; background: #e53e3e; border: none; border-radius: 50%;
+            color: white; font-size: 18px; cursor: pointer; margin: 16px auto 10px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+            transition: all 0.3s ease;
+        }
+        .clear-btn:hover { transform: scale(1.08); background: #c53030; }
+        .clear-btn:active { transform: scale(0.98); }
+
         .info-footer {
             background: #f8fafc; border-top: 1px solid #edf2f7; padding: 22px 18px;
-            border-radius: 0 0 24px 24px; margin-top: 26px; font-size: 13px;
+            border-radius: 0 0 24px 24px; margin-top: 16px; font-size: 13px;
         }
         .info-footer p {
             margin: 8px 0; line-height: 1.65; display: flex; align-items: center;
@@ -126,6 +136,7 @@
             </div>
         </div>
         <div class="result" id="result">输入值开始转换<div class="result-detail">支持摄氏度(°C)与华氏度(°F)实时互转</div></div>
+        <button class="clear-btn" id="clearBtn" title="清空所有输入"><i class="fas fa-times"></i></button>
         <div class="info-footer">
             <p><i class="fas fa-info-circle formula-icon"></i> 支持摄氏度(°C)与华氏度(°F)实时互转</p>
             <p><i class="fas fa-globe formula-icon"></i> 公式基于国际标准：</p>
@@ -133,8 +144,9 @@
             <p><i class="fas fa-arrow-left formula-icon"></i> 华氏度转摄氏度: <strong>C = (F - 32) × 5/9</strong></p>
         </div>
     </div>
+
     <script>
-        const [celsius, fahrenheit, result] = ['celsius', 'fahrenheit', 'result'].map(id => document.getElementById(id));
+        const [celsius, fahrenheit, result, clearBtn] = ['celsius', 'fahrenheit', 'result', 'clearBtn'].map(id => document.getElementById(id));
         const c2f = c => (c * 9) / 5 + 32, f2c = f => (f - 32) * 5 / 9;
         const animate = el => { el.classList.add('animation-fade'); setTimeout(() => el.classList.remove('animation-fade'), 500); };
         const update = (text, detail) => { result.innerHTML = text + (detail ? `<div class="result-detail">${detail}</div>` : ''); animate(result); };
@@ -157,6 +169,14 @@
             } else { celsius.value = ''; update('输入有效的华氏度值', "例如: 77"); }
         });
 
+        // 清空按钮功能
+        clearBtn.addEventListener('click', () => {
+            celsius.value = '';
+            fahrenheit.value = '';
+            update('输入值开始转换', '支持摄氏度(°C)与华氏度(°F)实时互转');
+        });
+
+        // 初始化提示
         update('输入值开始转换', '支持摄氏度(°C)与华氏度(°F)实时互转');
     </script>
 </body>
