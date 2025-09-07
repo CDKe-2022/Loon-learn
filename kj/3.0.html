@@ -17,7 +17,7 @@
         }
         .header h1 {
             font-size: 36px; font-weight: 800; letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #4a6cf7, #e53e3e); /* 蓝→红 */
+            background: linear-gradient(135deg, #4a6cf7, #e53e3e);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             margin: 8px 0; display: flex; justify-content: center; align-items: center; gap: 10px;
         }
@@ -33,7 +33,9 @@
             backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.6);
         }
         .card:active { transform: scale(0.99); }
-        .input-group { margin-bottom: 22px; }
+        .input-group {
+            margin-bottom: 22px; position: relative;
+        }
         .input-group label {
             display: flex; align-items: center; font-weight: 700; color: #3a5066;
             margin-bottom: 10px; font-size: 17px; letter-spacing: -0.2px;
@@ -60,6 +62,16 @@
             position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
             color: #a5b6cf; font-size: 20px;
         }
+        .clear-btn {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+            background: #e53e3e; color: white; border: none; font-size: 15px;
+            padding: 8px 16px; border-radius: 16px; cursor: pointer;
+            font-weight: 600; box-shadow: 0 3px 8px rgba(229, 62, 62, 0.2);
+            transition: all 0.3s ease;
+        }
+        .clear-btn:hover { background: #c53030; transform: translateY(-50%) scale(1.04); }
+        .clear-btn:active { transform: translateY(-50%) scale(0.96); }
+
         .result {
             background: linear-gradient(135deg, #eef2ff, #e6edff); border-radius: 18px;
             padding: 22px; font-size: 22px; font-weight: 700; color: #2b5cb8;
@@ -74,16 +86,6 @@
         .result-detail {
             font-size: 14px; color: #718096; margin-top: 6px; font-weight: 500;
         }
-        .clear-btn {
-            width: 48px; height: 48px; background: #e53e3e; border: none; border-radius: 50%;
-            color: white; font-size: 18px; cursor: pointer; margin: 16px auto 10px;
-            display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
-            transition: all 0.3s ease;
-        }
-        .clear-btn:hover { transform: scale(1.08); background: #c53030; }
-        .clear-btn:active { transform: scale(0.98); }
-
         .info-footer {
             background: #f8fafc; border-top: 1px solid #edf2f7; padding: 22px 18px;
             border-radius: 0 0 24px 24px; margin-top: 16px; font-size: 13px;
@@ -107,6 +109,7 @@
             .info-footer { padding: 18px 14px; font-size: 12px; }
             .info-footer p { font-size: 12px; line-height: 1.5; }
             .info-footer p strong { font-size: 9px; }
+            .clear-btn { padding: 7px 14px; font-size: 14px; }
         }
         .animation-fade { animation: fade 0.5s ease; }
         @keyframes fade {
@@ -121,13 +124,17 @@
         <div class="divider"></div>
     </div>
     <div class="card">
+        <!-- 摄氏度行 + 清空按钮 -->
         <div class="input-group">
             <label for="celsius"><i class="fas fa-temperature-low input-icon"></i> 摄氏度 <span class="unit-badge">°C</span></label>
             <div class="input-wrapper">
                 <i class="fas fa-thermometer-half input-icon-inside"></i>
                 <input type="number" id="celsius" step="any" placeholder="例如 25（室温）">
+                <button class="clear-btn" id="clearBtn">清空</button>
             </div>
         </div>
+
+        <!-- 华氏度行 -->
         <div class="input-group">
             <label for="fahrenheit"><i class="fas fa-temperature-high input-icon"></i> 华氏度 <span class="unit-badge">°F</span></label>
             <div class="input-wrapper">
@@ -135,8 +142,11 @@
                 <input type="number" id="fahrenheit" step="any" placeholder="例如 77（室温）">
             </div>
         </div>
+
+        <!-- 结果显示 -->
         <div class="result" id="result">输入值开始转换<div class="result-detail">支持摄氏度(°C)与华氏度(°F)实时互转</div></div>
-        <button class="clear-btn" id="clearBtn" title="清空所有输入"><i class="fas fa-times"></i></button>
+
+        <!-- 说明信息 -->
         <div class="info-footer">
             <p><i class="fas fa-info-circle formula-icon"></i> 支持摄氏度(°C)与华氏度(°F)实时互转</p>
             <p><i class="fas fa-globe formula-icon"></i> 公式基于国际标准：</p>
@@ -147,9 +157,13 @@
 
     <script>
         const [celsius, fahrenheit, result, clearBtn] = ['celsius', 'fahrenheit', 'result', 'clearBtn'].map(id => document.getElementById(id));
-        const c2f = c => (c * 9) / 5 + 32, f2c = f => (f - 32) * 5 / 9;
+        const c2f = c => (c * 9) / 5 + 32;
+        const f2c = f => (f - 32) * 5 / 9;
         const animate = el => { el.classList.add('animation-fade'); setTimeout(() => el.classList.remove('animation-fade'), 500); };
-        const update = (text, detail) => { result.innerHTML = text + (detail ? `<div class="result-detail">${detail}</div>` : ''); animate(result); };
+        const update = (text, detail) => { 
+            result.innerHTML = text + (detail ? `<div class="result-detail">${detail}</div>` : ''); 
+            animate(result); 
+        };
 
         celsius.addEventListener('input', () => {
             const val = parseFloat(celsius.value);
@@ -157,7 +171,7 @@
                 const f = c2f(val);
                 fahrenheit.value = f.toFixed(2);
                 update(`${val}°C = ${f.toFixed(2)}°F`, "摄氏度转华氏度");
-            } else { fahrenheit.value = ''; update('输入有效的摄氏度值', "例如: 25"); }
+            } else { updateResultIfOtherEmpty(); }
         });
 
         fahrenheit.addEventListener('input', () => {
@@ -166,15 +180,22 @@
                 const c = f2c(val);
                 celsius.value = c.toFixed(2);
                 update(`${val}°F = ${c.toFixed(2)}°C`, "华氏度转摄氏度");
-            } else { celsius.value = ''; update('输入有效的华氏度值', "例如: 77"); }
+            } else { updateResultIfOtherEmpty(); }
         });
 
-        // 清空按钮功能
+        // 清空按钮
         clearBtn.addEventListener('click', () => {
             celsius.value = '';
             fahrenheit.value = '';
             update('输入值开始转换', '支持摄氏度(°C)与华氏度(°F)实时互转');
         });
+
+        // 辅助函数：当某一输入为空时，检查是否都为空，更新提示
+        function updateResultIfOtherEmpty() {
+            if (!celsius.value && !fahrenheit.value) {
+                update('输入值开始转换', '支持摄氏度(°C)与华氏度(°F)实时互转');
+            }
+        }
 
         // 初始化提示
         update('输入值开始转换', '支持摄氏度(°C)与华氏度(°F)实时互转');
