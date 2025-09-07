@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D 摇骰子游戏</title>
+  <style>
+    :root {
+      --dice-size: 90px;
+      --dice-half: calc(var(--dice-size) / 2);
+      --dot-size: 14px;
+      --border-radius: 12px;
+      --bg-color: #f8f9fa;
+      --text-color: #495057;
+      --dice-bg: #ffffff;
+      --dice-border: #e9ecef;
+      --dot-color: #dc3545;
+      --btn-color: #6c757d;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --highlight: rgba(255, 255, 255, 0.8);
+      --accent: #0d6efd;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-align: center;
+      background: var(--bg-color);
+      padding: 20px;
+      color: var(--text-color);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    
+    .container {
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 30px;
+      padding: 25px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px var(--shadow);
+      border: 1px solid var(--dice-border);
+    }
+    
+    h1 {
+      color: var(--text-color);
+      margin-bottom: 12px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    h1::before, h1::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+    }
+    
+    .subtitle {
+      color: #6c757d;
+      margin-bottom: 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    
+    .controls {
+      margin-bottom: 30px;
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px var(--shadow);
+      border: 1px solid var(--dice-border);
+      overflow: hidden;
+    }
+    
+    .control-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      padding: 20px 20px 15px;
+      border-bottom: 1px solid var(--dice-border);
+    }
+    
+    label {
+      font-size: 16px;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+    
+    select {
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid var(--dice-border);
+      background: white;
+      color: var(--text-color);
+      cursor: pointer;
+      min-width: 100px;
+      transition: all 0.2s ease;
+    }
+    
+    select:hover {
+      border-color: var(--accent);
+    }
+    
+    select:focus {
+      outline: 2px solid rgba(13, 110, 253, 0.25);
+      border-color: var(--accent);
+    }
+    
+    option {
+      background: white;
+      color: var(--text-color);
+    }
+    
+    button {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      margin: 15px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      font-size: 16px;
+      width: calc(100% - 30px);
+    }
+    
+    button:hover {
+      background-color: #0b5ed7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      background-color: #adb5bd;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .dice-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin: 30px auto;
+      perspective: 1200px;
+      min-height: 160px;
+      align-items: center;
+      transform-style: preserve-3d;
+    }
+    
+    .dice-wrapper {
+      width: var(--dice-size);
+      height: var(--dice-size);
+      position: relative;
+      transform-style: preserve-3d;
+    }
+    
+    .dice {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-style: preserve-3d;
+      transform: translateZ(0);
+      transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    
+    .face {
+      position: absolute;
+      width: var(--dice-size);
+      height: var(--dice-size);
+      border: 2px solid var(--dice-border);
+      border-radius: var(--border-radius);
+      background: var(--dice-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backface-visibility: hidden;
+      box-shadow: 0 4px 15px var(--shadow);
+    }
+    
+    .face::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--highlight);
+      opacity: 0.3;
+      border-radius: inherit;
+    }
+    
+    .front { 
+      transform: translateZ(var(--dice-half));
+    }
+    .back { 
+      transform: rotateY(180deg) translateZ(var(--dice-half));
+    }
+    .right { 
+      transform: rotateY(90deg) translateZ(var(--dice-half));
+    }
+    .left { 
+      transform: rotateY(-90deg) translateZ(var(--dice-half));
+    }
+    .top { 
+      transform: rotateX(90deg) translateZ(var(--dice-half));
+    }
+    .bottom { 
+      transform: rotateX(-90deg) translateZ(var(--dice-half));
+    }
+    
+    .dot {
+      position: absolute;
+      width: var(--dot-size);
+      height: var(--dot-size);
+      border-radius: 50%;
+      background: var(--dot-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      z-index: 2;
+    }
+    
+    /* 点数定位 */
+    .one .dot { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    
+    .two .dot:nth-child(1) { top: 32%; left: 32%; }
+    .two .dot:nth-child(2) { bottom: 32%; right: 32%; }
+    
+    .three .dot:nth-child(1) { top: 32%; left: 32%; }
+    .three .dot:nth-child(2) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .three .dot:nth-child(3) { bottom: 32%; right: 32%; }
+    
+    .four .dot:nth-child(1) { top: 32%; left: 32%; }
+    .four .dot:nth-child(2) { top: 32%; right: 32%; }
+    .four .dot:nth-child(3) { bottom: 32%; left: 32%; }
+    .four .dot:nth-child(4) { bottom: 32%; right: 32%; }
+    
+    .five .dot:nth-child(1) { top: 32%; left: 32%; }
+    .five .dot:nth-child(2) { top: 32%; right: 32%; }
+    .five .dot:nth-child(3) { bottom: 32%; left: 32%; }
+    .five .dot:nth-child(4) { bottom: 32%; right: 32%; }
+    .five .dot:nth-child(5) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    
+    .six .dot:nth-child(1) { top: 32%; left: 32%; }
+    .six .dot:nth-child(2) { top: 50%; left: 32%; transform: translateY(-50%); }
+    .six .dot:nth-child(3) { bottom: 32%; left: 32%; }
+    .six .dot:nth-child(4) { top: 32%; right: 32%; }
+    .six .dot:nth-child(5) { top: 50%; right: 32%; transform: translateY(-50%); }
+    .six .dot:nth-child(6) { bottom: 32%; right: 32%; }
+    
+    #result {
+      margin-top: 25px;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-color);
+      min-height: 45px;
+      padding: 15px 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px var(--shadow);
+      display: inline-block;
+      border: 1px solid var(--dice-border);
+    }
+    
+    @media (max-width: 480px) {
+      :root {
+        --dice-size: 75px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 24px;
+        gap: 8px;
+      }
+      
+      .subtitle {
+        font-size: 15px;
+      }
+      
+      .control-group {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .controls {
+        margin-bottom: 25px;
+      }
+      
+      button {
+        margin: 12px;
+        width: calc(100% - 24px);
+      }
+      
+      .dice-container {
+        gap: 30px;
+      }
+      
+      #result {
+        font-size: 22px;
+        padding: 12px 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>🎲 摇骰子游戏</h1>
+      <p class="subtitle">选择骰子数量，体验真实3D摇骰效果</p>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="countSelect">骰子数量：</label>
+        <select id="countSelect">
+          <option value="1">1 个</option>
+          <option value="2" selected>2 个</option>
+          <option value="3">3 个</option>
+          <option value="4">4 个</option>
+          <option value="5">5 个</option>
+          <option value="6">6 个</option>
+        </select>
+      </div>
+      <button id="startBtn" onclick="startRoll()">开始摇骰子</button>
+    </div>
+
+    <div class="dice-container" id="diceContainer"></div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    class Dice3D {
+      constructor(container, value = 1) {
+        this.container = container;
+        this.value = value;
+        this.element = null;
+        this.faces = {};
+        this.create();
+        this.setValue(value);
+      }
+      
+      create() {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        
+        const dice = document.createElement('div');
+        dice.className = 'dice';
+        
+        // 创建6个面
+        const faceConfigs = [
+          { class: 'front', value: 1 },
+          { class: 'back', value: 6 },
+          { class: 'right', value: 4 },
+          { class: 'left', value: 3 },
+          { class: 'top', value: 2 },
+          { class: 'bottom', value: 5 }
+        ];
+        
+        faceConfigs.forEach(config => {
+          const face = document.createElement('div');
+          face.className = `face ${config.class}`;
+          this.createDots(face, config.value);
+          dice.appendChild(face);
+          this.faces[config.class] = face;
+        });
+        
+        diceWrapper.appendChild(dice);
+        this.container.appendChild(diceWrapper);
+        this.element = dice;
+      }
+      
+      createDots(faceElement, value) {
+        // 清除现有点
+        while (faceElement.firstChild) {
+          faceElement.removeChild(faceElement.firstChild);
+        }
+        
+        // 移除所有点数类
+        faceElement.classList.remove('one', 'two', 'three', 'four', 'five', 'six');
+        
+        // 添加对应数量的点
+        const positions = this.getDotPositions(value);
+        positions.forEach(pos => {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.style.left = `${50 + pos[0] * 18}%`;
+          dot.style.top = `${50 + pos[1] * 18}%`;
+          dot.style.transform = 'translate(-50%, -50%)';
+          faceElement.appendChild(dot);
+        });
+        
+        // 添加特定面的样式类
+        faceElement.classList.add(['one', 'two', 'three', 'four', 'five', 'six'][value - 1]);
+      }
+      
+      getDotPositions(value) {
+        const basePositions = {
+          1: [[0, 0]],
+          2: [[-1, -1], [1, 1]],
+          3: [[-1, -1], [0, 0], [1, 1]],
+          4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+          5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
+          6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]
+        };
+        return basePositions[value] || [];
+      }
+      
+      setValue(value) {
+        this.value = value;
+        // 更新所有面的点数显示
+        this.createDots(this.faces['front'], value);
+        this.createDots(this.faces['back'], 7-value);
+        this.createDots(this.faces['right'], 4);
+        this.createDots(this.faces['left'], 3);
+        this.createDots(this.faces['top'], 2);
+        this.createDots(this.faces['bottom'], 5);
+      }
+      
+      roll() {
+        // 生成随机旋转
+        const rotX = Math.random() * 720 + 360;
+        const rotY = Math.random() * 720 + 360;
+        const rotZ = Math.random() * 360;
+        
+        this.element.style.transition = 'transform 0.1s linear';
+        this.element.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg)`;
+      }
+      
+      stop(value, delay) {
+        setTimeout(() => {
+          this.setValue(value);
+          this.element.style.transition = `transform 1s cubic-bezier(0.4, 0.0, 0.2, 1)`;
+          this.element.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+        }, delay);
+      }
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function startRoll() {
+      const count = parseInt(document.getElementById('countSelect').value);
+      const container = document.getElementById('diceContainer');
+      const resultEl = document.getElementById('result');
+      const btn = document.getElementById('startBtn');
+
+      // 清空上一次结果
+      container.innerHTML = '';
+      resultEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = '摇动中...';
+
+      // 创建骰子实例
+      const diceInstances = [];
+      for (let i = 0; i < count; i++) {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        container.appendChild(diceWrapper);
+        
+        const dice = new Dice3D(diceWrapper, 1);
+        diceInstances.push(dice);
+      }
+
+      // 播放摇动动画
+      let rolls = 0;
+      const totalRolls = getRandomInt(50, 80);
+      const rollInterval = setInterval(() => {
+        diceInstances.forEach(dice => dice.roll());
+        rolls++;
+        
+        if (rolls >= totalRolls) {
+          clearInterval(rollInterval);
+          
+          // 停止摇动，显示结果
+          let total = 0;
+          diceInstances.forEach((dice, index) => {
+            const value = getRandomInt(1, 6);
+            dice.stop(value, index * 200);
+            total += value;
+          });
+          
+          // 显示结果
+          setTimeout(() => {
+            resultEl.innerHTML = `🎉 摇出总和：<strong>${total}</strong>`;
+            btn.disabled = false;
+            btn.textContent = '重新开始';
+          }, 1000 + (count - 1) * 200);
+        }
+      }, 100);
+    }
+
+    // 键盘事件支持
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (!document.getElementById('startBtn').disabled) {
+          startRoll();
+        }
+      }
+    });
+
+    // 初始化页面
+    window.onload = function() {
+      const container = document.getElementById('diceContainer');
+      container.innerHTML = '';
+      
+      // 创建两个默认骰子
+      for (let i = 0; i < 2; i++) {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        container.appendChild(diceWrapper);
+        
+        new Dice3D(diceWrapper, i + 1);
+      }
+    };
+  </script>
+
+</body>
+</html>
