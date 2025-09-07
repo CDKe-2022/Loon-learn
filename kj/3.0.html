@@ -84,13 +84,13 @@
 
         /* 输入框之间留出更多空间 */
         .input-wrapper {
-            margin-bottom: 24px;
+            margin-bottom: 12px;
         }
 
         /* 结果框与上方输入框之间增加间距 */
         .result {
             background: linear-gradient(135deg, #eef2ff, #e6edff); border-radius: 18px;
-            padding: 24px; font-size: 22px; font-weight: 700; color: #2b5cb8;
+            padding: 12px; font-size: 22px; font-weight: 700; color: #2b5cb8;
             border: 2px solid #d4e3ff; transition: all 0.3s ease;
             box-shadow: 0 4px 12px rgba(74,108,247,0.12); min-height: 80px;
             display: flex; align-items: center; justify-content: center; flex-direction: column;
@@ -105,7 +105,7 @@
 
         /* 底部信息区与结果框之间增加间距 */
         .info-footer {
-            background: #f8fafc; border-top: 1px solid #edf2f7; padding: 24px 18px;
+            background: #f8fafc; border-top: 1px solid #edf2f7; padding: 12px 18px;
             border-radius: 0 0 24px 24px; margin-top: 28px; font-size: 13px;
         }
         .info-footer p {
@@ -118,7 +118,7 @@
             font-family: 'SF Mono', Monaco, Consolas, monospace;
             font-size: 11px; /* 稍大一点 */
             color: #2b5cb8;
-            font-weight: 700; /* 加粗 */
+            font-weight: 900; /* 加粗 */
             letter-spacing: -0.2px;
             background: rgba(43, 92, 184, 0.1);
             padding: 2px 6px;
@@ -203,7 +203,7 @@
             if (!isNaN(val)) {
                 const f = c2f(val);
                 fahrenheit.value = f.toFixed(2);
-                update(`${val}°C = ${f.toFixed(2)}°F`, "摄氏度转华氏度");
+                update(`${val}°C = ${f.toFixed(2)}°F`, "摄氏度（°C）转华氏度（°F）");
             } else { updateResultIfOtherEmpty(); }
         });
 
@@ -212,7 +212,7 @@
             if (!isNaN(val)) {
                 const c = f2c(val);
                 celsius.value = c.toFixed(2);
-                update(`${val}°F = ${c.toFixed(2)}°C`, "华氏度转摄氏度");
+                update(`${val}°F = ${c.toFixed(2)}°C`, "华氏度（°F）转摄氏度（°C）");
             } else { updateResultIfOtherEmpty(); }
         });
 
