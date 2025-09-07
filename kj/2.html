@@ -11,8 +11,9 @@
       --bg-gradient: linear-gradient(135deg, #f5f9ff 0%, #ffffff 100%);
       --text-color: #1d1d1f;
       --text-muted: #6e6e73;
-      --border-color: rgba(229, 229, 234, 0.6);
-      --card-bg: rgba(255, 255, 255, 0.7);
+      --border-color: rgba(229, 229, 234, 0.8);
+      /* 修改：使用半透明颜色替代需要backdrop-filter的颜色 */
+      --card-bg: rgba(255, 255, 255, 0.85); 
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
       --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.12);
       --radius: 16px;
@@ -25,8 +26,9 @@
       --bg-gradient: linear-gradient(135deg, #000000 0%, #1c1c1e 100%);
       --text-color: #f5f5f7;
       --text-muted: #86868b;
-      --border-color: rgba(72, 72, 74, 0.6);
-      --card-bg: rgba(44, 44, 46, 0.7);
+      --border-color: rgba(72, 72, 74, 0.8);
+      /* 修改：使用半透明颜色替代需要backdrop-filter的颜色 */
+      --card-bg: rgba(44, 44, 46, 0.85);
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
       --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.3);
     }
@@ -43,11 +45,10 @@
       background: var(--bg-gradient);
       color: var(--text-color);
       line-height: 1.7;
-      padding: 28px 18px;
+      padding: 32px 20px;
       margin: 0;
       min-height: 100vh;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      /* 修改：移除了 backdrop-filter */
     }
 
     .container { 
@@ -80,21 +81,21 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 120px;
-      height: 120px;
+      width: 110px;
+      height: 110px;
       flex-shrink: 0;
+      margin-right: 5px; /* 保留边距方案 */
       background: var(--card-bg);
       border-radius: 22%;
       box-shadow: var(--shadow-sm);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--border-color);
+      /* 修改：移除了 backdrop-filter */
     }
 
     .app-icon {
       display: block;
-      width: 100px;
-      height: 100px;
+      width: 90px;
+      height: 90px;
       border-radius: 20%;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
       transition: var(--transition);
@@ -110,17 +111,16 @@
       flex: 1;
     }
 
-.meta {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin: 8px 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  /* 移除 justify-content: center; 默认即为 flex-start (左对齐) */
-  justify-content: flex-start; /* 显式设置为左对齐，增加可读性 */
-}
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-start;
+    }
 
     .meta strong {
       color: var(--text-color);
@@ -152,8 +152,7 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow-sm);
       transition: var(--transition);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
+      /* 修改：移除了 backdrop-filter */
     }
 
     section:hover {
@@ -226,19 +225,18 @@
       word-wrap: break-word;
       margin: 0;
       padding: 20px;
-      background: rgba(248, 253, 253, 0.5);
+      background: rgba(240, 245, 245, 0.8);
       border-radius: 12px;
       border: 1px solid var(--border-color);
       overflow-x: auto;
       line-height: 1.65;
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
       transition: var(--transition);
+      /* 修改：移除了 backdrop-filter */
     }
 
     [data-theme="dark"] pre {
-      background: rgba(30, 35, 35, 0.4);
+      background: rgba(30, 35, 35, 0.7);
     }
 
     pre:hover {
@@ -254,8 +252,7 @@
       background: var(--card-bg);
       border-top: 1px dashed var(--border-color);
       border-radius: var(--radius);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      /* 修改：移除了 backdrop-filter */
     }
 
     #genTime {
@@ -276,9 +273,8 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       transition: var(--transition);
+      /* 修改：移除了 backdrop-filter */
     }
 
     .theme-toggle:hover {
@@ -287,17 +283,20 @@
 
     @media (max-width: 768px) {
       .header-content {
-        flex-direction: column;
-        text-align: center;
+        /* 修改：注释掉这行，强制保持左右分栏 */
+        /* flex-direction: column; */
+        
+        /* 你可以选择在这里添加一个flex-wrap，以备不时之需 */
+        flex-wrap: wrap; 
         gap: 16px;
       }
       
       .app-icon-wrapper {
-        margin: 0 auto;
+        margin-right: 20px; /* 保持左侧对齐，不居中 */
       }
       
       .meta {
-        justify-content: center;
+        justify-content: flex-start; /* 保持左侧对齐 */
       }
       
       section {
@@ -330,31 +329,19 @@
         </div>
         <div class="app-info">
           <div class="meta">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             类别：<strong>类别</strong>
           </div>
           <div class="meta">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             评分：<strong id="rating">格式化后的评分</strong><span id="stars" class="stars"></span>
           </div>
           <div class="meta">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             大小：<strong>下载大小</strong>
           </div>
           <div class="meta">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             版本：<strong>版本</strong>
           </div>
         </div>
@@ -364,123 +351,37 @@
     <section>
       <div class="section-header" data-target="descBox">
         <span class="label">软件描述</span>
-        <div class="toggle-btn">
-          <span class="text">收起</span>
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path d="M5.23 12.21a.75.75 0 0 1 1.06.02L10 15.06l3.71-2.83a.75.75 0 1 1 .94 1.18l-4.25 3.25a.75.75 0 0 1-.94 0l-4.25-3.25a.75.75 0 0 1 .02-1.06z"/>
-          </svg>
-        </div>
+        <div class="toggle-btn"><span class="text">收起</span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 12.21a.75.75 0 0 1 1.06.02L10 15.06l3.71-2.83a.75.75 0 1 1 .94 1.18l-4.25 3.25a.75.75 0 0 1-.94 0l-4.25-3.25a.75.75 0 0 1 .02-1.06z"/></svg></div>
       </div>
-      <div class="collapsible" id="descBox">
-        <pre>翻译后的描述</pre>
-      </div>
+      <div class="collapsible" id="descBox"><pre>翻译后的描述</pre></div>
     </section>
 
     <section>
       <div class="section-header" data-target="updateBox">
         <span class="label">软件更新</span>
-        <div class="toggle-btn">
-          <span class="text">收起</span>
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path d="M5.23 12.21a.75.75 0 0 1 1.06.02L10 15.06l3.71-2.83a.75.75 0 1 1 .94 1.18l-4.25 3.25a.75.75 0 0 1-.94 0l-4.25-3.25a.75.75 0 0 1 .02-1.06z"/>
-          </svg>
-        </div>
+        <div class="toggle-btn"><span class="text">收起</span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 12.21a.75.75 0 0 1 1.06.02L10 15.06l3.71-2.83a.75.75 0 1 1 .94 1.18l-4.25 3.25a.75.75 0 0 1-.94 0l-4.25-3.25a.75.75 0 0 1 .02-1.06z"/></svg></div>
       </div>
-      <div class="collapsible" id="updateBox">
-        <pre>翻译后的发布说明</pre>
-      </div>
+      <div class="collapsible" id="updateBox"><pre>翻译后的发布说明</pre></div>
     </section>
 
     <footer>生成时间：<span id="genTime"></span></footer>
   </div>
 
   <script>
-    // 星星评分 SVG
+    // Javascript部分无需修改
     const starFull = `<svg viewBox="0 0 20 20" fill="#ff9500"><path d="M10 15l-5.878 3.09L5.64 12.18.76 7.91l6.09-.89L10 2l3.15 5.02 6.09.89-4.88 4.27 1.518 5.91z"/></svg>`;
     const starHalf = `<svg viewBox="0 0 20 20"><defs><linearGradient id="half"><stop offset="50%" stop-color="#ff9500"/><stop offset="50%" stop-color="#e5e5ea"/></linearGradient></defs><path d="M10 15l-5.878 3.09L5.64 12.18.76 7.91l6.09-.89L10 2l3.15 5.02 6.09.89-4.88 4.27 1.518 5.91z" fill="url(#half)"/></svg>`;
     const starEmpty = `<svg viewBox="0 0 20 20" fill="#e5e5ea"><path d="M10 15l-5.878 3.09L5.64 12.18.76 7.91l6.09-.89L10 2l3.15 5.02 6.09.89-4.88 4.27 1.518 5.91z"/></svg>`;
-
-    function renderStars(rating) {
-      let stars = "";
-      const fullCount = Math.floor(rating);
-      const hasHalf = rating - fullCount >= 0.5;
-      stars += starFull.repeat(fullCount);
-      if (hasHalf) stars += starHalf;
-      stars += starEmpty.repeat(5 - fullCount - (hasHalf ? 1 : 0));
-      return stars;
-    }
-
+    function renderStars(rating) {let stars = "";const fullCount = Math.floor(rating);const hasHalf = rating - fullCount >= 0.5;stars += starFull.repeat(fullCount);if (hasHalf) stars += starHalf;stars += starEmpty.repeat(5 - fullCount - (hasHalf ? 1 : 0));return stars;}
     const ratingValue = parseFloat(document.getElementById("rating").textContent);
     document.getElementById("stars").innerHTML = renderStars(ratingValue);
-
     document.getElementById('genTime').textContent = new Date().toLocaleString('zh-CN');
-
-    // 折叠/展开功能
-    document.querySelectorAll('.section-header').forEach(header => {
-      const targetId = header.getAttribute('data-target');
-      const box = document.getElementById(targetId);
-      const pre = box.querySelector('pre');
-      const btn = header.querySelector('.toggle-btn');
-      const textEl = btn.querySelector('.text');
-
-      // 默认展开
-      box.style.maxHeight = pre.scrollHeight + "px";
-
-      header.addEventListener('click', (e) => {
-        // 防止点击按钮时触发两次
-        if (e.target.closest('.toggle-btn') === btn) return;
-        
-        if (box.style.maxHeight !== "0px") {
-          box.style.maxHeight = "0px";
-          textEl.textContent = "展开";
-          btn.classList.add("collapsed");
-        } else {
-          box.style.maxHeight = pre.scrollHeight + "px";
-          textEl.textContent = "收起";
-          btn.classList.remove("collapsed");
-        }
-      });
-
-      // 按钮点击事件
-      btn.addEventListener('click', () => {
-        if (box.style.maxHeight !== "0px") {
-          box.style.maxHeight = "0px";
-          textEl.textContent = "展开";
-          btn.classList.add("collapsed");
-        } else {
-          box.style.maxHeight = pre.scrollHeight + "px";
-          textEl.textContent = "收起";
-          btn.classList.remove("collapsed");
-        }
-      });
-    });
-
-    // 深色模式切换
+    document.querySelectorAll('.section-header').forEach(header => {const targetId = header.getAttribute('data-target');const box = document.getElementById(targetId);const pre = box.querySelector('pre');const btn = header.querySelector('.toggle-btn');const textEl = btn.querySelector('.text');box.style.maxHeight = pre.scrollHeight + "px";header.addEventListener('click', (e) => {if (e.target.closest('.toggle-btn') === btn) return;if (box.style.maxHeight !== "0px") {box.style.maxHeight = "0px";textEl.textContent = "展开";btn.classList.add("collapsed");} else {box.style.maxHeight = pre.scrollHeight + "px";textEl.textContent = "收起";btn.classList.remove("collapsed");}});btn.addEventListener('click', () => {if (box.style.maxHeight !== "0px") {box.style.maxHeight = "0px";textEl.textContent = "展开";btn.classList.add("collapsed");} else {box.style.maxHeight = pre.scrollHeight + "px";textEl.textContent = "收起";btn.classList.remove("collapsed");}});});
     const themeToggle = document.getElementById('themeToggle');
     const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // 检查系统偏好
-    if (prefersDarkScheme.matches) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      if (currentTheme === 'dark') {
-        document.documentElement.removeAttribute('data-theme');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    });
-
-    // 监听系统主题变化
-    prefersDarkScheme.addEventListener('change', e => {
-      if (e.matches) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-      }
-    });
+    if (prefersDarkScheme.matches) {document.documentElement.setAttribute('data-theme', 'dark');}
+    themeToggle.addEventListener('click', () => {const currentTheme = document.documentElement.getAttribute('data-theme');if (currentTheme === 'dark') {document.documentElement.removeAttribute('data-theme');} else {document.documentElement.setAttribute('data-theme', 'dark');}});
+    prefersDarkScheme.addEventListener('change', e => {if (e.matches) {document.documentElement.setAttribute('data-theme', 'dark');} else {document.documentElement.removeAttribute('data-theme');}});
   </script>
 </body>
 </html>
