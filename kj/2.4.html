@@ -101,7 +101,7 @@
             transform: translateY(-2px);
         }
         
-        /* 整合后的底部信息区 */
+        /* 严格按照四行格式设计的底部信息区 */
         .info-footer {
             background: #f8fafc;
             border-top: 1px solid #edf2f7;
@@ -115,25 +115,18 @@
             line-height: 1.65;
             margin: 8px 0;
         }
-        .info-footer .info-intro {
-            font-size: 14px;
+        .info-footer p:first-child {
             color: #4a5568;
-            line-height: 1.6;
-            border-bottom: 1px dashed #e2e8f0;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
+            font-weight: 500;
+            font-size: 15px;
+        }
+        .info-footer p:nth-child(2) {
+            color: #4a5568;
+            font-weight: 500;
         }
         .info-footer strong {
             color: #2b6cb0;
             font-weight: 700;
-        }
-        .info-footer .formula-title {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 15.5px;
-            margin: 12px 0 8px;
-            padding-top: 8px;
-            border-top: 1px dashed #e2e8f0;
         }
         .unit-badge {
             display: inline-block;
@@ -151,6 +144,7 @@
             input { padding: 14px 16px; font-size: 16.5px; }
             .result { font-size: 18px; padding: 18px; }
             .info-footer { padding: 20px 15px; }
+            .info-footer p { line-height: 1.55; }
         }
     </style>
 </head>
@@ -173,11 +167,10 @@
         
         <div class="result" id="result">输入温度值，结果将显示在此</div>
         
-        <!-- 整合后的底部信息区 -->
+        <!-- 严格按照四行格式设计的底部信息区 -->
         <div class="info-footer">
-            <p class="info-intro">支持摄氏度(°C)与华氏度(°F)实时互转，公式基于国际标准：<br><strong>F = (C × 9/5) + 32</strong></p>
-            
-            <div class="formula-title">转换公式</div>
+            <p>支持摄氏度(°C)与华氏度(°F)实时互转</p>
+            <p>公式基于国际标准：</p>
             <p>摄氏度转华氏度: <strong>F = (C × 9/5) + 32</strong></p>
             <p>华氏度转摄氏度: <strong>C = (F - 32) × 5/9</strong></p>
         </div>
