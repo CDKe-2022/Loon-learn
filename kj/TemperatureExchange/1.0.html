@@ -1,1 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>温度转换器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f0f4ff 0%, #e6f0ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #2d3748;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(74, 108, 247, 0.18);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .container:active {
+            transform: scale(0.985);
+        }
+        .header {
+            background: linear-gradient(135deg, #4a6cf7 0%, #6a89ff 100%);
+            color: white;
+            padding: 30px 25px 25px;
+            text-align: center;
+            position: relative;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(to right, #ff9a9e, #fad0c4);
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            letter-spacing: -0.5px;
+        }
+        .temp-icon {
+            width: 32px;
+            height: 32px;
+        }
+        .temp-icon path {
+            fill: none;
+            stroke: white;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .header p {
+            font-size: 15px;
+            opacity: 0.95;
+            max-width: 320px;
+            margin: 0 auto;
+            font-weight: 300;
+            letter-spacing: -0.2px;
+        }
+        .content {
+            padding: 28px 25px 25px;
+        }
+        .info-box {
+            background: #f0f7ff;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 25px;
+            border: 1px solid #d0e3ff;
+            box-shadow: inset 0 2px 8px rgba(100, 149, 237, 0.12);
+        }
+        .info-box p {
+            font-size: 14.5px;
+            color: #4a6580;
+            line-height: 1.55;
+        }
+        .input-group {
+            margin-bottom: 24px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #3a5066;
+            margin-bottom: 11px;
+            font-size: 16.5px;
+            letter-spacing: -0.2px;
+        }
+        input {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 17.5px;
+            border: 1.5px solid #d0e0f0;
+            border-radius: 16px;
+            background: #f8fafc;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            color: #2c3e50;
+            box-shadow: 0 2px 5px rgba(100, 149, 237, 0.08);
+        }
+        input:focus {
+            outline: none;
+            border-color: #4a6cf7;
+            background: white;
+            box-shadow: 
+                0 0 0 2px rgba(74, 108, 247, 0.15),
+                0 4px 12px rgba(74, 108, 247, 0.12);
+            transform: translateY(-1px);
+        }
+        input::placeholder {
+            color: #a5b6cf;
+            font-style: italic;
+            opacity: 0.85;
+        }
+        .result {
+            background: linear-gradient(135deg, #eef2ff 0%, #e6edff 100%);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #2b5cb8;
+            border: 1px solid #d4e3ff;
+            transition: all 0.3s ease;
+        }
+        .result:hover {
+            background: linear-gradient(135deg, #e6edff 0%, #dde8ff 100%);
+            box-shadow: 0 4px 14px rgba(74, 108, 247, 0.18);
+            transform: translateY(-2px);
+        }
+        .formula {
+            background: #f8fafc;
+            border-top: 1px solid #edf2f7;
+            padding: 22px 18px;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            margin-top: 2px;
+        }
+        .formula h3 {
+            font-size: 16.5px;
+            color: #4a5568;
+            margin-bottom: 13px;
+            font-weight: 600;
+            letter-spacing: -0.1px;
+        }
+        .formula p {
+            font-size: 14.5px;
+            color: #718096;
+            line-height: 1.65;
+            margin: 7px 0;
+        }
+        .formula strong {
+            color: #2b6cb0;
+            font-weight: 700;
+        }
+        .unit-badge {
+            display: inline-block;
+            background: rgba(74, 108, 247, 0.12);
+            color: #4a6cf7;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 5px;
+            letter-spacing: -0.1px;
+        }
+        @media (max-width: 375px) {
+            .header h1 { font-size: 25px; }
+            input { padding: 14px 16px; font-size: 16.5px; }
+            .result { font-size: 18px; padding: 18px; }
+            .formula { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <!-- SVG温度计图标 - 极简线条设计 -->
+                <svg class="temp-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 10c-1.1 0-2 .9-2 2v4a2 2 0 0 0 2 2 2 2 0 0 0 2-2v-4c0-1.1-.9-2-2-2zm0-10c-2.7 0-5 2.3-5 5 0 1.3.5 2.5 1.4 3.4l-.9 4.5c-.1.5.4 1 .9 1 .5 0 1-.4.9-1l-.9-4.5c.8-.8 1.3-1.9 1.3-3.1 0-2.7 2.3-5 5-5 .6 0 1 .4 1 1s-.4 1-1 1c-1.7 0-3 1.3-3 3 0 .6.4 1 1 1s1-.4 1-1c0-1.7-1.3-3-3-3-.6 0-1-.4-1-1 0-.6.4-1 1-1z"/>
+                </svg>
+                温度转换器
+            </h1>
+            <p>输入一个值，另一个将自动转换</p>
+        </div>
+        <div class="content">
+            <div class="info-box">
+                <p>支持摄氏度(°C)与华氏度(°F)实时互转，公式基于国际标准：<br><strong>F = (C × 9/5) + 32</strong></p>
+            </div>
+            
+            <div class="input-group">
+                <label for="celsius">摄氏度 <span class="unit-badge">°C</span></label>
+                <input type="number" id="celsius" step="any" placeholder="例如 25（室温）">
+            </div>
+            
+            <div class="input-group">
+                <label for="fahrenheit">华氏度 <span class="unit-badge">°F</span></label>
+                <input type="number" id="fahrenheit" step="any" placeholder="例如 77（室温）">
+            </div>
+            
+            <div class="result" id="result">输入温度值，结果将显示在此</div>
+            
+            <div class="formula">
+                <h3>转换公式</h3>
+                <p>摄氏度转华氏度: <strong>F = (C × 9/5) + 32</strong></p>
+                <p>华氏度转摄氏度: <strong>C = (F - 32) × 5/9</strong></p>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        const celsiusInput = document.getElementById('celsius');
+        const fahrenheitInput = document.getElementById('fahrenheit');
+        const resultDiv = document.getElementById('result');
+
+        function celsiusToFahrenheit(c) {
+            return (c * 9) / 5 + 32;
+        }
+
+        function fahrenheitToCelsius(f) {
+            return (f - 32) * 5 / 9;
+        }
+
+        function updateResult(text) {
+            resultDiv.textContent = text;
+            resultDiv.style.opacity = 0.7;
+            setTimeout(() => { resultDiv.style.opacity = 1 }, 200);
+        }
+
+        celsiusInput.addEventListener('input', function() {
+            const c = parseFloat(celsiusInput.value);
+            if (!isNaN(c)) {
+                const f = celsiusToFahrenheit(c);
+                fahrenheitInput.value = f.toFixed(2);
+                updateResult(`${c}°C = ${f.toFixed(2)}°F`);
+            } else {
+                fahrenheitInput.value = '';
+                updateResult('输入有效的摄氏度值');
+            }
+        });
+
+        fahrenheitInput.addEventListener('input', function() {
+            const f = parseFloat(fahrenheitInput.value);
+            if (!isNaN(f)) {
+                const c = fahrenheitToCelsius(f);
+                celsiusInput.value = c.toFixed(2);
+                updateResult(`${f}°F = ${c.toFixed(2)}°C`);
+            } else {
+                celsiusInput.value = '';
+                updateResult('输入有效的华氏度值');
+            }
+        });
+
+        updateResult('输入上方任一温度值开始转换');
+    </script>
+</body>
+</html>
