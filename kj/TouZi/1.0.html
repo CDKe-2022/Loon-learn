@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D 摇骰子游戏</title>
+  <style>
+    :root {
+      --dice-size: 90px;
+      --dice-half: calc(var(--dice-size) / 2);
+      --dot-size: 14px;
+      --border-radius: 12px;
+      --bg-color: #f8f9fa;
+      --text-color: #495057;
+      --dice-bg: #ffffff;
+      --dice-border: #e9ecef;
+      --dot-color: #6c757d;
+      --btn-primary: #6c757d;
+      --btn-secondary: #adb5bd;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-align: center;
+      background: var(--bg-color);
+      padding: 20px;
+      color: var(--text-color);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    
+    .header {
+      margin-bottom: 30px;
+      max-width: 500px;
+    }
+    
+    h1 {
+      color: var(--text-color);
+      margin-bottom: 10px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    p {
+      color: #6c757d;
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    
+    .controls {
+      margin-bottom: 30px;
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .control-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    label {
+      font-size: 16px;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+    
+    select {
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+      background: white;
+      color: var(--text-color);
+      cursor: pointer;
+      min-width: 100px;
+    }
+    
+    option {
+      background: white;
+      color: var(--text-color);
+    }
+    
+    button {
+      background-color: var(--btn-primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      margin-top: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background-color: #5a6268;
+      transform: translateY(-1px);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      background-color: var(--btn-secondary);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .dice-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin: 30px auto;
+      perspective: 1200px;
+      min-height: 160px;
+      align-items: center;
+      transform-style: preserve-3d;
+    }
+    
+    .dice-wrapper {
+      width: var(--dice-size);
+      height: var(--dice-size);
+      position: relative;
+      transform-style: preserve-3d;
+    }
+    
+    .dice {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-style: preserve-3d;
+      transform: translateZ(0);
+      transition: transform 0.3s ease-out;
+    }
+    
+    .face {
+      position: absolute;
+      width: var(--dice-size);
+      height: var(--dice-size);
+      border: 2px solid var(--dice-border);
+      border-radius: var(--border-radius);
+      background: var(--dice-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--text-color);
+      backface-visibility: hidden;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    
+    .front { 
+      transform: translateZ(var(--dice-half));
+    }
+    .back { 
+      transform: rotateY(180deg) translateZ(var(--dice-half));
+    }
+    .right { 
+      transform: rotateY(90deg) translateZ(var(--dice-half));
+    }
+    .left { 
+      transform: rotateY(-90deg) translateZ(var(--dice-half));
+    }
+    .top { 
+      transform: rotateX(90deg) translateZ(var(--dice-half));
+    }
+    .bottom { 
+      transform: rotateX(-90deg) translateZ(var(--dice-half));
+    }
+    
+    .dot {
+      position: absolute;
+      width: var(--dot-size);
+      height: var(--dot-size);
+      border-radius: 50%;
+      background: var(--dot-color);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* 点数1 - 中心 */
+    .one .dot { 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+    }
+    
+    /* 点数2 - 对角 */
+    .two .dot:nth-child(1) { 
+      top: 30%; 
+      left: 30%; 
+    }
+    .two .dot:nth-child(2) { 
+      bottom: 30%; 
+      right: 30%; 
+    }
+    
+    /* 点数3 - 斜线 */
+    .three .dot:nth-child(1) { 
+      top: 30%; 
+      left: 30%; 
+    }
+    .three .dot:nth-child(2) { 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+    }
+    .three .dot:nth-child(3) { 
+      bottom: 30%; 
+      right: 30%; 
+    }
+    
+    /* 点数4 - 四角 */
+    .four .dot:nth-child(1) { 
+      top: 30%; 
+      left: 30%; 
+    }
+    .four .dot:nth-child(2) { 
+      top: 30%; 
+      right: 30%; 
+    }
+    .four .dot:nth-child(3) { 
+      bottom: 30%; 
+      left: 30%; 
+    }
+    .four .dot:nth-child(4) { 
+      bottom: 30%; 
+      right: 30%; 
+    }
+    
+    /* 点数5 - 四角加中心 */
+    .five .dot:nth-child(1) { 
+      top: 30%; 
+      left: 30%; 
+    }
+    .five .dot:nth-child(2) { 
+      top: 30%; 
+      right: 30%; 
+    }
+    .five .dot:nth-child(3) { 
+      bottom: 30%; 
+      left: 30%; 
+    }
+    .five .dot:nth-child(4) { 
+      bottom: 30%; 
+      right: 30%; 
+    }
+    .five .dot:nth-child(5) { 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+    }
+    
+    /* 点数6 - 两列 */
+    .six .dot:nth-child(1) { 
+      top: 30%; 
+      left: 30%; 
+    }
+    .six .dot:nth-child(2) { 
+      top: 50%; 
+      left: 30%; 
+      transform: translateY(-50%); 
+    }
+    .six .dot:nth-child(3) { 
+      bottom: 30%; 
+      left: 30%; 
+    }
+    .six .dot:nth-child(4) { 
+      top: 30%; 
+      right: 30%; 
+    }
+    .six .dot:nth-child(5) { 
+      top: 50%; 
+      right: 30%; 
+      transform: translateY(-50%); 
+    }
+    .six .dot:nth-child(6) { 
+      bottom: 30%; 
+      right: 30%; 
+    }
+    
+    #result {
+      margin-top: 30px;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-color);
+      min-height: 40px;
+      padding: 15px 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px var(--shadow);
+      display: inline-block;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 480px) {
+      :root {
+        --dice-size: 75px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      p {
+        font-size: 15px;
+      }
+      
+      .control-group {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .dice-container {
+        gap: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🎲 摇骰子游戏</h1>
+    <p>选择骰子数量，体验简约3D摇骰效果</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="countSelect">骰子数量：</label>
+      <select id="countSelect">
+        <option value="1">1 个</option>
+        <option value="2" selected>2 个</option>
+        <option value="3">3 个</option>
+        <option value="4">4 个</option>
+        <option value="5">5 个</option>
+        <option value="6">6 个</option>
+      </select>
+    </div>
+    <button id="startBtn" onclick="startRoll()">开始摇骰子</button>
+  </div>
+
+  <div class="dice-container" id="diceContainer"></div>
+  <div id="result"></div>
+
+  <script>
+    // 骰子点数位置配置
+    const dotPositions = {
+      1: [[0, 0]],
+      2: [[-1, -1], [1, 1]],
+      3: [[-1, -1], [0, 0], [1, 1]],
+      4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+      5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
+      6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]
+    };
+
+    class Dice3D {
+      constructor(container, value = 1) {
+        this.container = container;
+        this.value = value;
+        this.element = null;
+        this.faces = {};
+        this.create();
+        this.setValue(value);
+      }
+      
+      create() {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        
+        const dice = document.createElement('div');
+        dice.className = 'dice';
+        
+        // 创建6个面
+        const faceConfigs = [
+          { class: 'front', value: 1 },
+          { class: 'back', value: 6 },
+          { class: 'right', value: 4 },
+          { class: 'left', value: 3 },
+          { class: 'top', value: 2 },
+          { class: 'bottom', value: 5 }
+        ];
+        
+        faceConfigs.forEach(config => {
+          const face = document.createElement('div');
+          face.className = `face ${config.class}`;
+          this.createDots(face, config.value);
+          dice.appendChild(face);
+          this.faces[config.class] = face;
+        });
+        
+        diceWrapper.appendChild(dice);
+        this.container.appendChild(diceWrapper);
+        this.element = dice;
+      }
+      
+      createDots(faceElement, value) {
+        // 清除现有点
+        while (faceElement.firstChild) {
+          faceElement.removeChild(faceElement.firstChild);
+        }
+        
+        // 移除所有点数类
+        faceElement.classList.remove('one', 'two', 'three', 'four', 'five', 'six');
+        
+        // 获取位置偏移
+        const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--dice-size'));
+        const offset = size * 0.35;
+        
+        // 添加对应数量的点
+        const positions = dotPositions[value];
+        positions.forEach(pos => {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.style.left = `${50 + pos[0] * 18}%`;
+          dot.style.top = `${50 + pos[1] * 18}%`;
+          dot.style.transform = 'translate(-50%, -50%)';
+          faceElement.appendChild(dot);
+        });
+        
+        // 添加特定面的样式类
+        faceElement.classList.add(
+          value === 1 ? 'one' : 
+          value === 2 ? 'two' : 
+          value === 3 ? 'three' : 
+          value === 4 ? 'four' : 
+          value === 5 ? 'five' : 'six'
+        );
+      }
+      
+      setValue(value) {
+        this.value = value;
+        // 更新所有面的点数显示
+        this.createDots(this.faces['front'], value);
+        this.createDots(this.faces['back'], 7-value);
+        this.createDots(this.faces['right'], 4);
+        this.createDots(this.faces['left'], 3);
+        this.createDots(this.faces['top'], 2);
+        this.createDots(this.faces['bottom'], 5);
+      }
+      
+      roll() {
+        // 生成随机旋转
+        const rotX = Math.random() * 720 + 360;
+        const rotY = Math.random() * 720 + 360;
+        const rotZ = Math.random() * 360;
+        
+        this.element.style.transition = 'transform 0.1s linear';
+        this.element.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg)`;
+      }
+      
+      stop(value, delay) {
+        setTimeout(() => {
+          this.setValue(value);
+          this.element.style.transition = `transform 1s cubic-bezier(0.17, 0.67, 0.83, 0.67)`;
+          this.element.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+        }, delay);
+      }
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function startRoll() {
+      const count = parseInt(document.getElementById('countSelect').value);
+      const container = document.getElementById('diceContainer');
+      const resultEl = document.getElementById('result');
+      const btn = document.getElementById('startBtn');
+
+      // 清空上一次结果
+      container.innerHTML = '';
+      resultEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = '摇动中...';
+
+      // 创建骰子实例
+      const diceInstances = [];
+      for (let i = 0; i < count; i++) {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        container.appendChild(diceWrapper);
+        
+        const dice = new Dice3D(diceWrapper, 1);
+        diceInstances.push(dice);
+      }
+
+      // 播放摇动动画
+      let rolls = 0;
+      const totalRolls = getRandomInt(50, 80);
+      const rollInterval = setInterval(() => {
+        diceInstances.forEach(dice => dice.roll());
+        rolls++;
+        
+        if (rolls >= totalRolls) {
+          clearInterval(rollInterval);
+          
+          // 停止摇动，显示结果
+          let total = 0;
+          diceInstances.forEach((dice, index) => {
+            const value = getRandomInt(1, 6);
+            dice.stop(value, index * 200);
+            total += value;
+          });
+          
+          // 显示结果
+          setTimeout(() => {
+            resultEl.innerHTML = `摇出总和：<strong>${total}</strong>`;
+            btn.disabled = false;
+            btn.textContent = '重新开始';
+          }, 1000 + (count - 1) * 200);
+        }
+      }, 100);
+    }
+
+    // 添加键盘事件支持
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (!document.getElementById('startBtn').disabled) {
+          startRoll();
+        }
+      }
+    });
+
+    // 初始化页面
+    window.onload = function() {
+      const container = document.getElementById('diceContainer');
+      container.innerHTML = '';
+      
+      // 创建两个默认骰子
+      for (let i = 0; i < 2; i++) {
+        const diceWrapper = document.createElement('div');
+        diceWrapper.className = 'dice-wrapper';
+        container.appendChild(diceWrapper);
+        
+        new Dice3D(diceWrapper, i + 1);
+      }
+    };
+  </script>
+
+</body>
+</html>
