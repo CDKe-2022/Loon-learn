@@ -171,7 +171,7 @@
 
 /* 第一行：功能说明 - "支持摄氏度(°C)与华氏度(°F)实时互转" */
 .info-footer p:first-child {
-    font-size: 16.5px; /* 主要信息稍大 */
+    font-size: 13px; /* 主要信息稍大 */
     color: #2d3748; /* 深灰色，更突出 */
     font-weight: 600; /* 中等粗细 */
     line-height: 1.6;
@@ -182,7 +182,7 @@
 
 /* 第二行：标准说明 - "公式基于国际标准：" */
 .info-footer p:nth-child(2) {
-    font-size: 15.8px; /* 略小于第一行 */
+    font-size: 12px; /* 略小于第一行 */
     color: #4a5568; /* 稍浅的灰色 */
     font-weight: 550; /* 比第一行稍细 */
     line-height: 1.65;
@@ -193,7 +193,7 @@
 
 /* 第三行：摄氏转华氏公式 */
 .info-footer p:nth-child(3) {
-    font-size: 15.5px; /* 基础大小 */
+    font-size: 10px; /* 基础大小 */
     color: #4a5568;
     font-weight: 500;
     line-height: 1.7;
@@ -204,7 +204,7 @@
 
 /* 第四行：华氏转摄氏公式 */
 .info-footer p:nth-child(4) {
-    font-size: 15.5px; /* 与第三行相同 */
+    font-size: 10px; /* 与第三行相同 */
     color: #4a5568;
     font-weight: 500;
     line-height: 1.7;
@@ -216,35 +216,12 @@
 /* 公式部分特殊样式 - 让公式更突出 */
 .info-footer p strong {
     font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
-    font-size: 16px; /* 公式部分稍大 */
+    font-size: 10px; /* 公式部分稍大 */
     color: #2b5cb8; /* 保持蓝色 */
     font-weight: 600; /* 公式加粗 */
     letter-spacing: -0.2px;
 }
 
-/* 小屏幕设备适配 */
-@media (max-width: 375px) {
-    .info-footer {
-        padding: 22px 18px;
-    }
-    
-    .info-footer p:first-child {
-        font-size: 15.8px;
-    }
-    
-    .info-footer p:nth-child(2) {
-        font-size: 15.2px;
-    }
-    
-    .info-footer p:nth-child(3),
-    .info-footer p:nth-child(4) {
-        font-size: 14.8px;
-    }
-    
-    .info-footer p strong {
-        font-size: 15.2px;
-    }
-}
         .formula-icon {
             margin-right: 10px;
             color: #4a6cf7;
@@ -362,7 +339,7 @@
             }
         });
 
-        updateResult('输入上方任一温度值开始转换', "支持摄氏度(°C)与华氏度(°F)");
+        updateResult('输入值开始转换', "支持摄氏度(°C)与华氏度(°F)实时互转");
     </script>
 </body>
 </html>
