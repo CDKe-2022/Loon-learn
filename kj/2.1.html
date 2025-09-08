@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜数字游戏</title>
+    <style>
+        :root {
+            /* 扁平风配色 */
+            --primary: #4361ee;
+            --success: #06d6a0;
+            --error: #ef476f;
+            --warning: #ffd166;
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --text: #212529;
+            --subtext: #6c757d;
+            --border: #e9ecef;
+            --shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+        
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #3a56d4; transform: translateY(-1px); }
+        
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #05c18e; transform: translateY(-1px); }
+        
+        .btn-error { background: var(--error); color: white; }
+        .btn-error:hover { background: #e03e65; transform: translateY(-1px); }
+        
+        .game-area { display: none; }
+        
+        .attempts {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .range-hint {
+            background: #eef2ff;
+            border: 1px solid #d2d9ff;
+            color: var(--primary);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            margin: 16px 0;
+            transition: all 0.3s;
+        }
+        
+        .range-hint.updated {
+            background: #dbeafe;
+            transform: scale(1.01);
+        }
+        
+        .message {
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            animation: fadeIn 0.3s;
+        }
+        
+        .success { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+        .error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .info { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        
+        .history {
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+        
+        .history-title {
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .history-list { list-style: none; }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 480px) {
+            body { padding: 15px; }
+            .container { padding: 20px; }
+            .header h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>猜数字游戏</h1>
+        </div>
+        
+        <div class="card" id="settings">
+            <div class="form-group">
+                <label>最小数字</label>
+                <input type="number" id="minNumber" value="1">
+            </div>
+            
+            <div class="form-group">
+                <label>最大数字</label>
+                <input type="number" id="maxNumber" value="100">
+            </div>
+            
+            <div class="form-group">
+                <label>猜数次数</label>
+                <input type="number" id="attempts" value="5" min="1">
+            </div>
+            
+            <button class="btn-primary" id="startBtn">开始游戏</button>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="attempts">
+                剩余次数: <span id="attemptsLeft">5</span>
+            </div>
+            
+            <div class="range-hint" id="rangeHint">请猜一个 1 到 100 之间的数字</div>
+            
+            <div class="form-group">
+                <label>请输入你的猜测</label>
+                <input type="number" id="guessInput" placeholder="输入数字">
+            </div>
+            
+            <button class="btn-success" id="guessBtn">验证猜测</button>
+            <button class="btn-error" id="restartBtn">重新开始</button>
+            
+            <div id="messageArea"></div>
+            
+            <div class="history">
+                <div class="history-title">猜数历史记录</div>
+                <ul class="history-list" id="historyList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简化变量声明
+        let target, attempts, maxAttempts, minN, maxN, curMin, curMax, history = [];
+        
+        // 简化事件绑定
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('guessBtn').onclick = checkGuess;
+        document.getElementById('restartBtn').onclick = restartGame;
+        document.getElementById('guessInput').onkeypress = e => e.key === 'Enter' && checkGuess();
+        
+        function startGame() {
+            minN = parseInt(document.getElementById('minNumber').value) || 1;
+            maxN = parseInt(document.getElementById('maxNumber').value) || 100;
+            maxAttempts = parseInt(document.getElementById('attempts').value) || 5;
+            
+            if (minN >= maxN) return msg('最小数字必须小于最大数字！', 'error');
+            if (maxAttempts < 1) return msg('猜数次数必须大于0！', 'error');
+            
+            target = Math.floor(Math.random() * (maxN - minN + 1)) + minN;
+            attempts = maxAttempts;
+            curMin = minN;
+            curMax = maxN;
+            history = [];
+            
+            // 简化UI操作
+            document.getElementById('settings').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('attemptsLeft').textContent = attempts;
+            document.getElementById('messageArea').innerHTML = '';
+            document.getElementById('guessInput').value = '';
+            document.getElementById('guessInput').focus();
+            document.getElementById('guessBtn').disabled = false;
+            
+            updateRange();
+            updateHistory();
+            msg(`游戏开始！请猜 ${minN} 到 ${maxN} 之间的数字。`, 'info');
+        }
+        
+        function checkGuess() {
+            if (attempts <= 0) return msg('游戏已结束，请重新开始！', 'error');
+            
+            const guess = parseInt(document.getElementById('guessInput').value);
+            if (isNaN(guess) || guess < minN || guess > maxN) {
+                return msg(`请输入 ${minN} 到 ${maxN} 之间的数字！`, 'error');
+            }
+            
+            attempts--;
+            document.getElementById('attemptsLeft').textContent = attempts;
+            
+            let result = "", cls = "";
+            
+            if (guess === target) {
+                result = "正确！"; cls = "result-correct";
+                msg(`🎉 恭喜你！猜对了！答案就是 ${target}`, 'success');
+                document.getElementById('guessBtn').disabled = true;
+            } else if (attempts <= 0) {
+                result = "错误！"; cls = "result-high";
+                msg(`😔 很遗憾，次数用完了！正确答案是 ${target}。`, 'error');
+                document.getElementById('guessBtn').disabled = true;
+            } else if (guess < target) {
+                result = "太小了"; cls = "result-low";
+                msg(`⬆️ 猜小了！还剩 ${attempts} 次机会。`, 'info');
+                if (guess > curMin) curMin = guess + 1;
+            } else {
+                result = "太大了"; cls = "result-high";
+                msg(`⬇️ 猜大了！还剩 ${attempts} 次机会。`, 'info');
+                if (guess < curMax) curMax = guess - 1;
+            }
+            
+            history.push({ number: guess, result, cls });
+            updateRange();
+            updateHistory();
+            
+            document.getElementById('guessInput').value = '';
+            document.getElementById('guessInput').focus();
+        }
+        
+        function updateRange() {
+            const el = document.getElementById('rangeHint');
+            el.textContent = `当前猜测范围：${curMin} 到 ${curMax}`;
+            el.classList.add('updated');
+            setTimeout(() => el.classList.remove('updated'), 500);
+        }
+        
+        function updateHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            history.slice().reverse().forEach((item, i) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `<span>第${history.length - i}次: ${item.number}</span><span class="${item.cls}">${item.result}</span>`;
+                list.appendChild(li);
+            });
+        }
+        
+        function restartGame() {
+            document.getElementById('settings').style.display = 'block';
+            document.getElementById('gameArea').style.display = 'none';
+        }
+        
+        function msg(text, type) {
+            document.getElementById('messageArea').innerHTML = 
+                `<div class="message ${type}">${text}</div>`;
+        }
+    </script>
+</body>
+</html>
