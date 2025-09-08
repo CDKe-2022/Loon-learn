@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日期推算工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f9fafc 0%, #f1f4f8 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #4a5568;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, rgba(77, 124, 240, 0.1) 0%, rgba(101, 149, 255, 0.15) 100%);
+            padding: 30px 30px 20px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        
+        .header h1 {
+            font-size: 2.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #4a5568;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        .header p {
+            font-size: 1.05rem;
+            opacity: 0.85;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+        
+        @media (min-width: 768px) {
+            .content {
+                grid-template-columns: 1.8fr 1.2fr;
+            }
+        }
+        
+        .input-section {
+            padding: 30px;
+        }
+        
+        .result-section {
+            background: linear-gradient(135deg, rgba(247, 250, 252, 0.5) 0%, rgba(237, 242, 247, 0.5) 100%);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-left: 1px solid rgba(226, 232, 240, 0.5);
+        }
+        
+        .input-group {
+            margin-bottom: 22px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: rgba(249, 250, 252, 0.7);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        
+        .input-field:focus {
+            border-color: #5b89f7;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(91, 137, 247, 0.15);
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(to bottom, #5b89f7, #4a7af0);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(91, 137, 247, 0.2);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to bottom, #4a7af0, #3d6de3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(91, 137, 247, 0.25);
+        }
+        
+        .btn-clear {
+            background: linear-gradient(to bottom, #a0aec0, #90a0b2);
+            box-shadow: 0 2px 4px rgba(160, 174, 192, 0.2);
+        }
+        
+        .btn-clear:hover {
+            background: linear-gradient(to bottom, #90a0b2, #8192a6);
+            box-shadow: 0 4px 8px rgba(160, 174, 192, 0.25);
+        }
+        
+        .result-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #5b89f7;
+            margin: 15px 0;
+        }
+        
+        .calculation-detail {
+            font-size: 0.95rem;
+            color: #718096;
+            line-height: 1.5;
+        }
+        
+        .instructions {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.7) 0%, rgba(238, 242, 247, 0.7) 100%);
+            padding: 20px 30px;
+            border-top: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        
+        .instructions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 0;
+        }
+        
+        .instructions-title {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions-content {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .instruction-item:hover {
+            background: rgba(91, 137, 247, 0.05);
+        }
+        
+        .instruction-text {
+            font-size: 0.92rem;
+            color: #718096;
+            line-height: 1.5;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsed .collapse-icon {
+            transform: rotate(180deg);
+        }
+        
+        .collapsed .instructions-content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <svg class="icon" viewBox="0 0 24 24" width="28" height="28">
+                    <path fill="currentColor" d="M7 2v2h10V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2h2zm11 5H6v12h12V7z"/>
+                </svg>
+                日期推算工具
+            </h1>
+            <p>轻松计算日期差或推算未来/过去日期</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="startDate">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm1 3v5h4v2h-6V7h2z"/>
+                        </svg>
+                        起始日期
+                    </label>
+                    <input type="date" id="startDate" class="input-field">
+                </div>
+                
+                <div class="input-group">
+                    <label for="endDate">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 3v8h7v-2h-5V7h-2z"/>
+                        </svg>
+                        结束日期
+                    </label>
+                    <input type="date" id="endDate" class="input-field">
+                </div>
+                
+                <div class="input-group">
+                    <label for="daysDiff">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M17 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h10zm-1 2H8v16h8V4zm-4 2v2h2V6h-2zm0 4v2h2v-2h-2zm0 4v2h2v-2h-2z"/>
+                        </svg>
+                        间隔天数
+                    </label>
+                    <input type="number" id="daysDiff" class="input-field" placeholder="正数表示未来，负数表示过去">
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn" onclick="calculate()">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M6 2h12a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 2v16h10V4H7zm2 2h2v2H9V6zm6 0h-2v2h2V6zm-6 4h2v2H9v-2zm6 0h-2v2h2v-2zm-6 4h2v2H9v-2zm6 0h-2v2h2v-2zm-6 4h2v2H9v-2zm6 0h-2v2h2v-2z"/>
+                        </svg>
+                        开始计算
+                    </button>
+                    <button class="btn btn-clear" onclick="clearFields()">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M17 6h5v2h-2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8H2V6h5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3zm-8 5v6h2v-6H9zm4 0v6h2v-6h-2zm-1-6V4H9v1h5z"/>
+                        </svg>
+                        清空
+                    </button>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <h3>计算结果</h3>
+                <div id="resultValue" class="result-value">-</div>
+                <p id="calculationDetail" class="calculation-detail">请填写任意两个值进行计算</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <div class="instructions-header" onclick="toggleInstructions()">
+                <div class="instructions-title">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 3v2h2V7h-2zm0 4v6h2v-6h-2z"/>
+                    </svg>
+                    使用指南
+                </div>
+                <svg class="icon collapse-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12 16a1 1 0 0 1-.707-.293l-5-5a1 1 0 0 1 1.414-1.414L12 13.586l4.293-4.293a1 1 0 1 1 1.414 1.414l-5 5A1 1 0 0 1 12 16z"/>
+                </svg>
+            </div>
+            
+            <div class="instructions-content">
+                <div class="instruction-item">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M10 15.586l-3.293-3.293a1 1 0 0 1 1.414-1.414L10 12.586l5.293-5.293a1 1 0 1 1 1.414 1.414L10 15.586z"/>
+                    </svg>
+                    <div class="instruction-text">填写任意两个值，系统将自动计算第三个值</div>
+                </div>
+                <div class="instruction-item">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M10 15.586l-3.293-3.293a1 1 0 0 1 1.414-1.414L10 12.586l5.293-5.293a1 1 0 1 1 1.414 1.414L10 15.586z"/>
+                    </svg>
+                    <div class="instruction-text">填写起始日期和间隔天数，可计算出结束日期</div>
+                </div>
+                <div class="instruction-item">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M10 15.586l-3.293-3.293a1 1 0 0 1 1.414-1.414L10 12.586l5.293-5.293a1 1 0 1 1 1.414 1.414L10 15.586z"/>
+                    </svg>
+                    <div class="instruction-text">间隔天数可使用负数表示过去日期</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+            const daysDiffInput = document.getElementById('daysDiff').value;
+
+            const resultElement = document.getElementById('resultValue');
+            const detailElement = document.getElementById('calculationDetail');
+
+            const filledInputs = [startDateInput, endDateInput, daysDiffInput].filter(Boolean).length;
+
+            if (filledInputs !== 2) {
+                resultElement.innerHTML = '-';
+                detailElement.innerHTML = '请填写任意两个值';
+                return;
+            }
+
+            if (startDateInput && endDateInput) {
+                const start = new Date(startDateInput);
+                const end = new Date(endDateInput);
+                const diffTime = end - start;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                document.getElementById('daysDiff').value = diffDays;
+                const startFormatted = start.toLocaleDateString('zh-CN');
+                const endFormatted = end.toLocaleDateString('zh-CN');
+
+                resultElement.innerHTML = `${diffDays}`;
+                detailElement.innerHTML = `从 ${startFormatted} 到 ${endFormatted}`;
+            }
+            else if (startDateInput && daysDiffInput) {
+                const start = new Date(startDateInput);
+                const days = parseInt(daysDiffInput);
+                const endDate = new Date(start);
+                endDate.setDate(start.getDate() + days);
+
+                const formattedDate = endDate.toLocaleDateString('zh-CN');
+                document.getElementById('endDate').value = formatDateForInput(endDate);
+
+                resultElement.innerHTML = formattedDate;
+                detailElement.innerHTML = `从 ${start.toLocaleDateString('zh-CN')} ${days >= 0 ? '向后' : '向前'} ${Math.abs(days)} 天`;
+            }
+            else if (endDateInput && daysDiffInput) {
+                const end = new Date(endDateInput);
+                const days = parseInt(daysDiffInput);
+                const startDate = new Date(end);
+                startDate.setDate(end.getDate() - days);
+
+                const formattedDate = startDate.toLocaleDateString('zh-CN');
+                document.getElementById('startDate').value = formatDateForInput(startDate);
+
+                resultElement.innerHTML = formattedDate;
+                detailElement.innerHTML = `从 ${end.toLocaleDateString('zh-CN')} ${days >= 0 ? '向前' : '向后'} ${Math.abs(days)} 天`;
+            }
+        }
+
+        function clearFields() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('daysDiff').value = '';
+            document.getElementById('resultValue').innerHTML = '-';
+            document.getElementById('calculationDetail').innerHTML = '请填写任意两个值进行计算';
+        }
+
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function toggleInstructions() {
+            const instructions = document.querySelector('.instructions');
+            instructions.classList.toggle('collapsed');
+        }
+
+        // 初始折叠说明部分
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.instructions').classList.add('collapsed');
+        });
+    </script>
+</body>
+</html>
