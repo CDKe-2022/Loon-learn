@@ -5,62 +5,411 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日期推算工具</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}body{background:linear-gradient(135deg,#f9fafc 0%,#f1f4f8 100%);min-height:100vh;padding:20px;color:#4a5568;display:flex;flex-direction:column;align-items:center;justify-content:center}.container{width:100%;max-width:900px;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden}.header{background:linear-gradient(135deg,rgba(77,124,240,.1) 0%,rgba(101,149,255,.15) 100%);padding:30px;text-align:center;border-bottom:1px solid rgba(226,232,240,.8)}.header h1{font-size:2.1rem;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:12px;color:#4a5568;text-shadow:0 1px 2px rgba(255,255,255,.8)}.header p{font-size:1.05rem;opacity:.85}.content{display:grid;grid-template-columns:1fr;gap:0}@media (min-width:768px){.content{grid-template-columns:1.8fr 1.2fr}}.input-section{padding:30px}.result-section{background:linear-gradient(135deg,rgba(247,250,252,.5) 0%,rgba(237,242,247,.5) 100%);padding:30px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-left:1px solid rgba(226,232,240,.5)}.input-group{margin-bottom:22px}.input-group label{display:block;margin-bottom:8px;font-weight:500;color:#4a5568;display:flex;align-items:center;gap:8px}.input-field{width:100%;padding:14px;border:1px solid rgba(226,232,240,.8);border-radius:10px;font-size:1rem;transition:all .2s;background:rgba(249,250,252,.7);box-shadow:inset 0 1px 2px rgba(0,0,0,.02)}.input-field:focus{border-color:#5b89f7;outline:none;background:white;box-shadow:0 0 0 3px rgba(91,137,247,.15)}.button-group{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}.btn{background:linear-gradient(to bottom,#5b89f7,#4a7af0);color:white;border:none;padding:14px;border-radius:10px;font-size:1rem;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 4px rgba(91,137,247,.2)}.btn:hover{background:linear-gradient(to bottom,#4a7af0,#3d6de3);transform:translateY(-1px);box-shadow:0 4px 8px rgba(91,137,247,.25)}.btn-clear{background:linear-gradient(to bottom,#a0aec0,#90a0b2);box-shadow:0 2px 4px rgba(160,174,192,.2)}.btn-clear:hover{background:linear-gradient(to bottom,#90a0b2,#8192a6);box-shadow:0 4px 8px rgba(160,174,192,.25)}.result-value{font-size:2rem;font-weight:600;color:#5b89f7;margin:15px 0}.calculation-detail{font-size:.95rem;color:#718096;line-height:1.5}.instructions{background:linear-gradient(135deg,rgba(248,250,252,.7) 0%,rgba(238,242,247,.7) 100%);padding:20px 30px;border-top:1px solid rgba(226,232,240,.7)}.instructions-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 0}.instructions-title{font-size:1.05rem;font-weight:500;color:#4a5568;display:flex;align-items:center;gap:10px}.instructions-content{margin-top:15px;display:grid;grid-template-columns:1fr;gap:12px}.instruction-item{display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;transition:background .2s}.instruction-item:hover{background:rgba(91,137,247,.05)}.instruction-text{font-size:.92rem;color:#718096;line-height:1.5}.icon{width:20px;height:20px;flex-shrink:0;margin-top:2px}.collapse-icon{transition:transform .3s ease}.collapsed .collapse-icon{transform:rotate(180deg)}.collapsed .instructions-content{display:none}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f9fafc 0%, #f1f4f8 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #4a5568;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, rgba(77, 124, 240, 0.1) 0%, rgba(101, 149, 255, 0.15) 100%);
+            padding: 30px 30px 20px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        
+        .header h1 {
+            font-size: 2.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #4a5568;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        .header p {
+            font-size: 1.05rem;
+            opacity: 0.85;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+        
+        @media (min-width: 768px) {
+            .content {
+                grid-template-columns: 1.8fr 1.2fr;
+            }
+        }
+        
+        .input-section {
+            padding: 30px;
+        }
+        
+        .result-section {
+            background: linear-gradient(135deg, rgba(247, 250, 252, 0.5) 0%, rgba(237, 242, 247, 0.5) 100%);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-left: 1px solid rgba(226, 232, 240, 0.5);
+        }
+        
+        .input-group {
+            margin-bottom: 22px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: rgba(249, 250, 252, 0.7);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        
+        .input-field:focus {
+            border-color: #5b89f7;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(91, 137, 247, 0.15);
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(to bottom, #5b89f7, #4a7af0);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(91, 137, 247, 0.2);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to bottom, #4a7af0, #3d6de3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(91, 137, 247, 0.25);
+        }
+        
+        .btn-clear {
+            background: linear-gradient(to bottom, #a0aec0, #90a0b2);
+            box-shadow: 0 2px 4px rgba(160, 174, 192, 0.2);
+        }
+        
+        .btn-clear:hover {
+            background: linear-gradient(to bottom, #90a0b2, #8192a6);
+            box-shadow: 0 4px 8px rgba(160, 174, 192, 0.25);
+        }
+        
+        .result-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #5b89f7;
+            margin: 15px 0;
+        }
+        
+        .calculation-detail {
+            font-size: 0.95rem;
+            color: #718096;
+            line-height: 1.5;
+        }
+        
+        .instructions {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.7) 0%, rgba(238, 242, 247, 0.7) 100%);
+            padding: 20px 30px;
+            border-top: 1px solid rgba(226, 232, 240, 0.7);
+        }
+        
+        .instructions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 0;
+        }
+        
+        .instructions-title {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions-content {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .instruction-item:hover {
+            background: rgba(91, 137, 247, 0.05);
+        }
+        
+        .instruction-text {
+            font-size: 0.92rem;
+            color: #718096;
+            line-height: 1.5;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsed .collapse-icon {
+            transform: rotate(180deg);
+        }
+        
+        .collapsed .instructions-content {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><svg class="icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> 日期推算工具</h1>
+            <h1>
+                <!-- 替换为简洁线条风格的日历图标 -->
+                <svg class="icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                日期推算工具
+            </h1>
             <p>轻松计算日期差或推算未来/过去日期</p>
         </div>
-
+        
         <div class="content">
             <div class="input-section">
                 <div class="input-group">
-                    <label for="startDate"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg> 起始日期</label>
+                    <label for="startDate">
+                        <!-- 替换为简洁线条风格的时钟图标 (短指针) -->
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>
+                        起始日期
+                    </label>
                     <input type="date" id="startDate" class="input-field">
                 </div>
-
+                
                 <div class="input-group">
-                    <label for="endDate"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 18,12"></polyline></svg> 结束日期</label>
+                    <label for="endDate">
+                        <!-- 替换为简洁线条风格的时钟图标 (长指针) -->
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 18,12"></polyline></svg>
+                        结束日期
+                    </label>
                     <input type="date" id="endDate" class="input-field">
                 </div>
-
+                
                 <div class="input-group">
-                    <label for="daysDiff"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="5,12 12,19 19,12"></polyline></svg> 间隔天数</label>
+                    <label for="daysDiff">
+                        <!-- 替换为简洁线条风格的上下箭头图标 -->
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="5,12 12,19 19,12"></polyline></svg>
+                        间隔天数
+                    </label>
                     <input type="number" id="daysDiff" class="input-field" placeholder="正数表示未来，负数表示过去">
                 </div>
-
+                
                 <div class="button-group">
-                    <button class="btn" onclick="calculate()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,7 13.5,15.5 8.5,10.5 2,17"></polyline><polyline points="16,7 22,7 22,13"></polyline></svg> 开始计算</button>
-                    <button class="btn btn-clear" onclick="clearFields()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><line x1="8" y1="6" x2="8" y2="4"></line><line x1="16" y1="6" x2="16" y2="4"></line><line x1="9" y1="14" x2="15" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line></svg> 清空</button>
+                    <button class="btn" onclick="calculate()">
+                        <!-- 替换为简洁线条风格的对勾图标 -->
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+                        开始计算
+                    </button>
+                    <button class="btn btn-clear" onclick="clearFields()">
+                        <!-- 替换为简洁线条风格的清空图标 -->
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><line x1="8" y1="6" x2="8" y2="4"></line><line x1="16" y1="6" x2="16" y2="4"></line><line x1="9" y1="14" x2="15" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line></svg>
+                        清空
+                    </button>
                 </div>
             </div>
-
+            
             <div class="result-section">
                 <h3>计算结果</h3>
                 <div id="resultValue" class="result-value">-</div>
                 <p id="calculationDetail" class="calculation-detail">请填写任意两个值进行计算</p>
             </div>
         </div>
-
+        
         <div class="instructions">
             <div class="instructions-header" onclick="toggleInstructions()">
-                <div class="instructions-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> 使用指南</div>
+                <div class="instructions-title">
+                    <!-- 替换为简洁线条风格的问号图标 -->
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    使用指南
+                </div>
+                <!-- 替换为简洁线条风格的向下折线箭头图标 -->
                 <svg class="icon collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"></polyline></svg>
             </div>
-
+            
             <div class="instructions-content">
-                <div class="instruction-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg><div class="instruction-text">填写任意两个值，系统将自动计算第三个值</div></div>
-                <div class="instruction-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg><div class="instruction-text">填写起始日期和间隔天数，可计算出结束日期</div></div>
-                <div class="instruction-item"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg><div class="instruction-text">间隔天数可使用负数表示过去日期</div></div>
+                <div class="instruction-item">
+                    <!-- 替换为简洁线条风格的对勾图标 -->
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+                    <div class="instruction-text">填写任意两个值，系统将自动计算第三个值</div>
+                </div>
+                <div class="instruction-item">
+                    <!-- 替换为简洁线条风格的对勾图标 -->
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+                    <div class="instruction-text">填写起始日期和间隔天数，可计算出结束日期</div>
+                </div>
+                <div class="instruction-item">
+                    <!-- 替换为简洁线条风格的对勾图标 -->
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"></polyline></svg>
+                    <div class="instruction-text">间隔天数可使用负数表示过去日期</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const c=(d,e,f)=>{const a=new Date(d),b=new Date(e);return Math.floor((b-a)/(1e3*60*60*24))};const f=(d)=>{const a=d.getFullYear(),b=(d.getMonth()+1).toString().padStart(2,"0"),c=d.getDate().toString().padStart(2,"0");return`${a}-${b}-${c}`};const g=(d,e)=>{const a=new Date(d);return a.setDate(a.getDate()+e),a};const h=(d,e)=>{const a=new Date(d);return a.setDate(a.getDate()-e),a};const i=(d,e,f,g,h)=>{const a=document.getElementById(d),b=document.getElementById(e),c=document.getElementById(f),i=document.getElementById(g),j=document.getElementById(h);if(!a.value||!b.value||!c.value){i.innerHTML="-";j.innerHTML="请填写任意两个值";return}const k=parseInt(c.value);if(a.value&&b.value){const l=new Date(a.value),m=new Date(b.value),n=Math.floor((m-l)/(1e3*60*60*24));c.value=n;i.innerHTML=`${n}`;j.innerHTML=`从 ${l.toLocaleDateString("zh-CN")} 到 ${m.toLocaleDateString("zh-CN")}`}else if(a.value&&k){const l=new Date(a.value),m=g(l,k);c.value="";b.value=f(m);i.innerHTML=m.toLocaleDateString("zh-CN");j.innerHTML=`从 ${l.toLocaleDateString("zh-CN")} ${k>=0?"向后":"向前"} ${Math.abs(k)} 天`}else if(b.value&&k){const l=new Date(b.value),m=h(l,k);c.value="";a.value=f(m);i.innerHTML=m.toLocaleDateString("zh-CN");j.innerHTML=`从 ${l.toLocaleDateString("zh-CN")} ${k>=0?"向前":"向后"} ${Math.abs(k)} 天`}};const j=()=>{document.getElementById("startDate").value="",document.getElementById("endDate").value="",document.getElementById("daysDiff").value="",document.getElementById("resultValue").innerHTML="-",document.getElementById("calculationDetail").innerHTML="请填写任意两个值进行计算"};const k=()=>{document.querySelector(".instructions").classList.toggle("collapsed")};document.addEventListener("DOMContentLoaded",()=>{document.querySelector(".instructions").classList.add("collapsed")});
+        function calculate() {
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+            const daysDiffInput = document.getElementById('daysDiff').value;
+
+            const resultElement = document.getElementById('resultValue');
+            const detailElement = document.getElementById('calculationDetail');
+
+            const filledInputs = [startDateInput, endDateInput, daysDiffInput].filter(Boolean).length;
+
+            if (filledInputs !== 2) {
+                resultElement.innerHTML = '-';
+                detailElement.innerHTML = '请填写任意两个值';
+                return;
+            }
+
+            if (startDateInput && endDateInput) {
+                const start = new Date(startDateInput);
+                const end = new Date(endDateInput);
+                const diffTime = end - start;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                document.getElementById('daysDiff').value = diffDays;
+                const startFormatted = start.toLocaleDateString('zh-CN');
+                const endFormatted = end.toLocaleDateString('zh-CN');
+
+                resultElement.innerHTML = `${diffDays}`;
+                detailElement.innerHTML = `从 ${startFormatted} 到 ${endFormatted}`;
+            }
+            else if (startDateInput && daysDiffInput) {
+                const start = new Date(startDateInput);
+                const days = parseInt(daysDiffInput);
+                const endDate = new Date(start);
+                endDate.setDate(start.getDate() + days);
+
+                const formattedDate = endDate.toLocaleDateString('zh-CN');
+                document.getElementById('endDate').value = formatDateForInput(endDate);
+
+                resultElement.innerHTML = formattedDate;
+                detailElement.innerHTML = `从 ${start.toLocaleDateString('zh-CN')} ${days >= 0 ? '向后' : '向前'} ${Math.abs(days)} 天`;
+            }
+            else if (endDateInput && daysDiffInput) {
+                const end = new Date(endDateInput);
+                const days = parseInt(daysDiffInput);
+                const startDate = new Date(end);
+                startDate.setDate(end.getDate() - days);
+
+                const formattedDate = startDate.toLocaleDateString('zh-CN');
+                document.getElementById('startDate').value = formatDateForInput(startDate);
+
+                resultElement.innerHTML = formattedDate;
+                detailElement.innerHTML = `从 ${end.toLocaleDateString('zh-CN')} ${days >= 0 ? '向前' : '向后'} ${Math.abs(days)} 天`;
+            }
+        }
+
+        function clearFields() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('daysDiff').value = '';
+            document.getElementById('resultValue').innerHTML = '-';
+            document.getElementById('calculationDetail').innerHTML = '请填写任意两个值进行计算';
+        }
+
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function toggleInstructions() {
+            const instructions = document.querySelector('.instructions');
+            instructions.classList.toggle('collapsed');
+        }
+
+        // 初始折叠说明部分
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.instructions').classList.add('collapsed');
+        });
     </script>
 </body>
 </html>
