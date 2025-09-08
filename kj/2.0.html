@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜数字游戏</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --success: #34C759;
+            --error: #FF3B30;
+            --warning: #FF9500;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #1C1C1E;
+            --subtext: #8E8E93;
+            --border: #E5E5EA;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px 15px;
+            max-width: 500px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .container {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            background: #FAFAFA;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #FFFFFF;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+        
+        input.invalid {
+            border-color: var(--error);
+            box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2);
+        }
+        
+        .input-hint {
+            font-size: 12px;
+            color: var(--subtext);
+            margin-top: 6px;
+            display: block;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-error { background: var(--error); color: white; }
+        
+        .game-area {
+            display: none;
+            margin-top: 24px;
+        }
+        
+        .attempts {
+            background: linear-gradient(135deg, #6a5acd, #8a2be2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .attempts.warning {
+            background: linear-gradient(135deg, #FF9500, #FF3B30);
+        }
+        
+        .message {
+            padding: 16px;
+            margin-top: 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .success { background: #d9f9d9; color: #1e8e3e; border: 1px solid #a7e8a7; }
+        .error { background: #ffebeb; color: #d32f2f; border: 1px solid #f8c1c1; }
+        .info { background: #e6f4ff; color: #1976d2; border: 1px solid #b3d9ff; }
+        
+        .icon { width: 20px; height: 20px; }
+        .header-icon { width: 32px; height: 32px; }
+        .attempts-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
+        
+        .history {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 480px) {
+            .container { padding: 16px; }
+            .header h1 { font-size: 24px; }
+            .btn { padding: 12px; font-size: 15px; }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <svg class="header-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                猜数字游戏
+            </h1>
+        </div>
+        
+        <div class="card" id="settings">
+            <div class="form-group">
+                <label for="min">
+                    <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    最小数字
+                </label>
+                <input type="number" id="min" value="1" min="-1000" max="1000">
+                <span class="input-hint">默认值: 1</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="max">
+                    <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    最大数字
+                </label>
+                <input type="number" id="max" value="100" min="-1000" max="1000">
+                <span class="input-hint">默认值: 100</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="attempts">
+                    <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    猜数次数
+                </label>
+                <input type="number" id="attempts" value="5" min="1" max="50">
+                <span class="input-hint">默认值: 5</span>
+            </div>
+            
+            <button class="btn btn-primary" id="startBtn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                开始游戏
+            </button>
+        </div>
+        
+        <div class="card game-area" id="gameArea">
+            <div class="attempts" id="attemptsDisplay">
+                <svg class="attempts-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                剩余次数: <span id="attemptsLeft">5</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="guess">
+                    <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                    </svg>
+                    请输入你的猜测
+                </label>
+                <input type="number" id="guess" placeholder="输入数字" autocomplete="off">
+            </div>
+            
+            <button class="btn btn-success" id="guessBtn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                验证猜测
+            </button>
+            
+            <button class="btn btn-error" id="restartBtn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                重新开始
+            </button>
+            
+            <div id="message"></div>
+            
+            <div class="history" id="historyContainer" style="display: none;">
+                <h3 style="margin-bottom: 10px; text-align: center;">猜测历史</h3>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态管理
+        const gameState = {
+            target: null,
+            attempts: 0,
+            maxAttempts: 0,
+            min: 0,
+            max: 0,
+            history: []
+        };
+        
+        // DOM 元素引用
+        const elements = {
+            min: document.getElementById('min'),
+            max: document.getElementById('max'),
+            attempts: document.getElementById('attempts'),
+            startBtn: document.getElementById('startBtn'),
+            guess: document.getElementById('guess'),
+            guessBtn: document.getElementById('guessBtn'),
+            restartBtn: document.getElementById('restartBtn'),
+            gameArea: document.getElementById('gameArea'),
+            settings: document.getElementById('settings'),
+            attemptsLeft: document.getElementById('attemptsLeft'),
+            attemptsDisplay: document.getElementById('attemptsDisplay'),
+            message: document.getElementById('message'),
+            historyContainer: document.getElementById('historyContainer'),
+            historyList: document.getElementById('historyList')
+        };
+        
+        // 事件监听器设置
+        elements.startBtn.addEventListener('click', startGame);
+        elements.guessBtn.addEventListener('click', checkGuess);
+        elements.restartBtn.addEventListener('click', restartGame);
+        elements.guess.addEventListener('keypress', e => {
+            if (e.key === 'Enter') checkGuess();
+        });
+        
+        // 输入验证
+        elements.min.addEventListener('change', validateRange);
+        elements.max.addEventListener('change', validateRange);
+        
+        function validateRange() {
+            const minVal = parseInt(elements.min.value) || 1;
+            const maxVal = parseInt(elements.max.value) || 100;
+            
+            if (minVal >= maxVal) {
+                elements.min.classList.add('invalid');
+                elements.max.classList.add('invalid');
+                showMessage('最小数字必须小于最大数字！', 'error', elements.settings);
+            } else {
+                elements.min.classList.remove('invalid');
+                elements.max.classList.remove('invalid');
+                clearMessage(elements.settings);
+            }
+        }
+        
+        function startGame() {
+            gameState.min = parseInt(elements.min.value) || 1;
+            gameState.max = parseInt(elements.max.value) || 100;
+            gameState.maxAttempts = parseInt(elements.attempts.value) || 5;
+            
+            // 验证输入
+            if (gameState.min >= gameState.max) {
+                showMessage('最小数字必须小于最大数字！', 'error', elements.settings);
+                elements.min.classList.add('shake');
+                elements.max.classList.add('shake');
+                setTimeout(() => {
+                    elements.min.classList.remove('shake');
+                    elements.max.classList.remove('shake');
+                }, 500);
+                return;
+            }
+            
+            if (gameState.maxAttempts < 1) {
+                showMessage('猜数次数必须大于0！', 'error', elements.settings);
+                elements.attempts.classList.add('shake');
+                setTimeout(() => elements.attempts.classList.remove('shake'), 500);
+                return;
+            }
+            
+            // 生成随机数
+            gameState.target = Math.floor(Math.random() * (gameState.max - gameState.min + 1)) + gameState.min;
+            gameState.attempts = gameState.maxAttempts;
+            gameState.history = [];
+            
+            // 切换界面
+            elements.settings.style.display = 'none';
+            elements.gameArea.style.display = 'block';
+            elements.attemptsLeft.textContent = gameState.attempts;
+            elements.message.innerHTML = '';
+            elements.guess.value = '';
+            elements.guess.focus();
+            elements.historyContainer.style.display = 'none';
+            elements.historyList.innerHTML = '';
+            elements.attemptsDisplay.classList.remove('warning');
+            
+            showMessage(`游戏开始！请猜 ${gameState.min} 到 ${gameState.max} 之间的数字。`, 'info');
+        }
+        
+        function checkGuess() {
+            if (gameState.attempts <= 0) {
+                showMessage('游戏已结束，请重新开始！', 'error');
+                return;
+            }
+            
+            const guess = parseInt(elements.guess.value);
+            
+            if (isNaN(guess) || guess < gameState.min || guess > gameState.max) {
+                showMessage(isNaN(guess) ? '请输入一个有效的数字！' : `请输入 ${gameState.min} 到 ${gameState.max} 之间的数字！`, 'error');
+                elements.guess.classList.add('shake');
+                setTimeout(() => elements.guess.classList.remove('shake'), 500);
+                return;
+            }
+            
+            // 添加到历史记录
+            gameState.history.push(guess);
+            updateHistory();
+            
+            gameState.attempts--;
+            elements.attemptsLeft.textContent = gameState.attempts;
+            
+            // 低次数警告
+            if (gameState.attempts <= Math.floor(gameState.maxAttempts / 3)) {
+                elements.attemptsDisplay.classList.add('warning');
+            }
+            
+            // 判断结果
+            if (guess === gameState.target) {
+                showMessage(`🎉 恭喜你！猜对了！答案就是 ${gameState.target}`, 'success');
+                elements.guessBtn.disabled = true;
+                elements.guess.disabled = true;
+            } else if (gameState.attempts <= 0) {
+                showMessage(`😔 很遗憾，次数用完了！正确答案是 ${gameState.target}。`, 'error');
+                elements.guessBtn.disabled = true;
+                elements.guess.disabled = true;
+            } else {
+                const direction = guess < gameState.target ? '⬆️ 猜小了' : '⬇️ 猜大了';
+                showMessage(`${direction}！还剩 ${gameState.attempts} 次机会。`, 'info');
+            }
+            
+            elements.guess.value = '';
+            elements.guess.focus();
+        }
+        
+        function updateHistory() {
+            if (gameState.history.length > 0) {
+                elements.historyContainer.style.display = 'block';
+                elements.historyList.innerHTML = '';
+                
+                gameState.history.forEach((guess, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    const guessNumber = document.createElement('span');
+                    guessNumber.textContent = `第 ${index + 1} 次: ${guess}`;
+                    
+                    const result = document.createElement('span');
+                    if (guess === gameState.target) {
+                        result.textContent = '✅ 正确';
+                        result.style.color = 'var(--success)';
+                    } else if (guess < gameState.target) {
+                        result.textContent = '⬆️ 太小';
+                        result.style.color = 'var(--primary)';
+                    } else {
+                        result.textContent = '⬇️ 太大';
+                        result.style.color = 'var(--error)';
+                    }
+                    
+                    item.appendChild(guessNumber);
+                    item.appendChild(result);
+                    elements.historyList.appendChild(item);
+                });
+            }
+        }
+        
+        function restartGame() {
+            elements.settings.style.display = 'block';
+            elements.gameArea.style.display = 'none';
+            elements.guessBtn.disabled = false;
+            elements.guess.disabled = false;
+        }
+        
+        function showMessage(text, type, parent = elements.message) {
+            parent.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+        
+        function clearMessage(parent = elements.message) {
+            parent.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
