@@ -32,14 +32,6 @@
             margin: 0 auto;
         }
         
-        .container {
-            background-color: var(--card-color);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 20px;
-        }
-        
         .header {
             text-align: center;
             margin-bottom: 24px;
@@ -65,6 +57,7 @@
             border-radius: 14px;
             padding: 20px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
         }
         
         .form-group {
@@ -159,7 +152,6 @@
         
         .game-area {
             display: none;
-            margin-top: 24px;
         }
         
         .attempts-container {
@@ -299,10 +291,6 @@
         }
         
         @media (max-width: 480px) {
-            .container {
-                padding: 16px;
-            }
-            
             .header h1 {
                 font-size: 24px;
             }
@@ -315,120 +303,118 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>
-                猜数字游戏
-            </h1>
-        </div>
-        
-        <div class="settings" id="settings">
-            <div class="form-group">
-                <label for="minNumber">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 5v14M5 12h14"></path>
-                    </svg>
-                    最小数字（默认1）
-                </label>
-                <div class="input-icon">
-                    <input type="number" id="minNumber" value="1" placeholder="输入最小数字">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="19 9 13 15 5 9"></polyline>
-                    </svg>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="maxNumber">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 5v14M5 12h14"></path>
-                    </svg>
-                    最大数字（默认100）
-                </label>
-                <div class="input-icon">
-                    <input type="number" id="maxNumber" value="100" placeholder="输入最大数字">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="5 15 12 9 19 15"></polyline>
-                    </svg>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="attempts">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    猜数次数（默认5次）
-                </label>
-                <div class="input-icon">
-                    <input type="number" id="attempts" value="5" min="1" placeholder="输入猜数次数">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                    </svg>
-                </div>
-            </div>
-            
-            <button id="startBtn" onclick="startGame()">
+    <div class="header">
+        <h1>
+            猜数字游戏
+        </h1>
+    </div>
+    
+    <div class="settings" id="settings">
+        <div class="form-group">
+            <label for="minNumber">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    <path d="M12 5v14M5 12h14"></path>
                 </svg>
-                开始游戏
-            </button>
+                最小数字（默认1）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="minNumber" value="1" placeholder="输入最小数字">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="19 9 13 15 5 9"></polyline>
+                </svg>
+            </div>
         </div>
         
-        <div class="game-area" id="gameArea">
-            <div class="attempts-container">
+        <div class="form-group">
+            <label for="maxNumber">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                最大数字（默认100）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="maxNumber" value="100" placeholder="输入最大数字">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="5 15 12 9 19 15"></polyline>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="attempts">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                剩余次数: <span id="attemptsLeft">5</span>
-            </div>
-            
-            <div class="range-hint" id="rangeHint">
-                请猜一个 1 到 100 之间的数字
-            </div>
-            
-            <div class="guess-input">
-                <label for="guessInput">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                    </svg>
-                    请输入你的猜测
-                </label>
-                <div class="input-icon">
-                    <input type="number" id="guessInput" placeholder="输入数字" onkeypress="event.key === 'Enter' && checkGuess()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </div>
-            </div>
-            
-            <button id="guessBtn" onclick="checkGuess()">
+                猜数次数（默认5次）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="attempts" value="5" min="1" placeholder="输入猜数次数">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                 </svg>
-                验证猜测
-            </button>
-            
-            <button id="restartBtn" onclick="restartGame()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 4v6h-6"></path>
-                    <path d="M1 20v-6h6"></path>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                重新开始
-            </button>
-            
-            <div id="messageArea"></div>
-            
-            <div class="history-container">
-                <div class="history-title">猜数历史记录</div>
-                <ul class="history-list" id="historyList"></ul>
             </div>
+        </div>
+        
+        <button id="startBtn" onclick="startGame()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            开始游戏
+        </button>
+    </div>
+    
+    <div class="game-area" id="gameArea">
+        <div class="attempts-container">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            剩余次数: <span id="attemptsLeft">5</span>
+        </div>
+        
+        <div class="range-hint" id="rangeHint">
+            请猜一个 1 到 100 之间的数字
+        </div>
+        
+        <div class="guess-input">
+            <label for="guessInput">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                请输入你的猜测
+            </label>
+            <div class="input-icon">
+                <input type="number" id="guessInput" placeholder="输入数字" onkeypress="event.key === 'Enter' && checkGuess()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </div>
+        </div>
+        
+        <button id="guessBtn" onclick="checkGuess()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            验证猜测
+        </button>
+        
+        <button id="restartBtn" onclick="restartGame()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            重新开始
+        </button>
+        
+        <div id="messageArea"></div>
+        
+        <div class="history-container">
+            <div class="history-title">猜数历史记录</div>
+            <ul class="history-list" id="historyList"></ul>
         </div>
     </div>
 
@@ -469,13 +455,43 @@
             document.getElementById('guessInput').focus();
             
             // 更新范围提示
-            document.getElementById('rangeHint').textContent = `当前猜测范围：${curMin} 到 ${curMax}`;
+            updateRangeHint();
             
             // 清空历史记录
             document.getElementById('historyList').innerHTML = '';
             
             // 使用模板字符串
             msg(`游戏开始！请猜 ${minN} 到 ${maxN} 之间的数字。`, 'info');
+        };
+        
+        // 新增函数：更新范围提示，当范围缩小到一个数字时直接显示答案
+        const updateRangeHint = () => {
+            const rangeHint = document.getElementById('rangeHint');
+            if (curMin === curMax) {
+                rangeHint.textContent = `答案就是：${curMin}！`;
+                // 自动判定为正确答案
+                if (attLeft > 0) {
+                    attLeft--; // 消耗一次机会
+                    document.getElementById('attemptsLeft').textContent = attLeft;
+                    msg(`🎉 恭喜你！猜对了！答案就是 ${tgt}`, 'success');
+                    document.getElementById('guessBtn').disabled = true;
+                    
+                    // 添加到历史记录
+                    history.push({ num: curMin, res: "正确！", cls: "result-correct" });
+                    
+                    // 更新历史记录显示
+                    const histList = document.getElementById('historyList');
+                    histList.innerHTML = '';
+                    [...history].reverse().forEach((item, idx) => {
+                        const li = document.createElement('li');
+                        li.className = 'history-item';
+                        li.innerHTML = `<span class="history-number">第${history.length - idx}次: ${item.num}</span><span class="history-result ${item.cls}">${item.res}</span>`;
+                        histList.appendChild(li);
+                    });
+                }
+            } else {
+                rangeHint.textContent = `当前猜测范围：${curMin} 到 ${curMax}`;
+            }
         };
         
         const checkGuess = () => {
@@ -519,8 +535,8 @@
             // 添加到历史记录
             history.push({ num: guess, res, cls: resClass });
             
-            // 更新范围提示
-            document.getElementById('rangeHint').textContent = `当前猜测范围：${curMin} 到 ${curMax}`;
+            // 更新范围提示（包含自动判断逻辑）
+            updateRangeHint();
             
             // 更新历史记录显示
             const histList = document.getElementById('historyList');
