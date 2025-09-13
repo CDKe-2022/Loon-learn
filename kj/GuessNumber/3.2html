@@ -1,1 +1,578 @@
-1
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜数字游戏</title>
+    <style>
+        :root {
+            --primary-color: #007AFF;
+            --success-color: #34C759;
+            --error-color: #FF3B30;
+            --warning-color: #FF9500;
+            --background-color: #F2F2F7;
+            --card-color: #FFFFFF;
+            --text-color: #1C1C1E;
+            --subtext-color: #8E8E93;
+            --border-color: #E5E5EA;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding: 20px 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .header h1 svg {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .settings, .game-area {
+            background-color: var(--card-color);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-color);
+        }
+        
+        label svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-color);
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            background-color: #FAFAFA;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        #startBtn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        #startBtn:hover {
+            background-color: #0062cc;
+            transform: translateY(-2px);
+        }
+        
+        #guessBtn {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        #guessBtn:hover {
+            background-color: #2db44e;
+            transform: translateY(-2px);
+        }
+        
+        #restartBtn {
+            background-color: var(--error-color);
+            color: white;
+        }
+        
+        #restartBtn:hover {
+            background-color: #e0342a;
+            transform: translateY(-2px);
+        }
+        
+        .game-area {
+            display: none;
+        }
+        
+        .attempts-container {
+            background: linear-gradient(135deg, #6a5acd, #8a2be2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+        }
+        
+        .attempts-container svg {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        
+        .success {
+            background-color: #d9f9d9;
+            color: #1e8e3e;
+            border: 1px solid #a7e8a7;
+        }
+        
+        .error {
+            background-color: #ffebeb;
+            color: #d32f2f;
+            border: 1px solid #f8c1c1;
+        }
+        
+        .info {
+            background-color: #e6f4ff;
+            color: #1976d2;
+            border: 1px solid #b3d9ff;
+        }
+        
+        .guess-input {
+            margin-bottom: 20px;
+        }
+        
+        .input-icon {
+            position: relative;
+        }
+        
+        .input-icon svg {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--subtext-color);
+        }
+        
+        .range-hint {
+            background-color: #f8f8f8;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-weight: 600;
+            text-align: center;
+            font-size: 16px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        
+        .range-hint.updated {
+            background-color: #fff3cd;
+            transform: scale(1.02);
+        }
+        
+        .range-hint.success {
+            background-color: #d9f9d9;
+            color: #1e8e3e;
+            border: 1px solid #a7e8a7;
+        }
+        
+        .range-hint.error {
+            background-color: #ffebeb;
+            color: #d32f2f;
+            border: 1px solid #f8c1c1;
+        }
+        
+        .history-container {
+            margin-top: 20px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        
+        .history-title {
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-color);
+            font-size: 16px;
+        }
+        
+        .history-list {
+            list-style: none;
+        }
+        
+        .history-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-number {
+            font-weight: 600;
+        }
+        
+        .history-result {
+            font-weight: 500;
+        }
+        
+        .result-high {
+            color: var(--error-color);
+        }
+        
+        .result-low {
+            color: var(--warning-color);
+        }
+        
+        .result-correct {
+            color: var(--success-color);
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            button {
+                padding: 12px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            猜数字游戏
+        </h1>
+    </div>
+    
+    <div class="settings" id="settings">
+        <div class="form-group">
+            <label for="minNumber">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                最小数字（默认1）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="minNumber" value="1" placeholder="输入最小数字">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="19 9 13 15 5 9"></polyline>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="maxNumber">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                最大数字（默认100）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="maxNumber" value="100" placeholder="输入最大数字">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="5 15 12 9 19 15"></polyline>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="attempts">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                猜数次数（默认7次）
+            </label>
+            <div class="input-icon">
+                <input type="number" id="attempts" value="7" min="1" placeholder="输入猜数次数">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <button id="startBtn" onclick="startGame()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            开始游戏
+        </button>
+    </div>
+    
+    <div class="game-area" id="gameArea">
+        <div class="attempts-container">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            剩余次数: <span id="attemptsLeft">7</span>
+        </div>
+        
+        <div class="range-hint" id="rangeHint">
+            请猜一个 1 到 100 之间的数字
+        </div>
+        
+        <div class="guess-input">
+            <label for="guessInput">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                请输入你的猜测
+            </label>
+            <div class="input-icon">
+                <input type="number" id="guessInput" placeholder="输入数字" onkeypress="event.key === 'Enter' && checkGuess()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </div>
+        </div>
+        
+        <button id="guessBtn" onclick="checkGuess()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            验证猜测
+        </button>
+        
+        <button id="restartBtn" onclick="restartGame()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            重新开始
+        </button>
+        
+        <div class="history-container">
+            <div class="history-title">猜数历史记录</div>
+            <ul class="history-list" id="historyList"></ul>
+        </div>
+    </div>
+
+    <script>
+        // 简化变量名
+        let tgt, attLeft, maxAtt, minN, maxN, curMin, curMax, history = [];
+        
+        // 简化函数名
+        const msg = (txt, type) => {
+            document.getElementById('messageArea').innerHTML = `<div class="message ${type}">${txt}</div>`;
+        };
+        
+        // 更新范围提示的函数
+        const updateRangeHint = (status = 'normal', message = '') => {
+            const rangeHint = document.getElementById('rangeHint');
+            
+            // 移除所有状态类
+            rangeHint.classList.remove('success', 'error', 'updated');
+            
+            if (status === 'success') {
+                rangeHint.textContent = message;
+                rangeHint.classList.add('success');
+            } else if (status === 'error') {
+                rangeHint.textContent = message;
+                rangeHint.classList.add('error');
+            } else if (curMin === curMax) {
+                rangeHint.textContent = `答案就是：${curMin}！`;
+                rangeHint.classList.add('success');
+                
+                // 自动判定为正确答案
+                if (attLeft > 0 && !document.getElementById('guessBtn').disabled) {
+                    attLeft--; // 消耗一次机会
+                    document.getElementById('attemptsLeft').textContent = attLeft;
+                    document.getElementById('guessBtn').disabled = true;
+                    
+                    // 添加到历史记录
+                    history.push({ num: curMin, res: "正确！", cls: "result-correct" });
+                    
+                    // 更新历史记录显示
+                    const histList = document.getElementById('historyList');
+                    histList.innerHTML = '';
+                    [...history].reverse().forEach((item, idx) => {
+                        const li = document.createElement('li');
+                        li.className = 'history-item';
+                        li.innerHTML = `<span class="history-number">第${history.length - idx}次: ${item.num}</span><span class="history-result ${item.cls}">${item.res}</span>`;
+                        histList.appendChild(li);
+                    });
+                }
+            } else {
+                rangeHint.textContent = `当前猜测范围：${curMin} 到 ${curMax}`;
+            }
+        };
+        
+        // 简化事件处理器为箭头函数
+        const startGame = () => {
+            // 使用短路运算符简化
+            minN = parseInt(document.getElementById('minNumber').value) || 1;
+            maxN = parseInt(document.getElementById('maxNumber').value) || 100;
+            maxAtt = parseInt(document.getElementById('attempts').value) || 7; // 默认7次
+            
+            // 简化条件判断
+            if (minN >= maxN) {
+                msg('最小数字必须小于最大数字！', 'error');
+                return;
+            }
+            if (maxAtt < 1) {
+                msg('猜数次数必须大于0！', 'error');
+                return;
+            }
+            
+            // 生成随机数
+            tgt = Math.floor(Math.random() * (maxN - minN + 1)) + minN;
+            attLeft = maxAtt;
+            curMin = minN;
+            curMax = maxN;
+            history = [];
+            
+            // 链式操作：合并多个DOM操作
+            document.getElementById('settings').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('attemptsLeft').textContent = attLeft;
+            document.getElementById('guessInput').value = '';
+            document.getElementById('guessBtn').disabled = false;
+            document.getElementById('guessInput').focus();
+            
+            // 更新范围提示（游戏开始信息整合到范围提示中）
+            updateRangeHint();
+            
+            // 清空历史记录
+            document.getElementById('historyList').innerHTML = '';
+        };
+        
+        const checkGuess = () => {
+            if (attLeft <= 0) {
+                updateRangeHint('error', `😔 很遗憾，次数用完了！正确答案是 ${tgt}。`);
+                document.getElementById('guessBtn').disabled = true;
+                return;
+            }
+            
+            const guess = parseInt(document.getElementById('guessInput').value);
+            
+            // 简化条件判断
+            if (isNaN(guess)) {
+                msg('请输入一个有效的数字！', 'error');
+                return;
+            }
+            if (guess < minN || guess > maxN) {
+                msg(`请输入 ${minN} 到 ${maxN} 之间的数字！`, 'error');
+                return;
+            }
+            
+            attLeft--;
+            document.getElementById('attemptsLeft').textContent = attLeft;
+            
+            // 创建历史记录项
+            let res = "", resClass = "";
+            
+            // 检查猜测结果
+            if (guess === tgt) {
+                res = "正确！";
+                resClass = "result-correct";
+                updateRangeHint('success', `🎉 恭喜你！猜对了！答案就是 ${tgt}`);
+                document.getElementById('guessBtn').disabled = true;
+            } else (attLeft <= 0) {
+                res = "错误！";
+                resClass = "result-high";
+                updateRangeHint('error', `😔 很遗憾，次数用完了！正确答案是 ${tgt}。`);
+                document.getElementById('guessBtn').disabled = true;
+            
+            // 添加到历史记录
+            history.push({ num: guess, res, cls: resClass });
+            
+            // 更新历史记录显示
+            const histList = document.getElementById('historyList');
+            histList.innerHTML = '';
+            [...history].reverse().forEach((item, idx) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `<span class="history-number">第${history.length - idx}次: ${item.num}</span><span class="history-result ${item.cls}">${item.res}</span>`;
+                histList.appendChild(li);
+            });
+            
+            // 清空输入框并聚焦
+            document.getElementById('guessInput').value = '';
+            document.getElementById('guessInput').focus();
+        };
+        
+        const restartGame = () => {
+            document.getElementById('settings').style.display = 'block';
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('guessBtn').disabled = false;
+        };
+        
+        // 为输入框添加优雅的焦点效果
+        document.querySelectorAll('input').forEach(input => {
+            input.onfocus = () => {
+                input.parentElement.style.transform = 'scale(1.02)';
+                input.parentElement.style.transition = 'transform 0.2s ease';
+            };
+            input.onblur = () => {
+                input.parentElement.style.transform = 'scale(1)';
+            };
+        });
+    </script>
+</body>
+</html>
