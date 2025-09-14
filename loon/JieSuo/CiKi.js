@@ -145,7 +145,7 @@ async function main() {
 
   // 3. 设置全局请求头（含最新 Cookie 和 EventId）
   const HEADERS = {
-    "Host": "latest.live.acr.ubisoft.com",
+    "authority": "latest.live.acr.ubisoft.com",
     "Content-Type": "application/json; charset=UTF-8",
     "Accept-Language": "zh-CN,zh-Hans;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
