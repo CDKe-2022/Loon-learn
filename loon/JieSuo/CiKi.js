@@ -1,10 +1,9 @@
 // ==================
-// 全局配置（默认值，仅用于首次启动）
+// 全局配置
 // ==================
 const BASE_URL = "https://latest.live.acr.ubisoft.com";
 const ASSASSINS = [{ id: "A1", hp: 100.00, rank: 5 }, { id: "A62", hp: 100.00, rank: 5 }, { id: "A68", hp: 100.00, rank: 5 }];
 
-// 持久化存储键名
 const STORAGE = {
   MISSION_INDEX: "ac_missionIndex",
   MISSION_ID: "ac_missionId",
@@ -12,9 +11,6 @@ const STORAGE = {
   EVENT_ID: "ac_eventId"
 };
 
-// ==================
-// Loon 环境封装（兼容 QuanX）
-// ==================
 const $ = new Env("刺客信条：叛变");
 
 function get(key) { return $.getdata(key); }
@@ -28,7 +24,6 @@ function checkRequired(name, value) {
   return true;
 }
 
-// 发送 HTTP POST 请求（带重试）
 async function post(url, body, retry = 3) {
   const options = {
     url: url,
@@ -52,14 +47,8 @@ async function post(url, body, retry = 3) {
   throw new Error(`请求失败: ${url} 已重试 ${retry} 次`);
 }
 
-// ======== 核心功能：自动捕获最新 Cookie 和 EventId =========
-// 通过拦截 initializeLeaderboard 请求来提取动态数据
-// 注意：Loon 的 http-request 脚本会在请求发出时触发，我们利用它“顺手”记录数据
-// 我们将在规则中绑定：http-request https\:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/gauntletEvent\/initializeLeaderboard
-
-// 此函数由 Loon 规则调用，当检测到该请求时自动保存 Cookie 和 EventId
+// ======== 自动捕获动态数据（由 http-request 触发）========
 function captureDynamicData(requestBody, requestHeaders) {
-  // 1. 提取 EventId
   let eventId = null;
   try {
     const body = JSON.parse(requestBody);
@@ -70,7 +59,6 @@ function captureDynamicData(requestBody, requestHeaders) {
     return;
   }
 
-  // 2. 提取 Cookie（注意：Loon 的 requestHeaders 是对象，可能包含多个 Cookie 字段）
   let cookie = null;
   const rawCookie = requestHeaders['cookie'] || requestHeaders['Cookie'];
   if (rawCookie && typeof rawCookie === 'string') {
@@ -78,7 +66,6 @@ function captureDynamicData(requestBody, requestHeaders) {
     if (match) cookie = match[0];
   }
 
-  // 如果有多个 Cookie 头（如 Cookie: xxx; Cookie: yyy），合并处理
   if (!cookie) {
     for (const key in requestHeaders) {
       if (key.toLowerCase() === 'cookie') {
@@ -101,7 +88,6 @@ function captureDynamicData(requestBody, requestHeaders) {
     return;
   }
 
-  // 3. 存储到持久化存储
   set(STORAGE.COOKIE, cookie);
   set(STORAGE.EVENT_ID, eventId);
 
@@ -112,22 +98,19 @@ function captureDynamicData(requestBody, requestHeaders) {
   $.msg("🎯 动态数据已捕获", `已更新 Cookie 和 EventId`, `当前活动: ${eventId}`);
 }
 
-// ======== 主流程：执行任务链 ========
+// ======== 主流程函数（由 cron 触发）========
 async function main() {
   $.log("🚀 开始执行《刺客信条：叛变》自动化任务...");
 
-  // 1. 尝试从存储中读取最新数据
   let cookie = get(STORAGE.COOKIE);
   let eventId = get(STORAGE.EVENT_ID);
 
-  // 2. 如果没有捕获过数据，强制触发一次 initializeLeaderboard 获取
   if (!checkRequired("Cookie", cookie) || !checkRequired("EventId", eventId)) {
     $.log("🔄 尚未捕获动态数据，正在主动触发 initializeLeaderboard...");
     const body = JSON.stringify({ data: { eventId: "placeholder" } });
     try {
       const res = await post(BASE_URL + "/api/v1/extensions/gauntletEvent/initializeLeaderboard", body);
-      // 此处不会直接生效，因为我们需要的是**请求头中的 Cookie**
-      // 所以我们改用：**等待下一次请求被拦截** 或 **手动打开游戏一次**
+      // 注意：这里不会触发捕获，因为没有拦截 header
       $.msg("⚠️ 请手动打开游戏", "确保已登录并触发一次 Gauntlet 流程，以便捕获 Cookie 和 EventId", "然后重新运行此脚本");
       return;
     } catch (e) {
@@ -137,13 +120,12 @@ async function main() {
     }
   }
 
-  // 3. 设置全局请求头（含最新 Cookie 和 EventId）
   const HEADERS = {
-    "authority": "latest.live.acr.ubisoft.com",
+    "Host": "latest.live.acr.ubisoft.com",
     "Content-Type": "application/json; charset=UTF-8",
     "Accept-Language": "zh-CN,zh-Hans;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
-    "X-Unity-Version": "2021.3.45f1", // 更新为最新版本
+    "X-Unity-Version": "2021.3.45f1",
     "Accept": "*/*",
     "DEVICE-TIME-OFFSET": "0",
     "User-Agent": "AC%20Rebellion/107498 CFNetwork/3826.600.41 Darwin/24.6.0",
@@ -151,10 +133,9 @@ async function main() {
     "Cookie": cookie
   };
 
-  // 4. 获取当前任务状态
   let status = await getMissionStatus(HEADERS, eventId);
   if (!status) {
-    $.log("🔄 无有效任务状态，尝试启动新任务...");
+    $.log("🔄 尚无有效任务，尝试启动新任务...");
     if (!(await eventStart(HEADERS, eventId))) {
       $.msg($.name, "❌ 启动失败", "请检查网络或重试");
       return;
@@ -166,17 +147,15 @@ async function main() {
     }
   }
 
-  // 5. 如果 missionIndex == 10，说明已完成，重置
   if (status.missionIndex === 10) {
     $.log("🏁 任务已完成，进入奖励领取阶段...");
     await eventEndAndReset(HEADERS, eventId);
     await buyAndConsumeEnergy(HEADERS);
-    await eventStart(HEADERS, eventId); // 重启
+    await eventStart(HEADERS, eventId);
     $.msg($.name, "🎉 重置完成", `已领取奖励并启动新任务\n当前活动: ${eventId}`);
     return;
   }
 
-  // 6. 执行任务链
   if (!(await missionStart(HEADERS, status.missionIndex, status.missionId, eventId))) {
     $.msg($.name, "❌ 任务开始失败", "可能 Cookie 过期");
     return;
@@ -192,7 +171,7 @@ async function main() {
   $.msg($.name, "✅ 执行完成", `当前任务: ${status.missionIndex}/10\n活动: ${eventId}`);
 }
 
-// ========== 辅助函数 ==========
+// ========== 辅助函数（保持不变）==========
 async function getMissionStatus(headers, eventId) {
   const body = JSON.stringify({ data: { eventId } });
   const res = await post(BASE_URL + "/api/v1/extensions/gauntletEvent/info", body);
@@ -344,9 +323,17 @@ class Env {
 }
 
 // ==================
-// 主程序入口
+// 主程序入口（由 cron 触发）
 // ==================
 main().catch(e => {
   $.logErr(e);
   $.msg($.name, "❌ 执行异常", e.message);
 }).finally(() => $.done());
+
+// ==================
+// 捕获函数（由 http-request 触发）
+// ==================
+if (typeof $request !== "undefined") {
+  // 当被 http-request 调用时，执行捕获逻辑
+  captureDynamicData($request.body, $request.headers);
+}
