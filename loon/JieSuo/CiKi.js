@@ -1,180 +1,240 @@
-const $ = new Env("Ubisoft 每日任务");
+/**
+ * 刺客信条：叛变 自动任务
+ * bhvrSession + 蓝币自动购买 + 自动刷新Cookie
+ */
 
-// ================== 抓取 Cookie ==================
-if ($response && $request && $request.url.includes("/auth/provider/apple/login1")) {
-  getCookie();
-  $.done();
-} else {
-  runTasks();
+const EVENT_ID = "GE_22_5DayGauntletEventTemplate_20250511";
+const BASE_URL = "https://latest.live.acr.ubisoft.com";
+const ASSASSINS = [
+  { id: "A1", hp: 100.0, rank: 5 },
+  { id: "A62", hp: 100.0, rank: 5 },
+  { id: "A68", hp: 100.0, rank: 5 },
+];
+
+class Env {
+  constructor(name) {
+    this.name = name;
+    this.startTime = Date.now();
+    this.log(`🔔${this.name} 开始!`);
+  }
+
+  getdata(key) { return $persistentStore.read(key); }
+  setdata(val, key) { return $persistentStore.write(val, key); }
+
+  http = {
+    post: (options) => new Promise((resolve, reject) => {
+      $httpClient.post(options, (err, resp, data) => err ? reject(err) : resolve({ statusCode: resp.status, body: data }));
+    }),
+    get: (options) => new Promise((resolve, reject) => {
+      $httpClient.get(options, (err, resp, data) => err ? reject(err) : resolve({ statusCode: resp.status, body: data }));
+    }),
+  };
+
+  msg(title, subtitle = "", desc = "") { $notification.post(title, subtitle, desc); }
+  log(...msg) { console.log(msg.join(" ")); }
+  wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+  done() { const end = (Date.now() - this.startTime)/1000; this.log(`🔔${this.name} 结束! ⏱ ${end.toFixed(1)} 秒`); $done(); }
 }
 
-// 捕获 bhvrSession
+const $ = new Env("刺客信条：叛变");
+
+// =====================
+// 自动获取 Cookie
+// =====================
 function getCookie() {
-  const setCookie = $response.headers["Set-Cookie"] || $response.headers["set-cookie"];
-  if (setCookie) {
-    const match = setCookie.match(/bhvrSession=([^;]+)/);
-    if (match) {
-      const bhvr = match[1];
-      $.setdata(bhvr, "UBISOFT_BHVR");
-      $.msg($.name, "✅ 成功捕获 bhvrSession", bhvr.substring(0, 40) + "...");
+  try {
+    const bhvr = $response.headers["Set-Cookie"] || $response.headers["set-cookie"];
+    if (bhvr && bhvr.includes("bhvrSession=")) {
+      const cookie = bhvr.split(";")[0];
+      $.setdata(cookie, "bhvrSession");
+      $.msg($.name, "✅ Cookie获取成功", cookie);
+      $.log("✅ Cookie已保存:", cookie);
     } else {
-      $.msg($.name, "❌ 未能捕获 bhvrSession", "未匹配到 bhvrSession");
+      $.log("⚠️ 未检测到 bhvrSession");
     }
-  } else {
-    $.msg($.name, "❌ 未能捕获 bhvrSession", "响应头无 Set-Cookie");
+  } catch (e) {
+    $.log("❌ 获取Cookie异常:", e.message);
   }
 }
 
-// ================== 主流程 ==================
-async function runTasks() {
-  const cookie = $.getdata("UBISOFT_BHVR");
+// =====================
+// 通用 POST 请求
+// =====================
+async function post(path, body = {}) {
+  let cookie = $.getdata("bhvrSession");
   if (!cookie) {
-    $.msg($.name, "❌ 未检测到 bhvrSession", "请先登录抓取 Cookie");
-    return $.done();
+    $.msg($.name, "❌ Cookie不存在", "请先获取 bhvrSession");
+    throw new Error("Cookie缺失");
   }
+  const options = {
+    url: BASE_URL + path,
+    headers: {
+      "Host": "latest.live.acr.ubisoft.com",
+      "Content-Type": "application/json; charset=UTF-8",
+      "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "X-Unity-Version": "2020.3.40f1",
+      "Accept": "*/*",
+      "DEVICE-TIME-OFFSET": "0",
+      "User-Agent": "AC%20Rebellion/104382 CFNetwork/1335.0.3 Darwin/21.6.0",
+      "X-SAFE-JSON-ARRAY": "true",
+      "Cookie": cookie
+    },
+    body: JSON.stringify(body),
+  };
+  const resp = await postWithRetry(options);
+  return JSON.parse(resp.body || "{}");
+}
 
+async function postWithRetry(options, retry = 3) {
+  for (let i = 0; i < retry; i++) {
+    try {
+      const resp = await $.http.post(options);
+      if (resp.statusCode >= 200 && resp.statusCode < 300) return resp;
+      $.log(`❌ 状态码 ${resp.statusCode}, 重试第${i+1}次`);
+      await $.wait(2000);
+    } catch (e) {
+      $.log(`🔴 请求异常: ${e.message}, 重试第${i+1}次`);
+      await $.wait(2000);
+    }
+  }
+  throw new Error("请求失败: " + options.url);
+}
+
+// =====================
+// 蓝币购买/消耗
+// =====================
+async function buyBlueCoin() {
+  $.log("💰 尝试购买蓝币...");
   try {
-    let summary = [];
-
-    // 示例任务索引，实际可调整
-    const missions = [0, 1];
-
-    for (const idx of missions) {
-      $.log(`▶️ 开始任务 index=${idx}`);
-      let start = await missionStart(cookie, idx);
-      if (!start.success) {
-        summary.push(`任务${idx} 启动失败`);
-        continue;
-      }
-
-      await $.wait(2000);
-
-      let end = await missionEnd(cookie, idx);
-      if (!end.success) {
-        summary.push(`任务${idx} 结束失败`);
-        continue;
-      }
-
-      await $.wait(2000);
-
-      let boons = await getBoons(cookie);
-      summary.push(`任务${idx} 奖励: ${boons.reward || "无"}`);
-    }
-
-    await $.wait(2000);
-
-    let event = await eventEnd(cookie);
-    if (event.success) {
-      summary.push(`🎉 活动结算成功: ${event.msg}`);
-    } else {
-      summary.push("❌ 活动结算失败");
-    }
-
-    $.msg($.name, "执行完成", summary.join("\n"));
+    // 购买
+    await post("/api/v1/purchases/Daily_TLEEnergy_150", { oldQuantity: 0, wantedQuantity: 1, currencyType: "HC" });
+    // 消耗
+    await post("/api/v1/inventories/consume", { itemId: "Daily_TLEEnergy_150", quantity: 1 });
+    $.msg($.name, "💰 蓝币购买成功", "已消耗 1 个蓝币");
   } catch (e) {
-    $.logErr(e);
-    $.msg($.name, "❌ 运行异常", e.message || e);
+    $.log("❌ 蓝币购买/消耗失败:", e.message);
+  }
+}
+
+// =====================
+// 任务流程
+// =====================
+async function getMissionStatus() {
+  const res = await post("/api/v1/extensions/gauntletEvent/info", { data: { eventId: EVENT_ID } });
+  if (res.data?.missionStatus) {
+    const { missionIndex, missionId } = res.data.missionStatus;
+    $.setdata(missionIndex, "missionIndex");
+    $.setdata(missionId, "missionId");
+    $.log(`✅ 获取任务状态: index=${missionIndex}, id=${missionId}`);
+    return { missionIndex, missionId };
+  }
+  $.log("⚠️ 未返回任务状态");
+  return null;
+}
+
+async function eventStart() {
+  const body = { data: { assassins: ASSASSINS, difficultyTier: "GauntletDifficultySetting3", level: 50, eventId: EVENT_ID } };
+  const res = await post("/api/v1/extensions/gauntletEvent/eventStart", body);
+  if (res.data?.missionStatus?.missionId) {
+    $.setdata(res.data.missionStatus.missionIndex, "missionIndex");
+    $.setdata(res.data.missionStatus.missionId, "missionId");
+    $.msg($.name, "🎉 新任务已启动", `MissionIndex=${res.data.missionStatus.missionIndex}`);
+    return true;
+  }
+  $.log("❌ 启动任务失败，尝试购买蓝币...");
+  await buyBlueCoin();
+  return false;
+}
+
+async function missionStart(missionIndex, missionId) {
+  const body = { data: { assassins: ASSASSINS.map(a => a.id), missionStatus: { missionIndex, missionId }, eventId: EVENT_ID } };
+  const res = await post("/api/v1/extensions/gauntletEvent/missionStart", body);
+  if (res.data?.missionStatus?.missionId) {
+    $.setdata(res.data.missionStatus.missionIndex, "missionIndex");
+    $.setdata(res.data.missionStatus.missionId, "missionId");
+    $.msg($.name, "✅ missionStart成功", `MissionIndex=${res.data.missionStatus.missionIndex}`);
+    return true;
+  }
+  $.log("❌ missionStart失败");
+  return false;
+}
+
+async function missionEnd(missionIndex, missionId) {
+  const body = { data: { missionStatus: { missionIndex, missionId }, assassins: ASSASSINS, success: true, eventId: EVENT_ID } };
+  const res = await post("/api/v1/extensions/gauntletEvent/missionEnd", body);
+  if (res.data?.missionStatus?.missionId) {
+    $.setdata(res.data.missionStatus.missionIndex, "missionIndex");
+    $.setdata(res.data.missionStatus.missionId, "missionId");
+    $.msg($.name, "✅ missionEnd成功", `MissionIndex=${res.data.missionStatus.missionIndex}`);
+    return true;
+  }
+  $.log("❌ missionEnd失败");
+  return false;
+}
+
+async function applyBoon() {
+  const res = await post("/api/v1/extensions/gauntletEvent/getBoons", { data: { difficultyTier: "GauntletDifficultySetting3", eventId: EVENT_ID } });
+  const boon = res.data?.endMissionBoons?.[0];
+  if (!boon) { $.log("⚠️ 未获取到Buff"); return false; }
+  const applyRes = await post("/api/v1/extensions/gauntletEvent/applySelectedBoon", { data: { selectedBoon: boon, eventId: EVENT_ID } });
+  if (applyRes.success) { $.msg($.name, "🎉 Buff已应用", boon); return true; }
+  $.log("❌ 应用Buff失败");
+  return false;
+}
+
+async function eventEnd() {
+  await post("/api/v1/extensions/gauntletEvent/eventEnd", { data: { eventId: EVENT_ID } });
+  await post("/api/v1/extensions/gauntletEvent/initializeLeaderboard", { data: { eventId: EVENT_ID } });
+  $.msg($.name, "🏆 本轮任务已结束", "已领取奖励");
+}
+
+// =====================
+// 主流程
+// =====================
+async function runTasks() {
+  try {
+    $.log("🚀 开始执行任务流程");
+
+    let status = await getMissionStatus();
+    if (!status) {
+      if (!(await eventStart())) return;
+      status = await getMissionStatus();
+      if (!status) { $.msg($.name, "❌ 无法获取任务状态"); return; }
+    }
+
+    if (status.missionIndex === 10) {
+      await eventEnd();
+      await eventStart();
+      return;
+    }
+
+    if (!(await missionStart(status.missionIndex, status.missionId))) return;
+    await $.wait(1000);
+    if (!(await missionEnd(status.missionIndex, status.missionId))) return;
+    await $.wait(1000);
+    await applyBoon();
+    await eventEnd();
+
+    $.log("🎯 本轮任务流程完成");
+  } catch (e) {
+    $.log("❌ 执行异常:", e.message);
+    $.msg($.name, "❌ 执行异常", e.message);
   } finally {
     $.done();
   }
 }
 
-// ================== API 封装 ==================
-function missionStart(cookie, index) {
-  return request("https://latest.live.acr.ubisoft.com/missionStart", {
-    index,
-  }, cookie, "任务开始");
-}
-
-function missionEnd(cookie, index) {
-  return request("https://latest.live.acr.ubisoft.com/missionEnd", {
-    index,
-  }, cookie, "任务结束");
-}
-
-function getBoons(cookie) {
-  return request("https://latest.live.acr.ubisoft.com/getBoons", {}, cookie, "获取奖励");
-}
-
-function eventEnd(cookie) {
-  return request("https://latest.live.acr.ubisoft.com/eventEnd", {}, cookie, "活动结束");
-}
-
-// 通用请求函数
-function request(url, body, cookie, tag) {
-  return new Promise((resolve) => {
-    const opt = {
-      url,
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `bhvrSession=${cookie}`,
-      },
-      body: JSON.stringify(body),
-    };
-    $.post(opt, (err, resp, data) => {
-      if (err) {
-        $.log(`❌ ${tag} 请求失败: ${err}`);
-        return resolve({ success: false });
-      }
-      try {
-        const obj = JSON.parse(data || "{}");
-        if (obj && obj.result == 0) {
-          $.log(`✅ ${tag} 成功: ${data}`);
-          resolve({ success: true, reward: obj.reward, msg: data });
-        } else {
-          $.log(`⚠️ ${tag} 失败: ${data}`);
-          resolve({ success: false });
-        }
-      } catch (e) {
-        $.log(`❌ ${tag} JSON解析错误: ${e}`);
-        resolve({ success: false });
-      }
-    });
-  });
-}
-
-// ================== Loon 环境封装 ==================
-function Env(name) {
-  return new (class {
-    constructor(name) {
-      this.name = name;
-      this.startTime = Date.now();
-      this.log(`🔔${this.name}, 开始!`);
-    }
-    getdata(key) {
-      return $persistentStore.read(key);
-    }
-    setdata(val, key) {
-      return $persistentStore.write(val, key);
-    }
-    get(t, cb) {
-      $httpClient.get(t, (err, resp, data) => {
-        if (resp) resp.body = data;
-        cb(err, resp, data);
-      });
-    }
-    post(t, cb) {
-      $httpClient.post(t, (err, resp, data) => {
-        if (resp) resp.body = data;
-        cb(err, resp, data);
-      });
-    }
-    msg(title, subt = "", desc = "") {
-      $notification.post(title, subt, desc);
-    }
-    log(...msg) {
-      console.log(msg.join(" "));
-    }
-    logErr(err) {
-      this.log(`❌错误: ${err}`);
-    }
-    wait(ms) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-    done() {
-      let end = (Date.now() - this.startTime) / 1000;
-      this.log(`🔔${this.name}, 结束! ⏱ ${end} 秒`);
-      $done();
-    }
-  })(name);
+// =====================
+// 执行入口
+// =====================
+try {
+  if (typeof $response !== "undefined" && typeof $request !== "undefined" && $request.url.includes("/auth/provider/apple/login1")) {
+    getCookie();
+    $.done();
+  } else {
+    runTasks();
+  }
+} catch (e) {
+  runTasks();
 }
