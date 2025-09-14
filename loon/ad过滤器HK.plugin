@@ -43,6 +43,8 @@
 ^https:\/\/api\.yonghuivip\.com\/api\/fp\/homepage\/pop\? response-body-json-jq '.data.pops[].data.data.adDataFocusVOs = []'
 #YH主页右下角悬浮优惠券
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/coupon\/v4 response-body-json-jq '.data.coupons = [] | .data.url = ""'
+#YH我的页面“猜你喜欢”上面的banner广告
+^https:\/\/api\.yonghuivip\.com\/web\/user\/asset\/info\/700\?sign response-body-json-jq '.data.userCenterBanner.bannerLists = []'
 
 
 
