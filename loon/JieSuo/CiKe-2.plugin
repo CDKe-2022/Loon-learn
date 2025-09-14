@@ -8,11 +8,9 @@
 
 [Script]
 # #刺客信条燎原，刷H点。
-cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.js, timeout=300, tag=起点读书, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
+cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKi.js, timeout=300, tag=执行主任务流程, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 
-http-request https\:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.cookie.js, requires-body=true, timeout=60, tag=qidian.cookie_1, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
-
-http-response ^https:\/\/h5\.if\.qidian\.com\/argus\/api\/v2\/video\/adv\/mainPage script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.taskId.js, requires-body=true, timeout=60, tag=qidian.taskId_2, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
+http-request https:\\/\\/latest\\.live\\.acr\\.ubisoft\\.com\\/.* script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKi.js, requires-body=true, timeout=60, tag=ACRebellion.cookie_update, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 
 
 [MitM]
