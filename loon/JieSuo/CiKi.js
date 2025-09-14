@@ -1,9 +1,3 @@
-#!name=刺客信条：叛变 - 自动任务（动态Cookie+EventID）
-#!desc=自动捕获最新bhvrSession与eventId，完成Gauntlet全流程：启动→执行→结束→领Buff→补蓝币，全程无需手动更新
-#!author=AI助手
-#!date = 2025-04-05 15:00:00
-#!icon=https://i.imgur.com/7vqKz9m.png
-
 // ==================
 // 全局配置（默认值，仅用于首次启动）
 // ==================
