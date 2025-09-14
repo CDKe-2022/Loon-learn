@@ -27,7 +27,7 @@ function checkRequired(name, value) {
 async function post(url, body, retry = 3) {
   const options = {
     url: url,
-    headers: HEADERS,
+    headers: createHeaders(), // 👈 动态生成 Headers，避免全局引用未定义变量
     body: body
   };
   for (let i = 0; i < retry; i++) {
@@ -45,6 +45,29 @@ async function post(url, body, retry = 3) {
     }
   }
   throw new Error(`请求失败: ${url} 已重试 ${retry} 次`);
+}
+
+// ✅ 新增：动态创建 Headers 的函数（关键修复！）
+function createHeaders() {
+  const cookie = get(STORAGE.COOKIE);
+  const eventId = get(STORAGE.EVENT_ID);
+
+  if (!cookie || !eventId) {
+    $.log("⚠️ 未检测到有效 Cookie 或 EventId，使用默认头（仅用于初始化请求）");
+  }
+
+  return {
+    "Host": "latest.live.acr.ubisoft.com",
+    "Content-Type": "application/json; charset=UTF-8",
+    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "X-Unity-Version": "2021.3.45f1",
+    "Accept": "*/*",
+    "DEVICE-TIME-OFFSET": "0",
+    "User-Agent": "AC%20Rebellion/107498 CFNetwork/3826.600.41 Darwin/24.6.0",
+    "X-SAFE-JSON-ARRAY": "true",
+    "Cookie": cookie || "" // ⚠️ 必须有默认值，防止 undefined
+  };
 }
 
 // ======== 自动捕获动态数据（由 http-request 触发）========
@@ -120,27 +143,14 @@ async function main() {
     }
   }
 
-  const HEADERS = {
-    "Host": "latest.live.acr.ubisoft.com",
-    "Content-Type": "application/json; charset=UTF-8",
-    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "X-Unity-Version": "2021.3.45f1",
-    "Accept": "*/*",
-    "DEVICE-TIME-OFFSET": "0",
-    "User-Agent": "AC%20Rebellion/107498 CFNetwork/3826.600.41 Darwin/24.6.0",
-    "X-SAFE-JSON-ARRAY": "true",
-    "Cookie": cookie
-  };
-
-  let status = await getMissionStatus(HEADERS, eventId);
+  let status = await getMissionStatus(cookie, eventId);
   if (!status) {
     $.log("🔄 尚无有效任务，尝试启动新任务...");
-    if (!(await eventStart(HEADERS, eventId))) {
+    if (!(await eventStart(cookie, eventId))) {
       $.msg($.name, "❌ 启动失败", "请检查网络或重试");
       return;
     }
-    status = await getMissionStatus(HEADERS, eventId);
+    status = await getMissionStatus(cookie, eventId);
     if (!status) {
       $.msg($.name, "❌ 仍无法获取任务", "请确认 Cookie 和 EventId 是否有效");
       return;
@@ -149,30 +159,30 @@ async function main() {
 
   if (status.missionIndex === 10) {
     $.log("🏁 任务已完成，进入奖励领取阶段...");
-    await eventEndAndReset(HEADERS, eventId);
-    await buyAndConsumeEnergy(HEADERS);
-    await eventStart(HEADERS, eventId);
+    await eventEndAndReset(cookie, eventId);
+    await buyAndConsumeEnergy(cookie);
+    await eventStart(cookie, eventId);
     $.msg($.name, "🎉 重置完成", `已领取奖励并启动新任务\n当前活动: ${eventId}`);
     return;
   }
 
-  if (!(await missionStart(HEADERS, status.missionIndex, status.missionId, eventId))) {
+  if (!(await missionStart(cookie, status.missionIndex, status.missionId, eventId))) {
     $.msg($.name, "❌ 任务开始失败", "可能 Cookie 过期");
     return;
   }
 
-  if (!(await missionEnd(HEADERS, status.missionIndex, status.missionId, eventId))) {
+  if (!(await missionEnd(cookie, status.missionIndex, status.missionId, eventId))) {
     $.log("⚠️ 任务结束失败，继续尝试领取 Buff");
   }
 
-  await applyBoon(HEADERS, eventId);
-  await buyAndConsumeEnergy(HEADERS);
+  await applyBoon(cookie, eventId);
+  await buyAndConsumeEnergy(cookie);
 
   $.msg($.name, "✅ 执行完成", `当前任务: ${status.missionIndex}/10\n活动: ${eventId}`);
 }
 
-// ========== 辅助函数（保持不变）==========
-async function getMissionStatus(headers, eventId) {
+// ========== 辅助函数（全部改为传参形式）==========
+async function getMissionStatus(cookie, eventId) {
   const body = JSON.stringify({ data: { eventId } });
   const res = await post(BASE_URL + "/api/v1/extensions/gauntletEvent/info", body);
   if (res.data?.missionStatus) {
@@ -185,7 +195,7 @@ async function getMissionStatus(headers, eventId) {
   return null;
 }
 
-async function eventStart(headers, eventId) {
+async function eventStart(cookie, eventId) {
   const body = JSON.stringify({
     data: {
       assassins: ASSASSINS,
@@ -205,7 +215,7 @@ async function eventStart(headers, eventId) {
   return false;
 }
 
-async function missionStart(headers, missionIndex, missionId, eventId) {
+async function missionStart(cookie, missionIndex, missionId, eventId) {
   const body = JSON.stringify({
     data: {
       assassins: ["A1", "A62", "A68"],
@@ -222,7 +232,7 @@ async function missionStart(headers, missionIndex, missionId, eventId) {
   return false;
 }
 
-async function missionEnd(headers, missionIndex, missionId, eventId) {
+async function missionEnd(cookie, missionIndex, missionId, eventId) {
   const body = JSON.stringify({
     data: {
       missionStatus: { missionIndex, missionId },
@@ -244,7 +254,7 @@ async function missionEnd(headers, missionIndex, missionId, eventId) {
   return false;
 }
 
-async function applyBoon(headers, eventId) {
+async function applyBoon(cookie, eventId) {
   const body = JSON.stringify({ data: { difficultyTier: "GauntletDifficultySetting3", eventId } });
   const res = await post(BASE_URL + "/api/v1/extensions/gauntletEvent/getBoons", body);
   const boon = res.data?.endMissionBoons?.[0];
@@ -261,7 +271,7 @@ async function applyBoon(headers, eventId) {
   return false;
 }
 
-async function buyAndConsumeEnergy(headers) {
+async function buyAndConsumeEnergy(cookie) {
   const buyBody = JSON.stringify({ oldQuantity: 0, wantedQuantity: 1, currencyType: "HC" });
   await post(BASE_URL + "/api/v1/purchases/Daily_TLEEnergy_150", buyBody);
   $.log("💰 已购买蓝币");
@@ -271,7 +281,7 @@ async function buyAndConsumeEnergy(headers) {
   $.log("🧪 已消耗蓝币");
 }
 
-async function eventEndAndReset(headers, eventId) {
+async function eventEndAndReset(cookie, eventId) {
   const body = JSON.stringify({ data: { eventId } });
   await post(BASE_URL + "/api/v1/extensions/gauntletEvent/eventEnd", body);
   await post(BASE_URL + "/api/v1/extensions/gauntletEvent/initializeLeaderboard", body);
