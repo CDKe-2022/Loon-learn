@@ -1,199 +1,180 @@
-// ==UserScript==
-// @plugin      Ubisoft 活动任务
-// @author      KeChatGPT
-// @version     1.0.0
-// @homepage    https://github.com/kehuang2025/loon-ubisoft
-// ==/UserScript==
+const $ = new Env("Ubisoft 每日任务");
 
-const $ = new Env("Ubisoft 活动任务");
-
-// 存储 Key
-const CK_KEY = "ubisoft_cookie";
-const INDEX_KEY = "ubisoft_mission_index";
-const ID_KEY = "ubisoft_mission_id";
-
-!(async () => {
-  if (typeof $request !== "undefined") {
-    await getCookie();
-    $.done();
-  } else {
-    await runFlow();
-    $.done();
-  }
-})().catch((e) => {
-  $.logErr(e);
+// ================== 抓取 Cookie ==================
+if ($response && $request && $request.url.includes("/auth/provider/apple/login1")) {
+  getCookie();
   $.done();
-});
+} else {
+  runTasks();
+}
 
-// ========== 抓取 Cookie ==========
-async function getCookie() {
-  const cookie = $request.headers["authorization"] || $request.headers["Authorization"];
-  if (cookie) {
-    $.setdata(cookie, CK_KEY);
-    $.msg($.name, "✅ 成功捕获 Cookie", cookie.substring(0, 40) + "...");
+// 捕获 bhvrSession
+function getCookie() {
+  const setCookie = $response.headers["Set-Cookie"] || $response.headers["set-cookie"];
+  if (setCookie) {
+    const match = setCookie.match(/bhvrSession=([^;]+)/);
+    if (match) {
+      const bhvr = match[1];
+      $.setdata(bhvr, "UBISOFT_BHVR");
+      $.msg($.name, "✅ 成功捕获 bhvrSession", bhvr.substring(0, 40) + "...");
+    } else {
+      $.msg($.name, "❌ 未能捕获 bhvrSession", "未匹配到 bhvrSession");
+    }
   } else {
-    $.msg($.name, "❌ 未能捕获 Cookie", "请重新触发任务请求");
+    $.msg($.name, "❌ 未能捕获 bhvrSession", "响应头无 Set-Cookie");
   }
 }
 
-// ========== 运行完整流程 ==========
-async function runFlow() {
-  const cookie = $.getdata(CK_KEY);
+// ================== 主流程 ==================
+async function runTasks() {
+  const cookie = $.getdata("UBISOFT_BHVR");
   if (!cookie) {
-    $.msg($.name, "❌ 缺少 Cookie", "请先手动打开 Ubisoft 活动获取 Cookie");
-    return;
+    $.msg($.name, "❌ 未检测到 bhvrSession", "请先登录抓取 Cookie");
+    return $.done();
   }
 
   try {
-    let missionIndex = parseInt($.getdata(INDEX_KEY) || "1", 10);
+    let summary = [];
 
-    $.log(`🔹 开始执行任务，当前 index=${missionIndex}`);
+    // 示例任务索引，实际可调整
+    const missions = [0, 1];
 
-    const start = await missionStart(cookie, missionIndex);
-    if (!start) return;
+    for (const idx of missions) {
+      $.log(`▶️ 开始任务 index=${idx}`);
+      let start = await missionStart(cookie, idx);
+      if (!start.success) {
+        summary.push(`任务${idx} 启动失败`);
+        continue;
+      }
 
-    const end = await missionEnd(cookie);
-    if (!end) return;
+      await $.wait(2000);
 
-    const boons = await getBoons(cookie);
-    if (!boons) return;
+      let end = await missionEnd(cookie, idx);
+      if (!end.success) {
+        summary.push(`任务${idx} 结束失败`);
+        continue;
+      }
 
-    const event = await eventEnd(cookie);
-    if (!event) return;
+      await $.wait(2000);
 
-    // index 自增
-    $.setdata(String(missionIndex + 1), INDEX_KEY);
+      let boons = await getBoons(cookie);
+      summary.push(`任务${idx} 奖励: ${boons.reward || "无"}`);
+    }
 
-    // ✅ 最终通知
-    $.msg($.name, "🎉 全流程完成", `任务 #${missionIndex} 已完成，奖励：${boons}`);
-  } catch (err) {
-    $.msg($.name, "❌ 脚本错误", err.message);
-    $.logErr(err);
+    await $.wait(2000);
+
+    let event = await eventEnd(cookie);
+    if (event.success) {
+      summary.push(`🎉 活动结算成功: ${event.msg}`);
+    } else {
+      summary.push("❌ 活动结算失败");
+    }
+
+    $.msg($.name, "执行完成", summary.join("\n"));
+  } catch (e) {
+    $.logErr(e);
+    $.msg($.name, "❌ 运行异常", e.message || e);
+  } finally {
+    $.done();
   }
 }
 
-// ========== 四个接口 ==========
+// ================== API 封装 ==================
 function missionStart(cookie, index) {
-  return new Promise((resolve) => {
-    const body = { index };
-    const url = {
-      url: "https://latest.live.acr.ubisoft.com/missionStart",
-      headers: { Authorization: cookie, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    };
-    $.post(url, (err, resp, data) => {
-      if (err) {
-        $.msg($.name, "missionStart 错误", err);
-        return resolve(false);
-      }
-      try {
-        const obj = JSON.parse(data);
-        if (obj?.data?.missionId) {
-          $.setdata(obj.data.missionId, ID_KEY);
-          $.msg($.name, "✅ missionStart 成功", `missionId=${obj.data.missionId}`);
-          resolve(true);
-        } else {
-          $.msg($.name, "❌ missionStart 失败", data);
-          resolve(false);
-        }
-      } catch (e) {
-        $.logErr(e, resp);
-        resolve(false);
-      }
-    });
-  });
+  return request("https://latest.live.acr.ubisoft.com/missionStart", {
+    index,
+  }, cookie, "任务开始");
 }
 
-function missionEnd(cookie) {
-  return new Promise((resolve) => {
-    const missionId = $.getdata(ID_KEY);
-    if (!missionId) {
-      $.msg($.name, "❌ missionEnd 缺少 missionId", "请先运行 missionStart");
-      return resolve(false);
-    }
-    const body = { missionId };
-    const url = {
-      url: "https://latest.live.acr.ubisoft.com/missionEnd",
-      headers: { Authorization: cookie, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    };
-    $.post(url, (err, resp, data) => {
-      if (err) {
-        $.msg($.name, "missionEnd 错误", err);
-        return resolve(false);
-      }
-      try {
-        const obj = JSON.parse(data);
-        if (obj?.success) {
-          $.msg($.name, "✅ missionEnd 成功", "");
-          resolve(true);
-        } else {
-          $.msg($.name, "❌ missionEnd 失败", data);
-          resolve(false);
-        }
-      } catch (e) {
-        $.logErr(e, resp);
-        resolve(false);
-      }
-    });
-  });
+function missionEnd(cookie, index) {
+  return request("https://latest.live.acr.ubisoft.com/missionEnd", {
+    index,
+  }, cookie, "任务结束");
 }
 
 function getBoons(cookie) {
-  return new Promise((resolve) => {
-    const url = {
-      url: "https://latest.live.acr.ubisoft.com/getBoons",
-      headers: { Authorization: cookie },
-    };
-    $.get(url, (err, resp, data) => {
-      if (err) {
-        $.msg($.name, "getBoons 错误", err);
-        return resolve(false);
-      }
-      try {
-        const obj = JSON.parse(data);
-        if (obj?.boons) {
-          $.msg($.name, "✅ getBoons 成功", `奖励: ${obj.boons.join(", ")}`);
-          resolve(obj.boons.join(", "));
-        } else {
-          $.msg($.name, "❌ getBoons 失败", data);
-          resolve(false);
-        }
-      } catch (e) {
-        $.logErr(e, resp);
-        resolve(false);
-      }
-    });
-  });
+  return request("https://latest.live.acr.ubisoft.com/getBoons", {}, cookie, "获取奖励");
 }
 
 function eventEnd(cookie) {
+  return request("https://latest.live.acr.ubisoft.com/eventEnd", {}, cookie, "活动结束");
+}
+
+// 通用请求函数
+function request(url, body, cookie, tag) {
   return new Promise((resolve) => {
-    const url = {
-      url: "https://latest.live.acr.ubisoft.com/eventEnd",
-      headers: { Authorization: cookie },
+    const opt = {
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `bhvrSession=${cookie}`,
+      },
+      body: JSON.stringify(body),
     };
-    $.post(url, (err, resp, data) => {
+    $.post(opt, (err, resp, data) => {
       if (err) {
-        $.msg($.name, "eventEnd 错误", err);
-        return resolve(false);
+        $.log(`❌ ${tag} 请求失败: ${err}`);
+        return resolve({ success: false });
       }
       try {
-        const obj = JSON.parse(data);
-        if (obj?.success) {
-          $.msg($.name, "✅ eventEnd 成功", "");
-          resolve(true);
+        const obj = JSON.parse(data || "{}");
+        if (obj && obj.result == 0) {
+          $.log(`✅ ${tag} 成功: ${data}`);
+          resolve({ success: true, reward: obj.reward, msg: data });
         } else {
-          $.msg($.name, "❌ eventEnd 失败", data);
-          resolve(false);
+          $.log(`⚠️ ${tag} 失败: ${data}`);
+          resolve({ success: false });
         }
       } catch (e) {
-        $.logErr(e, resp);
-        resolve(false);
+        $.log(`❌ ${tag} JSON解析错误: ${e}`);
+        resolve({ success: false });
       }
     });
   });
 }
 
-// ========== Env 封装 ==========
-function Env(t, s) { class e { constructor(t) { this.env = t } log(...t) { console.log(...t) } } return new class { constructor(t, s) { this.name = t, this.logs = [], this.startTime = (new Date).getTime(), Object.assign(this, new e(t)) } getdata(t) { return $persistentStore.read(t) } setdata(t, s) { return $persistentStore.write(t, s) } msg(t = this.name, s = "", e = "", r) { $notification.post(t, s, e, r) } logErr(t, s) { this.log("", `❗️${this.name}, 错误!`, t, s) } done(t = {}) { $done(t) } }(t, s) }
+// ================== Loon 环境封装 ==================
+function Env(name) {
+  return new (class {
+    constructor(name) {
+      this.name = name;
+      this.startTime = Date.now();
+      this.log(`🔔${this.name}, 开始!`);
+    }
+    getdata(key) {
+      return $persistentStore.read(key);
+    }
+    setdata(val, key) {
+      return $persistentStore.write(val, key);
+    }
+    get(t, cb) {
+      $httpClient.get(t, (err, resp, data) => {
+        if (resp) resp.body = data;
+        cb(err, resp, data);
+      });
+    }
+    post(t, cb) {
+      $httpClient.post(t, (err, resp, data) => {
+        if (resp) resp.body = data;
+        cb(err, resp, data);
+      });
+    }
+    msg(title, subt = "", desc = "") {
+      $notification.post(title, subt, desc);
+    }
+    log(...msg) {
+      console.log(msg.join(" "));
+    }
+    logErr(err) {
+      this.log(`❌错误: ${err}`);
+    }
+    wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+    done() {
+      let end = (Date.now() - this.startTime) / 1000;
+      this.log(`🔔${this.name}, 结束! ⏱ ${end} 秒`);
+      $done();
+    }
+  })(name);
+}
