@@ -10,7 +10,7 @@
 # #刺客信条燎原，刷H点。
 cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKi.js, timeout=300, tag=执行主任务流程, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 
-http-request ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/auth\/provider\/apple\/login1 script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKi.js, requires-body=false, timeout=60, tag=ACRebellion.cookie_update, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
+http-response ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/auth\/provider\/apple\/login1 script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKi.js, requires-body=false, timeout=60, tag=ACRebellion.cookie_update, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 
 
 [MitM]
