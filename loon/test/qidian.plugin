@@ -21,10 +21,10 @@
 #修改数据：直接将跳转链接清空，达到阻止跳转的效果。
 
 #去除广告列表（没变化）
-^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/adv\/getadvlistbatch\?positions response-body-json-jq '.Data. iOS_bookstoreNav = []'
+^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/adv\/getadvlistbatch\?positions response-body-json-jq '.Data = []'
 
 #去除每日导读(没变化)
-^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v2\/dailyrecommend\/getdailyrecommend\? response-body-json-jq '.Data.Items=[]'
+^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v2\/dailyrecommend\/getdailyrecommend\? response-body-json-jq '.Data=[]'
 
 #去除悬浮书架广告（成功）
 ^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/bookshelf\/getHoverAdv response-body-json-jq 'del(.Data.ItemList)'
