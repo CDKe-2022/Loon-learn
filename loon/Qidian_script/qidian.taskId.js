@@ -18,7 +18,7 @@ var c;
 
 for (var i = 0; i < obj.Data.VideoRewardTab.TaskList.length; i++) {
   if (
-    obj.Data.VideoRewardTab.TaskList[i].Title ==
+    obj.Data.VideoRewardTab.TaskList[i].Icon ==
     "额外看3次小视频得奖励"
   ) {
     c = obj.Data.VideoRewardTab.TaskList[i].TaskId;
