@@ -10,7 +10,7 @@ let taskB = obj?.Data?.DailyBenefitModule?.TaskList?.[1]?.TaskId;
 // 提取“额外看3次小视频得奖励”任务 ID
 let taskC;
 for (let t of obj?.Data?.VideoRewardTab?.TaskList || []) {
-  if (t.Title === "额外看3次小视频得奖励") {
+  if (t.Icon === "额外看3次小视频得奖励") {
     taskC = t.TaskId;
     $persistentStore.write(taskC, "qd_taskId_2");
     break;
