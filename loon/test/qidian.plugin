@@ -30,13 +30,13 @@
 ^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/bookshelf\/getHoverAdv response-body-json-jq 'del(.Data.ItemList)'
 
 #去除活动弹窗（成功）
-^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/client\/getconf response-body-json-jq 'del(.Data.ActivityPopup.Data)' '.Data.CloudSetting?.TeenShowFreq = "0"' 'del(.Data.ActivityIcon)'
+^https:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/client\/getconf(?:\?.*)?$ response-body-json-jq 'del(.Data.ActivityPopup.Data)' '.Data.CloudSetting?.TeenShowFreq = "0"' 'del(.Data.ActivityIcon)'
 
 #去除起点书架今日导读的背景广告（成功）
 ^https?:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/bookshelf\/getTopOperation response-body-json-jq 'del(.Data.Items, .Data.MainInfo)'
 
 #青少年模式弹窗
-^https?:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/young\/getconf response-body-json-jq '.Data = {}'
+#^https?:\/\/magev6\.if\.qidian\.com\/argus\/api\/v1\/young\/getconf response-body-json-jq '.Data = {}'
 
 [Argument]
 QDTask = switch, true, false, tag = 起点每日看广告, desc = 控制是否执行起点每日看广告任务
