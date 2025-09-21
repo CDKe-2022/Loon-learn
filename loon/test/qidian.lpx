@@ -39,12 +39,12 @@ QDTaskId = switch, true, false, tag = 起点任务ID获取, desc = 控制是否�
 
 [Script]
 # 起点每日看广告
-cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.js, timeout=300, tag=起点读书, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDTask}
+cron "30 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidian.js, timeout=300, tag=起点读书, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDTask}
 
 # 起点 Cookie 获取
-http-request https:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.cookie.js, requires-body=true, timeout=60, tag=qidian.cookie_1, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDCookie}
+http-request https:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidian%20cookie.js, requires-body=true, timeout=60, tag=qidian.cookie_1, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDCookie}
 
 # 起点任务 ID 获取
-http-response ^https:\/\/h5\.if\.qidian\.com\/argus\/api\/v2\/video\/adv\/mainPage script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/Qidian_script/qidian.taskId.js, requires-body=true, timeout=60, tag=qidian.taskId_2, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDTaskId}
+http-response ^https:\/\/h5\.if\.qidian\.com\/argus\/api\/v2\/video\/adv\/mainPage script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidiantaskid.js, requires-body=true, timeout=60, tag=qidian.taskId_2, img-url=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true, enable = {QDTaskId}
 [MITM]
 hostname = h5.if.qidian.com, magev6.if.qidian.com
