@@ -1,241 +1,137 @@
 /* 
-起点读书 - 自动观看广告（固定执行版）
-Loon 脚本 | 2024-09-21
-固定执行7次和2次 | 间隔时间可调
+🥳 脚本功能: 自动观看 起点读书 广告 (Loon 专用精简版)
+✅ 任务1: 每日视频福利 (执行7次)
+✅ 任务2: 限时彩蛋小视频 (执行2次)
+⏱️ 默认间隔: 20秒 (可在 Loon "Persistent Data" 中设置 qd_timeout)
+
+📌 请确保已通过抓包脚本保存以下数据:
+   - qd_session     (广告1完整请求)
+   - qd_session_2   (广告2完整请求)
+   - qd_taskId      (可选，用于校验)
+   - qd_taskId_2    (可选，用于校验)
+
+📦 BoxJS 设置地址 (可选):
+https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/mcdasheng.boxjs.json
+
+[rewrite local]
+https\:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch url script-request-body [你的抓包脚本]
+
+[MITM]
+hostname = h5.if.qidian.com
+
+[task local]
+30 10 * * * [脚本路径], tag=起点读书, img-url=https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png
 */
 
-// 环境检测
-const isLoon = typeof $loon !== "undefined";
-const isSurge = typeof $httpClient !== "undefined" && !isLoon;
-const isQuantumultX = typeof $task !== "undefined";
+// ==================== 配置区 ====================
+const TASK1_TIMES = 7;  // 任务1执行次数
+const TASK2_TIMES = 2;  // 任务2执行次数
 
-// 工具函数
-const log = (msg, isError = false) => {
-  const prefix = isError ? "🔴 [ERROR] " : "🟢 [INFO] ";
-  console.log(prefix + msg);
-};
+// 从持久化存储读取配置
+const taskId = $persistentStore.read("qd_taskId") || "";
+const taskId2 = $persistentStore.read("qd_taskId_2") || "";
+const sessionStr = $persistentStore.read("qd_session") || "";
+const session2Str = $persistentStore.read("qd_session_2") || "";
+const timeoutStr = $persistentStore.read("qd_timeout") || "20";
+const timeoutMs = parseInt(timeoutStr, 10) * 1000;
 
-const notify = (title, subtitle, message) => {
-  if (isLoon || isSurge) {
-    $notification.post(title, subtitle, message);
-  } else if (isQuantumultX) {
-    $notify(title, subtitle, message);
-  }
-};
+// ==================== 校验区 ====================
+let hasError = false;
 
-const getStorage = (key) => {
-  if (isLoon || isSurge) return $persistentStore.read(key);
-  if (isQuantumultX) return $prefs.valueForKey(key);
-  return null;
-};
+if (!sessionStr) {
+  console.log("⚠️  qd_session 未设置，请先运行抓包脚本");
+  $notification.post("起点读书", "❌ 错误", "qd_session 未设置");
+  hasError = true;
+}
 
-const httpRequest = (options) => {
-  return new Promise((resolve, reject) => {
-    if (isLoon || isSurge) {
-      $httpClient.post(options, (error, response, data) => {
-        if (error) reject(error);
-        else resolve({ body: data, status: response.status });
-      });
-    } else if (isQuantumultX) {
-      $task.fetch(options).then(
-        (response) => resolve({ body: response.body, status: response.status }),
-        (error) => reject(error)
-      );
-    } else {
-      reject(new Error("不支持的环境"));
-    }
-  });
-};
+if (!session2Str) {
+  console.log("⚠️  qd_session_2 未设置，请先运行抓包脚本");
+  $notification.post("起点读书", "❌ 错误", "qd_session_2 未设置");
+  hasError = true;
+}
 
-// 任务配置 - 固定执行7次和2次
-const TASK_CONFIG = [
-  {
-    idKey: "qd_taskId",
-    sessionKey: "qd_session",
-    name: "每日任务",
-    maxExecutions: 7,  // 固定执行7次
-    successCount: 0,
-    failCount: 0
-  },
-  {
-    idKey: "qd_taskId_2",
-    sessionKey: "qd_session_2",
-    name: "小视频任务",
-    maxExecutions: 2,  // 固定执行2次
-    successCount: 0,
-    failCount: 0
-  }
-];
+if (hasError) {
+  $done();
+  return;
+}
 
-// 延迟函数
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// 验证任务配置
-const validateTasks = () => {
-  const invalidTasks = [];
-  
-  for (const task of TASK_CONFIG) {
-    const taskId = getStorage(task.idKey);
-    const sessionData = getStorage(task.sessionKey);
-    
-    if (!taskId) {
-      invalidTasks.push(`${task.name} - 任务ID缺失`);
-    }
-    
-    let session = null;
-    try {
-      if (sessionData) session = JSON.parse(sessionData);
-    } catch (e) {
-      log(`会话数据解析失败 (${task.name}): ${e.message}`, true);
-    }
-    
-    if (!session) {
-      invalidTasks.push(`${task.name} - 会话数据无效`);
-    }
-    
-    task.taskId = taskId;
-    task.session = session;
-  }
-  
-  return invalidTasks;
-};
-
-// 解析响应
-const parseResponse = (response) => {
-  try {
-    const obj = typeof response === 'string' ? JSON.parse(response) : response;
-    if (obj.Result === 0) {
-      return { 
-        success: true, 
-        message: obj.Message || "任务完成" 
-      };
-    }
-    return { 
-      success: false, 
-      message: obj.Message || `错误码: ${obj.Result}` 
-    };
-  } catch (e) {
-    return { 
-      success: false, 
-      message: "响应解析失败" 
-    };
-  }
-};
-
-// 执行单个任务
-const executeTask = async (task, index) => {
-  try {
-    log(`🟡 ${task.name} 执行 #${index + 1}/${task.maxExecutions}`);
-    
-    // 准备请求
-    const options = {
-      url: task.session.url,
-      headers: task.session.headers,
-      body: task.session.body,
-      method: 'POST'
-    };
-    
-    // 发送请求
-    const response = await httpRequest(options);
-    const result = parseResponse(response.body);
-    
-    if (result.success) {
-      task.successCount++;
-      log(`✅ ${task.name} 执行成功: ${result.message}`);
-    } else {
-      task.failCount++;
-      log(`❌ ${task.name} 执行失败: ${result.message}`, true);
-    }
-    
-    return result;
-  } catch (error) {
-    task.failCount++;
-    log(`⚠️ ${task.name} 执行异常: ${error.message}`, true);
-    return { success: false, message: `执行异常: ${error.message}` };
-  }
-};
-
-// 生成执行报告
-const generateReport = () => {
-  let report = "📊 任务执行报告\n\n";
-  
-  for (const task of TASK_CONFIG) {
-    report += `📌 ${task.name}\n`;
-    report += `✓ 成功: ${task.successCount}/${task.maxExecutions}\n`;
-    report += `✗ 失败: ${task.failCount}\n\n`;
-  }
-  
-  const totalSuccess = TASK_CONFIG.reduce((sum, t) => sum + t.successCount, 0);
-  const totalAttempts = TASK_CONFIG.reduce((sum, t, i) => sum + t.maxExecutions, 0);
-  const successRate = totalSuccess / totalAttempts * 100;
-  
-  report += `✅ 总成功率: ${totalSuccess}/${totalAttempts} (${successRate.toFixed(1)}%)`;
-  
-  // 发送通知（截断长消息）
-  const notificationMsg = report.split('\n')[0] + '\n' + 
-                         report.split('\n')[2] + '\n' +
-                         report.split('\n')[5];
-  
-  log("\n" + report);
-  notify("起点读书", "广告任务完成", notificationMsg);
-};
-
-// 主执行函数
-const main = async () => {
-  // 1. 验证任务配置
-  const invalidTasks = validateTasks();
-  if (invalidTasks.length > 0) {
-    const errorMsg = `❌ 任务配置不完整!\n${invalidTasks.join('\n')}`;
-    log(errorMsg, true);
-    
-    notify(
-      "起点读书", 
-      "配置错误", 
-      `请先完成以下步骤:\n${invalidTasks.map(t => t.replace(" - ", ": ")).join("\n")}`
-    );
-    return;
-  }
-  
-  // 2. 获取执行参数 - 间隔时间配置在这里
-  const timeout = parseInt(getStorage("qd_timeout") || "20", 10);
-  log(`⏱️ 任务间隔: ${timeout}秒`);
-  
-  // 3. 执行任务 - 固定执行指定次数
-  for (const task of TASK_CONFIG) {
-    for (let i = 0; i < task.maxExecutions; i++) {
-      await executeTask(task, i);
-      
-      // 如果是最后一次执行，不等待
-      if (i < task.maxExecutions - 1) {
-        await delay(timeout * 1000);
-      }
-    }
-  }
-  
-  // 4. 生成执行报告
-  generateReport();
-};
-
-// 执行主逻辑
+// 解析 session 数据
+let session, session2;
 try {
-  log("起点读书广告任务开始执行");
-  main()
-    .catch(error => {
-      log(`脚本执行异常: ${error.message}\n${error.stack}`, true);
-      notify(
-        "起点读书", 
-        "脚本错误", 
-        `🚨 请联系开发者\n${error.message.substring(0, 50)}...`
-      );
-    })
-    .finally(() => {
-      if (typeof $done === "function") {
-        $done({});
+  session = JSON.parse(sessionStr);
+  session2 = JSON.parse(session2Str);
+} catch (e) {
+  console.log("❌ session 数据格式错误:", e.message);
+  $notification.post("起点读书", "❌ 数据错误", "请重新抓包保存");
+  $done();
+  return;
+}
+
+// ==================== 核心函数 ====================
+async function task(sessionData, taskName, index) {
+  console.log(`\n🚀 正在执行 ${taskName} 第 ${index + 1} 次...`);
+
+  // 构造请求选项
+  const options = {
+    url: sessionData.url,
+    headers: sessionData.headers,
+    body: sessionData.body
+  };
+
+  return new Promise((resolve) => {
+    $httpClient.post(options, (error, response, data) => {
+      if (error) {
+        console.log(`🔴 ${taskName} 第 ${index + 1} 次失败:`, error);
+        $notification.post("起点读书", `🔴 ${taskName} 失败`, error.message || "网络错误");
+        resolve(false);
+        return;
+      }
+
+      try {
+        const result = JSON.parse(data);
+        if (result.Result === 0) {
+          console.log(`🎉 ${taskName} 第 ${index + 1} 次成功!`);
+          resolve(true);
+        } else {
+          console.log(`🔴 ${taskName} 第 ${index + 1} 次失败:`, data);
+          $notification.post("起点读书", `🔴 ${taskName} 失败`, `错误码: ${result.Result}`);
+          resolve(false);
+        }
+      } catch (e) {
+        console.log(`⚠️  响应解析失败:`, data);
+        $notification.post("起点读书", `⚠️  响应异常`, "请查看日志");
+        resolve(false);
       }
     });
-} catch (error) {
-  log(`初始化异常: ${error.message}`, true);
-  if (typeof $done === "function") {
-    $done({});
-  }
+  });
 }
+
+async function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ==================== 主执行逻辑 ====================
+(async () => {
+  console.log("🎯 起点读书广告自动观看脚本启动");
+  console.log(`⏱️  任务间隔: ${timeoutMs / 1000} 秒`);
+
+  // 执行任务1
+  for (let i = 0; i < TASK1_TIMES; i++) {
+    await task(session, "【每日视频福利】", i);
+    if (i < TASK1_TIMES - 1) await delay(timeoutMs); // 最后一次不延迟
+  }
+
+  // 执行任务2
+  for (let j = 0; j < TASK2_TIMES; j++) {
+    await task(session2, "【限时彩蛋小视频】", j);
+    if (j < TASK2_TIMES - 1) await delay(timeoutMs); // 最后一次不延迟
+  }
+
+  console.log("\n✅ 所有任务执行完毕!");
+  $notification.post("起点读书", "✅ 任务完成", `共执行 ${TASK1_TIMES + TASK2_TIMES} 次`);
+  $done();
+})().catch((err) => {
+  console.log("🚨 脚本异常:", err);
+  $notification.post("起点读书", "🚨 脚本崩溃", err.message);
+  $done();
+});
