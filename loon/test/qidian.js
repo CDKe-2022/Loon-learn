@@ -28,8 +28,8 @@ function notify(msg) {
 (async () => {
   checkData();
 
-  // 任务1 执行 7 次
-  for (let i = 0; i < 7; i++) {
+  // 任务1 执行 8 次
+  for (let i = 0; i < 8; i++) {
     console.log(`🟡任务1执行: 第 ${i + 1} 次`);
     await runTask(session);
     await wait(timeout * 1000);
