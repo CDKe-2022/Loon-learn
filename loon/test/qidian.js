@@ -28,15 +28,15 @@ function notify(msg) {
 (async () => {
   checkData();
 
-  // 任务1 执行 8 次
-  for (let i = 0; i < 8; i++) {
+  // 任务1 执行 9 次
+  for (let i = 0; i < 9; i++) {
     console.log(`🟡任务1执行: 第 ${i + 1} 次`);
     await runTask(session);
     await wait(timeout * 1000);
   }
 
-  // 任务2 执行 2 次
-  for (let j = 0; j < 2; j++) {
+  // 任务2 执行 3 次
+  for (let j = 0; j < 3; j++) {
     console.log(`🟡任务2执行: 第 ${j + 1} 次`);
     await runTask(session2);
     await wait(timeout * 1000);
