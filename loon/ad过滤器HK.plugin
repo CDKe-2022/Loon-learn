@@ -1,5 +1,5 @@
 #!name = AD过滤器
-#!desc = 去除百度、CNN、大麦、华尔街见闻、航旅纵横、永辉超市广告,有道会员解锁
+#!desc = 去除百度、CNN、大麦、华尔街见闻、永辉超市广告,有道会员解锁
 #!author = 佚名[https://github.com/CDKe-2022]
 #!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/ad%E8%BF%87%E6%BB%A4%E5%99%A8HK.plugin
 #!homepage =https://github.com/CDKe-2022
@@ -27,10 +27,6 @@
 # =====华尔街见闻 =====
 #华尔街见闻开屏广告
 ^https:\/\/api-one-wscn\.awtmt\.com\/apiv1\/advertising\/ads\/ response-body-json-del data.items
-
-# =====航旅纵横 =====
-#开屏广告
-^http:\/\/oss\.umetrip\.com\/fs\/advert\/polite reject-dict
 
 # =====有道词典 =====
 #会员解锁
