@@ -105,7 +105,7 @@ async function runTask(sessionStr, taskLabel) {
   // 读取超时时间，使用默认值
   const timeoutSeconds = $persistentStore.read(CONFIG.TIMEOUT_KEY);
   const timeout = timeoutSeconds ? Number(timeoutSeconds) : CONFIG.DEFAULT_TIMEOUT_SECONDS;
-  console.log(`⏱️ 使用超时时间: ${timeout} 秒`); // 打印使用的超时时间
+  console.log(`⏱️ 设置的间隔时间: ${timeout} 秒`); // 打印使用的超时时间
 
   // 3. 执行任务循环
   // 任务1 执行 N 次
