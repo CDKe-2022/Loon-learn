@@ -5,30 +5,12 @@
 #!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/kugou.png?raw=true
 #!date = 2024-09-16 08:42:59
 
-[Rule]
-URL-REGEX,https://gateway.kugou.com/ads.gateway/.*,REJECT
-URL-REGEX,https://gateway3.kugou.com/ads.gateway/.*,REJECT
-URL-REGEX,https://gatewayretry.kugou.com/ads.gateway/.*,REJECT
-URL-REGEX,https://gateway.kugou.com/youth/api/user/v1/init.*,REJECT
-URL-REGEX,^http:\/\/mobilelog\.kugou\.com\/adtrackconfig\.json$,REJECT
-URL-REGEX,https://tmeadcomm.y.qq.com/maproxy/getPbCompressAd,REJECT
-DOMAIN-SUFFIX,adservice.kugou.com,REJECT
-DOMAIN-SUFFIX,install2.kugou.com,REJECT
-DOMAIN-SUFFIX,adstats.tencentmusic.com,REJECT
-DOMAIN-SUFFIX,tmead.y.qq.com,REJECT
-DOMAIN-SUFFIX,ad.tencentmusic.com,REJECT
-DOMAIN-SUFFIX,api-adservices.apple.com,REJECT
-DOMAIN-SUFFIX,us.l.qq.com,REJECT
-DOMAIN-SUFFIX,p.l.qq.com,REJECT
-DOMAIN-SUFFIX,mc.tencentmusic.com,REJECT
-DOMAIN-SUFFIX,mdt.qq.com,REJECT
-DOMAIN-SUFFIX,gdt.qq.com,REJECT
-DOMAIN-SUFFIX,e.qq.com,REJECT
-
 [Script]
-cron "10 9 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/kugouauto.js, tag=酷狗领取VIP
+cron "10 0 * * *" script-path=https://gist.githubusercontent.com/Alex0510/8b958bcf53ed1271e03bb5130b2206ec/raw/kugou_vip.js, tag=酷狗领取VIP
 
-http-request https://(gateway|gatewayretry|gateway3).kugou.com/youth/v1/(recharge/receive_vip_listen_song|activity/get_month_vip_record).* script-path=https://gist.githubusercontent.com/Alex0510/1c389019c264a7d3ddbe4dbcf77d4295/raw/kugou.js, tag=酷狗数据
+http-request https://(gateway|gatewayretry|gateway3).kugou.com/youth/v1/activity/get_month_vip_record.* script-path=https://gist.githubusercontent.com/Alex0510/8b958bcf53ed1271e03bb5130b2206ec/raw/kugou_cookie.js, tag=酷狗数据
 
-[MitM]
+http-response (https?:\/\/)?.*\.kugou\.com\/(v1\/(get_union_vip|vipuser_sub|get_res_privilege)|mobile\/vipinfo|kugouvip\/v[12]\/batch_union_vipinfo) script-path=https://gist.githubusercontent.com/Alex0510/8b958bcf53ed1271e03bb5130b2206ec/raw/kugou_ad.js, requires-body=true, tag=酷狗去广告
+
+[MITM]
 hostname = *.kugou.com
