@@ -1,146 +1,110 @@
 // ==UserScript==
-// @name         斗鱼参数提取器
+// @name         斗鱼参数提取 (device_register)
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  从请求和响应中提取斗鱼签到所需的参数
+// @description  从 device_register 请求和响应中提取 did, install_id, ttreq, 和 token
 // @author       You
-// @match        https://apiv2.douyucdn.cn/H5nc/welcome/to*
+// @match        https://abvolcapi.douyucdn.cn/service/2/device_register/
 // @grant        none
 // ==/UserScript==
-
-/**
- * Loon 环境下的斗鱼参数提取脚本
- * 监听对 /H5nc/welcome/to 的请求和响应，从中提取 acf_auth, acf_uid, install_id, ttreq, 和 token
- */
 
 (function() {
     'use strict';
 
-    console.log("斗鱼参数提取器已启动，正在监听请求和响应...");
+    console.log("开始处理 device_register 请求/响应...");
 
-    // 1. 从请求 URL 中提取 token
-    let requestUrl = $request.url;
-    let urlParams = new URLSearchParams(new URL(requestUrl).search);
-    let extracted_token = urlParams.get('token');
-    console.log(`从请求URL中提取到 token: ${extracted_token}`);
-
-    // 2. 从请求头中提取 install_id 和 ttreq
+    // --- 从请求中提取信息 ---
     let requestHeaders = $request.headers;
-    let install_id = null;
-    let ttreq = null;
+    let requestCookiesStr = requestHeaders['Cookie'] || requestHeaders['cookie'] || '';
+    let responseDataStr = $response.body;
 
-    // Cookie 字符串可能包含多个 cookie，需要解析
-    let rawRequestCookie = requestHeaders['Cookie'] || requestHeaders['cookie'];
-    if (rawRequestCookie) {
-        let requestCookies = {};
-        rawRequestCookie.split(';').forEach(cookie => {
+    // 解析请求 Cookie 字符串
+    let requestCookies = {};
+    if (requestCookiesStr) {
+        requestCookiesStr.split(';').forEach(cookie => {
             let [key, value] = cookie.trim().split('=');
             if (key && value) {
                 requestCookies[key] = value;
             }
         });
-        install_id = requestCookies['install_id'];
-        ttreq = requestCookies['ttreq'];
     }
-    console.log(`从请求头中提取到 install_id: ${install_id}`);
-    console.log(`从请求头中提取到 ttreq: ${ttreq}`);
 
-    // 3. 从响应头中提取 Set-Cookie 信息，获取 acf_auth 和 acf_uid
-    let responseHeaders = $response.headers;
-    let acf_auth = null;
-    let acf_uid = null;
+    // 提取参数
+    let did = requestCookies['acf_did'] || '';
+    let install_id = requestCookies['install_id'] || '';
+    let ttreq = requestCookies['ttreq'] || '';
 
-    // Set-Cookie 可能是字符串或数组
-    let setCookieHeaders = responseHeaders['Set-Cookie'] || responseHeaders['set-cookie'];
-    if (setCookieHeaders) {
-        // 确保它是数组
-        if (typeof setCookieHeaders === 'string') {
-            setCookieHeaders = [setCookieHeaders];
+    console.log("从请求 Cookie 中提取:");
+    console.log("  did (来自 acf_did):", did);
+    console.log("  install_id:", install_id);
+    console.log("  ttreq:", ttreq);
+
+    // --- 从响应体中尝试提取 token ---
+    let token = '';
+    try {
+        let responseData = JSON.parse(responseDataStr);
+        // 假设响应结构为 { data: { token: "..." }, ... }
+        // 请根据实际响应结构调整这里的取值路径
+        token = responseData.data?.token || '';
+        if (token) {
+            console.log("从响应体中提取 token 成功:", token);
+        } else {
+            console.log("警告：响应体中未找到 'data.token' 字段。实际响应:", responseDataStr);
         }
-        // 遍历所有 Set-Cookie 条目
-        for (let cookieLine of setCookieHeaders) {
-            // 简单解析，只取第一部分（key=value）
-            let [cookiePair] = cookieLine.split(';');
-            let [key, value] = cookiePair.trim().split('=');
-            if (key === 'acf_auth') {
-                acf_auth = value;
-            } else if (key === 'acf_uid') {
-                acf_uid = value;
-            }
-        }
-    }
-    console.log(`从响应头中提取到 acf_auth: ${acf_auth}`);
-    console.log(`从响应头中提取到 acf_uid: ${acf_uid}`);
-
-    // 4. 汇总并打印所有参数
-    let extractedParams = {
-        acf_auth: acf_auth,
-        acf_uid: acf_uid,
-        install_id: install_id,
-        ttreq: ttreq,
-        token: extracted_token
-    };
-
-    console.log("--- 提取到的所有参数 ---");
-    for (let [key, value] of Object.entries(extractedParams)) {
-        console.log(`${key}: ${value}`);
-    }
-    console.log("------------------------");
-
-    // 5. 检查是否有缺失的参数
-    let missingParams = [];
-    for (let [key, value] of Object.entries(extractedParams)) {
-        if (!value) {
-            missingParams.push(key);
-        }
+    } catch (e) {
+        console.log("错误：解析响应体 JSON 失败，无法提取 token。错误:", e, "响应内容:", responseDataStr);
     }
 
-    if (missingParams.length > 0) {
-        console.log(`警告：以下参数未能提取到: ${missingParams.join(', ')}`);
-    } else {
+    // --- 验证提取结果 ---
+    let allParamsFound = true;
+    if (!did) {
+        console.log("错误：未能从请求中提取到 'did' (acf_did)。");
+        allParamsFound = false;
+    }
+    if (!install_id) {
+        console.log("错误：未能从请求中提取到 'install_id'。");
+        allParamsFound = false;
+    }
+    if (!ttreq) {
+        console.log("错误：未能从请求中提取到 'ttreq'。");
+        allParamsFound = false;
+    }
+    if (!token) {
+        console.log("错误：未能从响应中提取到 'token'。");
+        allParamsFound = false;
+    }
+
+    if (allParamsFound) {
         console.log("所有参数提取成功！");
-    }
+        console.log(`提取到的参数:`);
+        console.log(`  did: ${did}`);
+        console.log(`  install_id: ${install_id}`);
+        console.log(`  ttreq: ${ttreq}`);
+        console.log(`  token: ${token}`);
 
-    // 6. 将参数信息附加到响应体中（可选，用于调试或通知）
-    // 创建一个简单的 HTML 页面来展示参数
-    let htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>参数提取结果</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        .param { margin: 5px 0; }
-        .param-key { font-weight: bold; }
-        .warning { color: red; }
-    </style>
-</head>
-<body>
-    <h2>斗鱼参数提取结果</h2>
-    ${
-        missingParams.length > 0 ?
-        `<p class="warning">警告：以下参数未能提取到: ${missingParams.join(', ')}</p>` :
-        '<p style="color: green;">所有参数提取成功！</p>'
-    }
-    ${
-        Object.entries(extractedParams).map(([key, value]) => 
-            `<div class="param"><span class="param-key">${key}:</span> ${value || '<span style="color: red;">(未找到)</span>'}</div>`
-        ).join('')
-    }
-</body>
-</html>
-`;
-
-    // 7. 结束请求处理，返回修改后的响应
-    $done({
-        response: {
-            status: 200, // 通常 302 会被处理，这里返回 200 以显示结果页面
-            headers: {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-cache'
-            },
-            body: htmlContent
+        // --- 保存或使用参数 ---
+        // 1. 尝试使用 loon_localstorage (如果 Loon 支持)
+        if (typeof $loon_local !== 'undefined' && typeof $loon_local.set !== 'undefined') {
+            try {
+                $loon_local.set("douyu_did", did);
+                $loon_local.set("douyu_install_id", install_id);
+                $loon_local.set("douyu_ttreq", ttreq);
+                $loon_local.set("douyu_token", token);
+                console.log("参数已通过 $loon_local 保存。");
+            } catch (e) {
+                console.log("通过 $loon_local 保存参数时出错:", e);
+            }
+        } else {
+            console.log("$loon_local 不可用，无法自动保存参数。请手动复制以下信息：");
+            console.log(`douyu_did=${did}`);
+            console.log(`douyu_install_id=${install_id}`);
+            console.log(`douyu_ttreq=${ttreq}`);
+            console.log(`douyu_token=${token}`);
         }
-    });
+    } else {
+        console.log("部分参数提取失败，请检查日志。");
+    }
+
+    // 结束处理，返回原始响应
+    $done({});
 })();
