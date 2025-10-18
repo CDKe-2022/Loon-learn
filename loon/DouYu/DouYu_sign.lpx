@@ -1,1 +1,24 @@
-1
+#!name = 斗鱼签到助手
+#!desc = 自动执行斗鱼签到，并提供参数提取功能。
+#!author = Assistant
+#!date = 2025-10-18
+#!icon = https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.png
+# 自动签到及参数获取
+# 保持开启,如检测到参数变更会自动更新
+# 任务奖励：经验值
+# 请先运行参数提取脚本，再启用定时签到
+
+[Script]
+# 定时任务：每天上午 9 点自动签到 (可根据需要修改时间)
+cron "0 9 * * *" script-path=scripts/douyu_sign_in.js, timeout=120, tag=斗鱼自动签到, img-url=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.png
+
+# HTTP 请求重写：拦截 device_register 请求以提取参数
+# 请触发一次斗鱼的设备注册流程（例如，启动App或刷新首页），以便此脚本捕获参数
+http-request https://abvolcapi\.douyucdn\.cn/service/2/device_register/ script-path=scripts/douyu_params_extract.js, requires-body=true, timeout=60, tag=斗鱼参数提取, img-url=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.png
+
+# HTTP 请求重写：拦截 sendSign 请求以执行签到 (可选，用于手动触发)
+# 当访问签到 URL 时，此脚本会执行签到逻辑
+http-request https://apiv2\.douyucdn\.cn/h5nc/sign/sendSign script-path=scripts/douyu_sign_in.js, requires-body=true, timeout=60, tag=斗鱼手动签到, img-url=https://raw.githubusercontent.com/MCdasheng/QuantumultX/main/Scripts/myScripts/qidian/qidian.png
+
+[MitM]
+hostname = apiv2.douyucdn.cn, abvolcapi.douyucdn.cn
