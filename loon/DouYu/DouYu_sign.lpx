@@ -14,7 +14,7 @@ cron "0 9 * * *" script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/he
 
 # HTTP 请求重写：拦截 device_register 请求以提取参数
 # 请触发一次斗鱼的设备注册流程（例如，启动App或刷新首页），以便此脚本捕获参数
-http-request https://abvolcapi\.douyucdn\.cn/service/2/device_register/ script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/DouYu_cookie.js, requires-body=true, timeout=60, tag=斗鱼参数提取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
+http-request ^https:\/\/abvolcapi\.douyucdn\.cn\/service\/2\/device_register\/ script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/DouYu_cookie.js, requires-body=true, timeout=60, tag=斗鱼参数提取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
 
 [MitM]
 hostname = abvolcapi.douyucdn.cn
