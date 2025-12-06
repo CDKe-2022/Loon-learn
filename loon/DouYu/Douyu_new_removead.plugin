@@ -42,9 +42,12 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\? response-body-json-del data.ad
 ^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\? response-body-json-del data.list[2].ad
 ^https:\/\/apiv3\.douyucdn\.cn\/japi\/ecl\/api\/query\/user\/goods\/list\? response-body-json-jq 'del(.data.details)'
+#去除直播间页面的淘宝广告
+^https://vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com/live-tag/.*\.json$ response-body-json-jq 'map(del(.ads))'
 
 # 首页轮播图和视频流广告
 ^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 response-body-json-jq '.data.rec_card |= map(.card_banner |= map(select(has("ad") | not))) |.data.rec_cont |= map(select(has("ad") | not))'
 
+
 [MitM]
-hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn, apiv3.douyucdn.cn
+hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn, apiv3.douyucdn.cn, vpls-videojj-cdn.oss-cn-beijing.aliyuncs.com
