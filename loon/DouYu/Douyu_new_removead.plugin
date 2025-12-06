@@ -8,7 +8,7 @@
 #!loon_version = 3.2.1(745)
 #!homepage = https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
-#!date = 2024-09-28 01:25:08
+#!date = 2025-12-06 07:57:08
 
 [Rule]
 # 拦截HTTPDNS
