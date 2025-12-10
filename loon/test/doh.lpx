@@ -8,3 +8,4 @@
 
 [General]
 doh-server = https://159401-0d2ratsv5b8u63ig.alidns.com/dns-query
+doh-server = https://sm2.doh.pub/dns-query
