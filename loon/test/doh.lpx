@@ -7,4 +7,4 @@
 #!date = 2025-12-09 18:05:47
 
 [General]
-doh-server = https://159401-0d2ratsv5b8u63ig.alidns.com/dns-query,https://sm2.doh.pub/dns-query
+doh-server = https://159401-0d2ratsv5b8u63ig.alidns.com/dns-query
