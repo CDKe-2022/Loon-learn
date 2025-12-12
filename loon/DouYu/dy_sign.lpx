@@ -12,10 +12,10 @@
 
 [Script]
 # 获取签到所需 Cookie（打开一次斗鱼签到页面即可抓取）
-http-request ^https:\/\/apiv2\.douyucdn\.cn\/h5nc\/sign\/sendSign script-path=dy_sign.js, tag=斗鱼签到Cookie, requires-body=true
+http-request ^https:\/\/apiv2\.douyucdn\.cn\/h5nc\/sign\/sendSign script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, tag=斗鱼签到Cookie, requires-body=true
 
 # 定时签到（每天 9:00 执行）
-cron "0 9 * * *" script-path=dy_sign.js, tag=斗鱼每日签到
+cron "0 9 * * *" script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, tag=斗鱼每日签到
 
 [Mitm]
-host = apiv2.douyucdn.cn
+hostname = apiv2.douyucdn.cn
