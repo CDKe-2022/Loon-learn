@@ -9,7 +9,7 @@ Loon平台专用脚本
 
 // 你的斗鱼账号cookie信息（从抓包中获取，替换下面的示例值）
 const DY_COOKIE = {
-    acf_auth: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjE2MDE1MzM3OF8xMV85YjliNjA3NGJlNDI1ODgwXzJfOTA1NTIyNTUiLCJ1aWQiOiIxNjAxNTMzNzgiLCJ0aW1lIjoxNzY2MTA5NjMyfQ.3cKqIwJbnCLAXy29z1yRk4AY5Oz_2D5DQBHhKHfgxRY", // 替换为你的实际值
+    acf_auth: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjE2MDE1MzM3OF8xMV9kYjZlY2JmNTM5YTFkOGNmXzJfOTA1NTIyNTUiLCJ1aWQiOiIxNjAxNTMzNzgiLCJ0aW1lIjoxNzY2MTk3Mzg0fQ.CvpvmlK1LaQvQGn_T8l_60ZIxrNtLpHrJmg0M8_N77A", // 替换为你的实际值
     acf_uid: "160153378", // 替换为你的实际值
     install_id: "7408064071515282189", // 替换为你的实际值
     ttreq: "1$459d6e7caf8664972ff2f91b8cdb0c08a1b691b7" // 替换为你的实际值
