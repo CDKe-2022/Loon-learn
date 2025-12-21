@@ -9,11 +9,12 @@
 #!date = 2025-12-13 09:21:08
 
 [Argument]
+DYCookie = switch, true, false, tag = 斗鱼cookie获取, desc = 控制是否获取斗鱼签到任务cookie
 DYSign = switch, true, false, tag = 斗鱼签到, desc = 控制是否执行斗鱼签到任务
 
 [Script]
 # 获取签到所需 Cookie（下次一定）
-http-response ^https:\/\/apiv2\.douyucdn\.cn\/H5nc\/welcome\/to script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_cookie.js, requires-body=false, timeout=60, tag=斗鱼cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
+http-response ^https:\/\/apiv2\.douyucdn\.cn\/H5nc\/welcome\/to script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_cookie.js, requires-body=false, timeout=60, tag=斗鱼cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {DYCookie}
 
 # 定时签到（每天 10:00 执行）
 cron "0 10 * * *" script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, timeout=300, tag=斗鱼每日签到, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {DYSign}
