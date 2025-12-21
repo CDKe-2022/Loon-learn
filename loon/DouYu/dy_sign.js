@@ -12,10 +12,10 @@ const STORED_ACF_AUTH = $persistentStore.read("douyu_acf_auth");
 
 // 你的斗鱼账号 cookie（除 acf_auth 外其余固定）
 const DY_COOKIE = {
-    acf_auth: STORED_ACF_AUTH,              // 自动读取
-    acf_uid: "160153378",
-    install_id: "7408064071515282189",
-    ttreq: "1$459d6e7caf8664972ff2f91b8cdb0c08a1b691b7"
+  acf_auth: $persistentStore.read("douyu_acf_auth"),
+  acf_uid: $persistentStore.read("douyu_acf_uid"),
+  install_id: $persistentStore.read("douyu_install_id"),
+  ttreq: $persistentStore.read("douyu_ttreq")
 };
 
 // 设备ID（固定）
