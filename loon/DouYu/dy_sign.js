@@ -131,19 +131,61 @@ function doSign(callback) {
     });
 }
 
-// 显示签到结果
-function showSignResult(isSigned, data, type) {
-    const today = data?.sign_today || new Date().toISOString().split("T")[0];
-    const msg =
-        `📅 今日: ${today}\n` +
-        `🔥 连续签到: ${data?.sign_rd || 0} 天\n` +
-        `📅 本月签到: ${data?.sign_md || 0} 天\n` +
-        `📊 总签到次数: ${data?.sign_sum || 0} 次\n` +
-        `📈 总经验值: ${data?.sign_exps || 0}`;
+// 显示签到结果（区分：签到成功 / 已签到 / 其他状态）
+function showSignResult(isSigned, signData, operationType) {
+    let title = "";
+    let subtitle = "";
+    let message = "";
 
-    console.log(msg);
+    const today = signData?.sign_today || new Date().toISOString().split("T")[0];
+    const addedFishBall = signData?.sign_siln || 0;   // 今日获得鱼丸
+    const addedExp = signData?.sign_exp || 0;         // 今日获得经验
+    const continuousDays = signData?.sign_rd || 0;   // 连续签到
+    const totalSignDays = signData?.sign_sum || 0;   // 总签到
+    const monthSignDays = signData?.sign_md || 0;    // 本月签到
+    const totalExp = signData?.sign_exps || 0;       // 总经验
+
+    if (isSigned && operationType === "success") {
+        // ===== ✅ 签到成功 =====
+        title = "斗鱼签到成功";
+        subtitle = `+${addedFishBall}鱼丸 +${addedExp}经验`;
+
+        message += `✅ 斗鱼签到成功！\n\n`;
+        message += `📅 签到日期: ${today}\n`;
+        message += `🥏 本次获得: ${addedFishBall} 鱼丸\n`;
+        message += `⭐ 本次获得: ${addedExp} 经验值\n`;
+        message += `🔥 连续签到: ${continuousDays} 天\n`;
+        message += `📅 本月签到: ${monthSignDays} 天\n`;
+        message += `📊 总签到次数: ${totalSignDays} 次\n`;
+        message += `📈 总经验值: ${totalExp}`;
+    } 
+    else if (operationType === "already_signed") {
+        // ===== ℹ️ 今日已签到 =====
+        title = "斗鱼签到状态";
+        subtitle = `已连续签到 ${continuousDays} 天`;
+
+        message += `ℹ️ 今日已签到\n\n`;
+        message += `📅 今日签到: ${today}\n`;
+        message += `🔥 连续签到: ${continuousDays} 天\n`;
+        message += `📅 本月签到: ${monthSignDays} 天\n`;
+        message += `📊 总签到次数: ${totalSignDays} 次\n`;
+        message += `📈 总经验值: ${totalExp}`;
+    } 
+    else {
+        // ===== ⚠️ 其他情况 / 查询兜底 =====
+        title = "斗鱼签到状态";
+        subtitle = `连续 ${continuousDays} 天`;
+
+        message += `📅 今日: ${today}\n`;
+        message += `🔥 连续签到: ${continuousDays} 天\n`;
+        message += `📅 本月签到: ${monthSignDays} 天\n`;
+        message += `📊 总签到次数: ${totalSignDays} 次\n`;
+        message += `📈 总经验值: ${totalExp}`;
+    }
+
+    console.log(message);
     if (ENABLE_NOTIFICATION) {
-        $notification.post("斗鱼签到状态", "", msg);
+        $notification.post(title, subtitle, message);
     }
 }
 
