@@ -1,24 +1,47 @@
 /*
-脚本名称：douyu_acf_auth.js
-脚本功能：抓取斗鱼 acf_auth Cookie（完整显示在日志和通知中）
+脚本名称：douyu_cookie_capture.js
+脚本功能：
+1. 从响应头抓取 acf_auth、acf_uid
+2. 从请求头抓取 install_id、ttreq
+3. 统一写入本地存储
 脚本类型：http-response
 */
 
 (function () {
   try {
-    const headers = $response && $response.headers;
-    if (!headers) {
+    /* ========= 1️⃣ 读取请求头 ========= */
+    const reqHeaders = $request && $request.headers;
+    if (!reqHeaders) {
+      console.log("❌ 未获取到 request.headers");
+      return $done();
+    }
+
+    let reqCookie = reqHeaders["Cookie"] || reqHeaders["cookie"] || "";
+
+    let installId = "";
+    let ttreq = "";
+
+    if (reqCookie) {
+      const installMatch = reqCookie.match(/install_id=([^;]+)/);
+      const ttreqMatch = reqCookie.match(/ttreq=([^;]+)/);
+
+      if (installMatch) installId = installMatch[1];
+      if (ttreqMatch) ttreq = ttreqMatch[1];
+    }
+
+    /* ========= 2️⃣ 读取响应头 ========= */
+    const respHeaders = $response && $response.headers;
+    if (!respHeaders) {
       console.log("❌ 未获取到 response.headers");
       return $done();
     }
 
-    let setCookie = headers["Set-Cookie"] || headers["set-cookie"];
+    let setCookie = respHeaders["Set-Cookie"] || respHeaders["set-cookie"];
     if (!setCookie) {
       console.log("❌ 响应头中不存在 Set-Cookie");
       return $done();
     }
 
-    // 统一处理 Set-Cookie 类型
     if (typeof setCookie === "string") {
       setCookie = setCookie.split(/,(?=[^;]+?=)/);
     } else if (!Array.isArray(setCookie)) {
@@ -26,43 +49,56 @@
       return $done();
     }
 
-    let acfAuth = null;
+    let acfAuth = "";
+    let acfUid = "";
 
-    for (let i = 0; i < setCookie.length; i++) {
-      const match = setCookie[i].match(/acf_auth=([^;]+)/);
-      if (match) {
-        acfAuth = match[1];
-        break;
+    for (const c of setCookie) {
+      if (!acfAuth) {
+        const m = c.match(/acf_auth=([^;]+)/);
+        if (m) acfAuth = m[1];
+      }
+      if (!acfUid) {
+        const m = c.match(/acf_uid=([^;]+)/);
+        if (m) acfUid = m[1];
       }
     }
 
-    if (!acfAuth) {
-      console.log("❌ 未在 Set-Cookie 中找到 acf_auth");
-      return $done();
+    /* ========= 3️⃣ 校验并存储 ========= */
+    if (acfAuth) {
+      $persistentStore.write(acfAuth, "douyu_acf_auth");
+    }
+    if (acfUid) {
+      $persistentStore.write(acfUid, "douyu_acf_uid");
+    }
+    if (installId) {
+      $persistentStore.write(installId, "douyu_install_id");
+    }
+    if (ttreq) {
+      $persistentStore.write(ttreq, "douyu_ttreq");
     }
 
-    const fullCookie = "acf_auth=" + acfAuth;
+    /* ========= 4️⃣ 日志输出 ========= */
+    console.log("✅ 斗鱼 Cookie 抓取成功：");
+    if (acfAuth) console.log("acf_auth=" + acfAuth);
+    if (acfUid) console.log("acf_uid=" + acfUid);
+    if (installId) console.log("install_id=" + installId);
+    if (ttreq) console.log("ttreq=" + ttreq);
 
-    // 写入本地存储
-    const success = $persistentStore.write(acfAuth, "douyu_acf_auth");
+    /* ========= 5️⃣ 通知 ========= */
+    const notifyMsg =
+      (acfAuth ? `acf_auth=${acfAuth}\n` : "") +
+      (acfUid ? `acf_uid=${acfUid}\n` : "") +
+      (installId ? `install_id=${installId}\n` : "") +
+      (ttreq ? `ttreq=${ttreq}` : "");
 
-    // ===== 日志完整输出 =====
-    console.log("✅ 成功获取 acf_auth：");
-    console.log(fullCookie);
-
-    // ===== 通知完整输出 =====
     $notification.post(
-      "斗鱼 Cookie 获取成功",
-      "acf_auth 已抓取",
-      fullCookie
+      "斗鱼 Cookie 抓取成功",
+      "已更新本地存储",
+      notifyMsg
     );
 
-    if (!success) {
-      console.log("⚠️ acf_auth 写入本地存储失败");
-    }
-
   } catch (e) {
-    console.log("❌ 脚本执行异常：" + e);
+    console.log("❌ 脚本异常：" + e);
   } finally {
     $done();
   }
