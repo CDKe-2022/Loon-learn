@@ -68,8 +68,7 @@
 
     /* ========= 5️⃣ 通知 ========= */
     $notification.post(
-      "斗鱼 Cookie 抓取成功",
-      "已修正 acf_uid=0 问题",
+      "斗鱼已抓取新Cookie",
       (acfAuth ? `acf_auth=${acfAuth}\n` : "") +
       (acfUid  ? `acf_uid=${acfUid}\n`  : "") +
       (installId ? `install_id=${installId}\n` : "") +
