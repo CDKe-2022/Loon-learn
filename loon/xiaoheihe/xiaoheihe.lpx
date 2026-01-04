@@ -1,0 +1,20 @@
+#!name = 小黑盒签到
+#!desc = 签到测试
+#!author = qwen
+#!tag = 签到
+#!system = 
+#!system_version = 
+#!loon_version = 3.2.1(745)
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
+#!date = 2025-12-13 09:21:08
+
+[Argument]
+XHHCookie = switch, true, false, tag = 小黑盒cookie获取, desc = 控制是否获取小黑盒签到任务cookie
+XHHSign = switch, true, false, tag = 小黑盒签到, desc = 控制是否执行小黑盒签到任务
+
+[Script]
+# 获取签到所需 Cookie（下次一定）
+http-request ^https:\/\/api\.xiaoheihe\.cn\/task\/sign_v3\/get_sign_state script-path=小黑盒_cookie.js, requires-body=false, tag=小黑盒cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {XHHCookie}
+
+# 定时签到（每天 10:00 执行）
+cron "0 10 * * *" script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, timeout=300, tag=小黑盒每日签到, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {XHHSign}
