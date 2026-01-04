@@ -1,145 +1,117 @@
-/*************************************
- * 小黑盒（HeyBox）每日签到（日志增强版）
- * 平台：Loon
- * 类型：generic / cron
- *************************************/
+// 小黑盒每日签到脚本
+// 依赖Cookie捕获脚本获取的cookie
 
-const SCRIPT_NAME = "小黑盒签到";
-const STORE_KEY = "HEYBOX_COOKIE";
-const SIGN_URL = "https://api.xiaoheihe.cn/task/sign_v3/get_sign_state";
+const cookieKey = "heybox_cookie_data";
+const scriptName = "小黑盒签到";
 
-log("脚本启动");
-
-// 读取 Cookie
-var cookie = $persistentStore.read(STORE_KEY);
-log("读取 Cookie：" + (cookie ? "存在" : "不存在"));
-
-// === 基础校验 ===
-if (!isValidCookie(cookie)) {
-  log("Cookie 校验失败");
-  notify(
-    SCRIPT_NAME,
-    "签到失败 ❌",
-    "Cookie 无效或未获取，请重新抓包"
-  );
-  log("脚本结束（Cookie 无效）");
-  $done();
-}
-
-// === 发起签到请求 ===
-log("发起签到请求");
-
-$httpClient.get(
-  {
-    url: SIGN_URL,
-    headers: {
-      "Cookie": cookie,
-      "User-Agent": "xiaoheihe/1.3.376 (iOS)",
-      "Referer": "http://api.maxjia.com/",
-      "Accept": "*/*"
-    },
-    timeout: 5000
-  },
-  function (error, response, data) {
-    if (error) {
-      log("网络错误：" + error);
-      notify(SCRIPT_NAME, "网络错误 ❌", error);
-      log("脚本结束（网络错误）");
-      return $done();
+!(function() {
+    // 从本地存储读取cookie数据
+    const cookieDataStr = $persistentStore.read(cookieKey);
+    
+    if (!cookieDataStr) {
+        $notification.post(scriptName, "❌ 签到失败", "未获取到Cookie，请先打开小黑盒APP");
+        console.log("未获取到Cookie数据");
+        $done();
+        return;
     }
-
-    if (!response) {
-      log("无 response 对象");
-      notify(SCRIPT_NAME, "HTTP 异常 ❌", "无响应对象");
-      log("脚本结束（无 response）");
-      return $done();
-    }
-
-    log("HTTP 状态码：" + response.status);
-
-    if (response.status !== 200) {
-      notify(
-        SCRIPT_NAME,
-        "HTTP 异常 ❌",
-        "Status: " + response.status
-      );
-      log("脚本结束（HTTP 非 200）");
-      return $done();
-    }
-
-    log("原始响应体：" + data);
-
-    var obj;
+    
     try {
-      obj = JSON.parse(data);
-      log("JSON 解析成功");
-    } catch (e) {
-      log("JSON 解析失败：" + e);
-      notify(SCRIPT_NAME, "解析失败 ❌", "非 JSON 响应");
-      log("脚本结束（JSON 解析失败）");
-      return $done();
+        const cookieData = JSON.parse(cookieDataStr);
+        const cookie = cookieData.cookie;
+        const heyboxId = cookieData.heybox_id;
+        
+        if (!cookie || !heyboxId) {
+            $notification.post(scriptName, "❌ 签到失败", "Cookie数据不完整");
+            console.log("Cookie数据不完整");
+            $done();
+            return;
+        }
+        
+        // 生成动态参数
+        const timestamp = Math.floor(Date.now() / 1000);
+        const nonce = generateRandomString(32);
+        const rnd = `${new Date().getHours()}%3A${generateRandomHex(8)}`;
+        
+        // 构造请求URL
+        const url = `https://api.xiaoheihe.cn/task/sign_v3/get_sign_state?x_app=heybox&nonce=${nonce}&os_version=26.2&_time=${timestamp}&version=1.3.376&lang=zh-cn&os_type=iOS&device_id=FAE6C5C1-AD08-4126-880C-9ED2C0E304EC&hkey=5d9533f7&heybox_id=${heyboxId}&x_client_type=mobile&device_info=iPhone13Pro&_rnd=${rnd}&dw=390&x_os_type=iOS&time_zone=Asia/Shanghai`;
+        
+        // 设置请求头
+        const headers = {
+            "Cookie": cookie,
+            "User-Agent": "xiaoheihe/1.3.376 (com.max.xiaoheihe; build:1667; iOS 26.2.0) Alamofire/5.9.0",
+            "Accept": "*/*",
+            "Accept-Language": "zh-Hans-GB;q=1.0, en-GB;q=0.9",
+            "Referer": "http://api.maxjia.com/",
+            "Priority": "u=3, i"
+        };
+        
+        // 发起GET请求
+        $httpClient.get({
+            url: url,
+            headers: headers,
+            timeout: 10000
+        }, function(error, response, data) {
+            if (error) {
+                $notification.post(scriptName, "❌ 签到失败", `网络错误: ${error}`);
+                console.log(`签到请求失败: ${error}`);
+                $done();
+                return;
+            }
+            
+            try {
+                const result = JSON.parse(data);
+                console.log(`签到响应: ${JSON.stringify(result)}`);
+                
+                if (result.status === "ok") {
+                    if (result.result && result.result.state === "ok") {
+                        // 签到成功
+                        const coin = result.result.sign_in_coin || 0;
+                        const streak = result.result.sign_in_streak || 0;
+                        $notification.post(scriptName, "✓ 签到成功", `获得 ${coin} H币，连续签到 ${streak} 天`);
+                    } else if (result.result && result.result.state === "already_signed") {
+                        // 已签到
+                        const streak = result.result.sign_in_streak || 0;
+                        $notification.post(scriptName, "○ 今日已签到", `连续签到 ${streak} 天`);
+                    } else {
+                        // 其他状态
+                        const msg = result.msg || "未知状态";
+                        $notification.post(scriptName, "✗ 签到失败", msg);
+                    }
+                } else {
+                    const msg = result.msg || "请求失败";
+                    $notification.post(scriptName, "✗ 签到失败", msg);
+                }
+            } catch (parseError) {
+                $notification.post(scriptName, "❌ 解析失败", `响应解析错误: ${parseError.message}`);
+                console.log(`响应解析错误: ${parseError.message}, 原始数据: ${data}`);
+            }
+            
+            $done();
+        });
+        
+    } catch (error) {
+        $notification.post(scriptName, "❌ 脚本异常", `错误: ${error.message}`);
+        console.log(`脚本执行异常: ${error.message}`);
+        $done();
     }
+})();
 
-    handleResult(obj);
-    log("脚本结束（正常完成）");
-    $done();
-  }
-);
-
-// ================= 工具函数 =================
-
-function isValidCookie(cookieStr) {
-  if (!cookieStr) return false;
-  var valid =
-    cookieStr.indexOf("x_xhh_tokenid=") !== -1 &&
-    cookieStr.indexOf("pkey=") !== -1 &&
-    cookieStr.indexOf("hkey=") !== -1;
-
-  log("Cookie 结构校验：" + (valid ? "通过" : "失败"));
-  return valid;
-}
-
-function handleResult(obj) {
-  log("业务状态 status：" + obj.status);
-  log("业务 msg：" + (obj.msg || "(空)"));
-
-  if (obj.result) {
-    log("result 内容：" + JSON.stringify(obj.result));
-  }
-
-  if (obj.status === "ok" && obj.result) {
-    var r = obj.result;
-
-    if (!obj.msg) {
-      log("判断结果：已签到");
-    } else {
-      log("判断结果：首次签到成功");
+// 生成随机字符串
+function generateRandomString(length) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    var title = SCRIPT_NAME + "成功 🎉";
-    var subtitle = "连续签到 " + r.sign_in_streak + " 天";
-    var content =
-      "获得：" +
-      r.sign_in_coin +
-      " H币 + " +
-      r.sign_in_exp +
-      " 经验";
-
-    $notification.post(title, subtitle, content);
-  } else {
-    log("判断结果：签到异常");
-    $notification.post(
-      SCRIPT_NAME,
-      "签到异常 ⚠️",
-      obj.msg || "未知状态"
-    );
-  }
+    return result;
 }
 
-function notify(title, subtitle, message) {
-  $notification.post(title, subtitle, message);
-}
-
-function log(msg) {
-  console.log("[" + SCRIPT_NAME + "] " + msg);
+// 生成随机十六进制字符串
+function generateRandomHex(length) {
+    const chars = "0123456789ABCDEF";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
