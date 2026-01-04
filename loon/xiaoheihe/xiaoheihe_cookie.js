@@ -1,36 +1,35 @@
-/*************************************
- * 小黑盒（HeyBox）Cookie 获取脚本
- * 平台：Loon
- * 类型：http-request
- * 用途：抓取并保存登录 Cookie
- *************************************/
+// 小黑盒Cookie捕获脚本
+// 用于捕获并存储动态变化的cookie
 
-const STORE_KEY = "HEYBOX_COOKIE";
+const cookieName = "heybox_cookie";
+const cookieKey = "heybox_cookie_data";
 
-(function () {
-  if (!$request || !$request.headers) {
-    return $done({});
-  }
+if ($request && $request.headers && $request.headers["Cookie"]) {
+    const cookie = $request.headers["Cookie"];
+    const url = $request.url;
+    
+    // 从URL中提取heybox_id
+    const heyboxIdMatch = url.match(/heybox_id=(\d+)/);
+    const heyboxId = heyboxIdMatch ? heyboxIdMatch[1] : "";
+    
+    if (heyboxId && cookie) {
+        // 存储cookie和heybox_id
+        const cookieData = {
+            cookie: cookie,
+            heybox_id: heyboxId,
+            timestamp: Date.now()
+        };
+        
+        const success = $persistentStore.write(JSON.stringify(cookieData), cookieKey);
+        
+        if (success) {
+            $notification.post("小黑盒", "Cookie捕获成功", `账户ID: ${heyboxId}`);
+            console.log(`小黑盒Cookie捕获成功: heybox_id=${heyboxId}`);
+        } else {
+            $notification.post("小黑盒", "Cookie捕获失败", "存储失败");
+            console.log("小黑盒Cookie存储失败");
+        }
+    }
+}
 
-  var cookie = $request.headers["Cookie"] || $request.headers["cookie"];
-
-  if (!cookie) {
-    return $done({});
-  }
-
-  // 只在包含关键字段时才写入，防止污染
-  if (
-    cookie.indexOf("x_xhh_tokenid=") !== -1 &&
-    cookie.indexOf("pkey=") !== -1 &&
-    cookie.indexOf("hkey=") !== -1
-  ) {
-    $persistentStore.write(cookie, STORE_KEY);
-    $notification.post(
-      "小黑盒 Cookie",
-      "获取成功 ✅",
-      "已保存，可关闭重写规则"
-    );
-  }
-
-  $done({});
-})();
+$done();
