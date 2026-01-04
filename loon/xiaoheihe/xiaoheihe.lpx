@@ -6,7 +6,7 @@
 #!system_version = 
 #!loon_version = 3.2.1(745)
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
-#!date = 2025-12-13 09:21:08
+#!date = 2026-01-04 09:21:08
 
 [Argument]
 XHHCookie = switch, true, false, tag = 小黑盒cookie获取, desc = 控制是否获取小黑盒签到任务cookie
@@ -14,7 +14,7 @@ XHHSign = switch, true, false, tag = 小黑盒签到, desc = 控制是否执行�
 
 [Script]
 # 获取签到所需 Cookie
-http-request ^https:\/\/api\.xiaoheihe\.cn\/account\/getui\/fix\? script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/xiaoheihe/xiaoheihe_cookie.js, requires-body=false, tag=小黑盒cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {XHHCookie}
+http-request ^https:\/\/api\.xiaoheihe\.cn\/account\/get_ads_info_v2\? script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/xiaoheihe/xiaoheihe_cookie.js, requires-body=false, tag=小黑盒cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {XHHCookie}
 
 # 定时签到（每天 10:00 执行）
 cron "0 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/xiaoheihe/xiaoheihe_sign.js, timeout=300, tag=小黑盒每日签到, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {XHHSign}
