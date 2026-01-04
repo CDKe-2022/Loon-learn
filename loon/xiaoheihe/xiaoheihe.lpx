@@ -1,12 +1,12 @@
 #!name = 小黑盒签到
-#!desc = 签到测试1
+#!desc = 用于签到测试2
 #!author = qwen
 #!tag = 签到
 #!system = 
 #!system_version = 
 #!loon_version = 3.2.1(745)
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
-#!date = 2026-01-04 09:21:08
+#!date = 2026-01-04 10:17:08
 
 [Argument]
 XHHCookie = switch, true, false, tag = 小黑盒获取Cookie, desc = 控制是否获取小黑盒签到任务cookie
