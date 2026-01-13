@@ -1,14 +1,14 @@
-#!name = 斗鱼去广告
-#!desc = 移除开屏、首页视频流、首页轮播图广告，移除直播间悬浮窗。
+#!name = 斗鱼【签到&去广告】
+#!desc = 集成斗鱼去广告与自动签到功能：移除开屏、首页视频流、首页轮播图广告，移除直播间悬浮窗，并支持每日签到任务。
 #!openUrl = https://apps.apple.com/app/id863882795
-#!author = 可莉🅥[https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md]
-#!tag = 去广告
-#!system = 
-#!system_version = 
-#!loon_version = 3.2.1(745)
+#!author = 可莉🅥 & qwen
 #!homepage = https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
-#!date = 2025-12-06 07:57:08
+#!tag = 去广告,签到
+#!system = iOS
+#!system_version = 15
+#!loon_version = 3.2.1(745)
+#!date = 2026-01-13
 
 [Rule]
 # 拦截HTTPDNS
