@@ -5,10 +5,7 @@
 #!homepage = https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
 #!tag = 去广告,签到
-#!system = iOS
-#!system_version = 15
-#!loon_version = 3.2.1(745)
-#!date = 2026-01-13
+
 
 [Rule]
 # 拦截HTTPDNS
