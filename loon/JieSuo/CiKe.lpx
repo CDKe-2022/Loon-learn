@@ -2,7 +2,7 @@
 #!desc = 根据B站绯虹上弦月2的教程改的，作用刷金币。使用方法：进入游戏，选择标准任务，区域1最后一个“清理门户”，选择速攻。金币不能超过21亿，我这里设置的是10亿。
 #!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKe.plugin
 #!author = 绯虹上弦月2
-#!tag = 去广告
+#!tag = 游戏
 #!loon_version = 3.2.1(745)
 #!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 #!date = 2025-08-25
