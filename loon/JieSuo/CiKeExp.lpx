@@ -1,0 +1,4 @@
+
+
+
+^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.loot |= map(if ._id=="BI5" then ._amount=600 else . end)'
