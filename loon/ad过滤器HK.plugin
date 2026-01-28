@@ -30,7 +30,7 @@
 
 # =====有道词典 =====
 #会员解锁
-^https:\/\/dict\.youdao\.com\/vip\/user\/status\? response-body-json-replace vip true svip true expire 4102362549000 svipExpire 4102362549000
+^https:\/\/dict\.youdao\.com\/vip\/user\/status_s\? response-body-json-jq '.vip = true | .svip = true | .expire = 4070880000000 | .svipExpire = 4070880000000 | .copyWritings = ["您的会员永久有效", "尊享全功能特权"]'
 
 # =====永辉超市 =====
 #YH开屏广告
