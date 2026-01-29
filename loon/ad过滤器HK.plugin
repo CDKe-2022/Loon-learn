@@ -7,8 +7,12 @@
 #!system = iOS
 #!loon_version = 3.2.1(372)
 #!tag = 去广告
-#!date = 2025-08-28 09:04:47
+#!date = 2026-01-29 09:04:47
 
+[Rule]
+DOMAIN-KEYWORD,xuwmylm697.com,REJECT-DROP
+DOMAIN-KEYWORD,jo.cashooshut.com,REJECT-DROP
+DOMAIN-KEYWORD,cdn.pubfuture-ad.com,REJECT-DROP
 
 [Rewrite]
 # =====百度 =====
@@ -31,6 +35,12 @@
 # =====有道词典 =====
 #会员解锁
 ^https:\/\/dict\.youdao\.com\/vip\/user\/status_s\? response-body-json-jq '.vip = true | .svip = true | .expire = 4070880000000 | .svipExpire = 4070880000000 | .copyWritings = ["您的会员永久有效", "尊享全功能特权"]'
+#去广告
+^https:\/\/gorgon\.youdao\.com\/gorgon\/brand\/prefetch\.s\? reject-dict
+^https:\/\/dict\.youdao\.com\/homepage\/toolbar\/get\? response-body-json-del data.vipTag
+^https:\/\/gorgon\.youdao\.com\/gorgon\/request\.s\? reject-dict
+^https:\/\/dict\.youdao\.com\/course\/tab\/translateTab\? response-body-json-del data
+^https:\/\/dict\.youdao\.com\/course\/tab\/home\? response-body-json-del data.popup data.tab data.searchSuggestList data.newBanner data.icon.promotionList data.icon.iconList[1].bubble data.icon.iconList[2].bubble data.icon.iconList[8].bubble
 
 # =====永辉超市 =====
 #YH开屏广告
@@ -42,7 +52,8 @@
 #YH我的页面“猜你喜欢”上面的banner广告
 ^https:\/\/api\.yonghuivip\.com\/web\/user\/asset\/info\/700\?sign response-body-json-jq '.data.userCenterBanner.bannerLists = []'
 
-
+# =====去除69书吧网页广告 =====
+^https:\/\/platform\.pubadx\.one\/async-v2\.json\? response-body-json-jq '  .data.htmlCode = "" |  .data.htmlCodeAddon = "" |  .data.script_head = "" | .data.stickyAd.showStickyAd = false |  .data.size.width = 0 |  .data.size.height = 0'
 
 [Mitm]
-hostname = mbd.baidu.com, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com
+hostname = mbd.baidu.com, api.yonghuivip.com, pubads.g.doubleclick.net, api-one-wscn.awtmt.com, acs.m.taobao.com, dict.youdao.com, gorgon.youdao.com, platform.pubadx.one
