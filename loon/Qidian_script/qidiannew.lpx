@@ -3,7 +3,7 @@
 #!author= McDaSheng app2smile
 #!tag = 去广告
 #!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/qidian.plugin
-#!date = 2025-08-26 18:05:47
+#!date = 2026-02-26 18:05:47
 #!icon=https://github.com/CDKe-2022/Loon-learn/blob/main/icon/qidiandushu.PNG?raw=true
 # 现将获取cookie与定时任务合并为一个模块
 # 保持开启,如检测到cookie变更会自动更新,解决cookie经常过期的问题(cookie仍有效不提醒更新)
