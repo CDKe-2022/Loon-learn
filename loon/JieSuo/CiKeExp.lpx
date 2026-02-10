@@ -10,6 +10,8 @@
 [Rewrite]
 #刺客信条燎原，5-4区域，刷经验书用复写
 ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.loot |= map(if ._id=="BI5" then ._amount=6000 else . end)'
+刷小经验书
+#^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.loot |= map(if ._id=="BI4" then ._amount=999 elif ._id=="BI3" then ._amount=999 else . end)'
 
 [MitM]
 hostname = latest.live.acr.ubisoft.com
