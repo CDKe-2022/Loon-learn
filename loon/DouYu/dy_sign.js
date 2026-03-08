@@ -1,209 +1,214 @@
 /*
-斗鱼每日签到（精准修正版）
-Loon平台专用脚本
-准确显示：总签到次数、本月签到、连续签到、经验值
-已签到时不显示获得奖励
+斗鱼每日签到（优化稳健版，Loon）
+- 准确区分：签到成功 / 今日已签 / 查询成功但未签 / 请求失败
+- 兼容 error 为数字或字符串
+- Cookie 仅发送有效字段，减少异常
 */
 
-// ==================== 配置区 ====================
+(() => {
+  "use strict";
 
-// 从本地存储中读取斗鱼账号 cookie
-const DY_COOKIE = {
-  acf_auth: $persistentStore.read("douyu_acf_auth"),
-  acf_uid: $persistentStore.read("douyu_acf_uid"),
-  install_id: $persistentStore.read("douyu_install_id"),
-  ttreq: $persistentStore.read("douyu_ttreq")
-};
+  // ========== 配置 ==========
+  const ENABLE_NOTIFICATION = true;
 
-// 固定参数
-const DEVICE_ID = "d2699126c76fbe037a3cb50200001621";
-const USER_TOKEN = "160153378_11_e79954d2d6e04f51_2_90552255";
+  // 可改成 persistentStore 覆盖（便于更新）
+  const DEFAULT_DEVICE_ID = "d2699126c76fbe037a3cb50200001621";
+  const DEFAULT_USER_TOKEN = "160153378_11_e79954d2d6e04f51_2_90552255";
 
-// 是否开启通知
-const ENABLE_NOTIFICATION = true;
+  const DEVICE_ID = $persistentStore.read("douyu_device_id") || DEFAULT_DEVICE_ID;
+  const USER_TOKEN = $persistentStore.read("douyu_user_token") || DEFAULT_USER_TOKEN;
 
-// ==================== 工具函数 ====================
+  const DY_COOKIE = {
+    acf_auth: $persistentStore.read("douyu_acf_auth") || "",
+    acf_uid: $persistentStore.read("douyu_acf_uid") || "",
+    install_id: $persistentStore.read("douyu_install_id") || "",
+    ttreq: $persistentStore.read("douyu_ttreq") || ""
+  };
 
-// 构造 Cookie 字符串（非关键字段允许为空）
-function buildCookieString() {
-    return `acf_auth=${DY_COOKIE.acf_auth || ''}; acf_uid=${DY_COOKIE.acf_uid || ''}; install_id=${DY_COOKIE.install_id || ''}; ttreq=${DY_COOKIE.ttreq || ''}`;
-}
+  const API = {
+    sign: "https://apiv2.douyucdn.cn/h5nc/sign/sendSign",
+    info: "https://apiv2.douyucdn.cn/h5nc/sign/getSign"
+  };
 
-// 请求参数构造
-function makeRequest(url, body) {
-    return {
-        url: url.trim(),
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "X-Requested-With": "XMLHttpRequest",
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148, Douyu_IOS",
-            "Referer": "https://apiv2.douyucdn.cn/H5/Sign/info?client_sys=ios&ic=0",
-            "Origin": "https://apiv2.douyucdn.cn",
-            "Cookie": buildCookieString()
-        },
-        body,
-        timeout: 10000
-    };
-}
-
-// Promise 封装
-function requestWithPromise(params) {
-    return new Promise((resolve, reject) => {
-        $httpClient.post(params, (err, response, data) => {
-            if (err) {
-                reject(new Error(`网络请求失败: ${err}`));
-                return;
-            }
-            try {
-                resolve(JSON.parse(data));
-            } catch (e) {
-                reject(new Error(`响应解析失败: ${e.message}`));
-            }
-        });
+  // ========== 工具 ==========
+  function buildCookieString() {
+    const pairs = [];
+    Object.keys(DY_COOKIE).forEach(k => {
+      const v = DY_COOKIE[k];
+      if (v) pairs.push(`${k}=${v}`);
     });
-}
+    return pairs.join("; ");
+  }
 
-// ==================== 展示逻辑 ====================
+  function formEncode(obj) {
+    return Object.keys(obj)
+      .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(obj[k] == null ? "" : String(obj[k]))}`)
+      .join("&");
+  }
 
-function formatSignMessage(signData, status) {
-    const today = signData?.sign_today || new Date().toISOString().split("T")[0];
-    const addedFishBall = signData?.sign_siln || 0;
-    const addedExp = signData?.sign_exp || 0;
-    const continuousDays = signData?.sign_rd || 0;
-    const totalSignDays = signData?.sign_sum || 0;
-    const monthSignDays = signData?.sign_md || 0;
-    const totalExp = signData?.sign_exps || 0;
+  function makeRequest(url, formObj) {
+    return {
+      url,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148, Douyu_IOS",
+        "Referer": "https://apiv2.douyucdn.cn/H5/Sign/info?client_sys=ios&ic=0",
+        "Origin": "https://apiv2.douyucdn.cn",
+        "Cookie": buildCookieString()
+      },
+      body: formEncode(formObj),
+      timeout: 10000
+    };
+  }
 
-    let result = { title: "", subtitle: "", message: "" };
+  function postJSON(params) {
+    return new Promise((resolve, reject) => {
+      $httpClient.post(params, (err, resp, data) => {
+        if (err) return reject(new Error(`网络错误: ${err}`));
 
-    switch (status) {
-        case "success":
-            result.title = "斗鱼签到成功";
-            result.subtitle = `+${addedFishBall}鱼丸 +${addedExp}经验`;
-            result.message =
-                `✅ 斗鱼签到成功！\n\n` +
-                `📅 签到日期: ${today}\n` +
-                `🥏 本次获得: ${addedFishBall} 鱼丸\n` +
-                `⭐ 本次获得: ${addedExp} 经验值\n` +
-                `🔥 连续签到: ${continuousDays} 天\n` +
-                `📅 本月签到: ${monthSignDays} 天\n` +
-                `📊 总签到次数: ${totalSignDays} 次\n` +
-                `📈 总经验值: ${totalExp}`;
-            break;
+        const code = Number(resp && resp.status);
+        if (!code || code < 200 || code >= 300) {
+          return reject(new Error(`HTTP状态异常: ${code || "unknown"}`));
+        }
 
-        case "already_signed":
-            result.title = "斗鱼签到状态";
-            result.subtitle = `已连续签到 ${continuousDays} 天`;
-            result.message =
-                `ℹ️ 今日已签到\n\n` +
-                `🔥 连续签到: ${continuousDays} 天\n` +
-                `📅 本月签到: ${monthSignDays} 天\n` +
-                `📊 总签到次数: ${totalSignDays} 次\n` +
-                `📈 总经验值: ${totalExp}`;
-            break;
+        try {
+          const json = JSON.parse(data || "{}");
+          resolve(json);
+        } catch (e) {
+          reject(new Error(`JSON解析失败: ${e.message}`));
+        }
+      });
+    });
+  }
 
-        case "already_signed_unknown":
-            result.title = "斗鱼签到状态";
-            result.subtitle = "已签到（状态获取失败）";
-            result.message =
-                `⚠️ 今日已签到，但未能获取详细状态\n\n` +
-                `📅 日期: ${today}\n` +
-                `请稍后再试`;
-            break;
+  function toErrorCode(resp) {
+    return String((resp && resp.error) ?? "");
+  }
 
-        default:
-            result.title = "斗鱼签到失败";
-            result.subtitle = "状态未知";
-            result.message =
-                `❌ 签到状态未知\n\n` +
-                `📅 日期: ${today}\n` +
-                `可能是网络异常或 Cookie 失效`;
+  function notify(title, subtitle, message) {
+    console.log(`[斗鱼签到] ${title} | ${subtitle}\n${message}`);
+    if (ENABLE_NOTIFICATION) $notification.post(title, subtitle, message);
+  }
+
+  function formatSignData(data) {
+    const today = data?.sign_today || new Date().toISOString().slice(0, 10);
+    return {
+      today,
+      fishBall: Number(data?.sign_siln || 0),
+      addExp: Number(data?.sign_exp || 0),
+      continuous: Number(data?.sign_rd || 0),
+      monthDays: Number(data?.sign_md || 0),
+      totalDays: Number(data?.sign_sum || 0),
+      totalExp: Number(data?.sign_exps || 0)
+    };
+  }
+
+  function render(status, data) {
+    const d = formatSignData(data || {});
+    if (status === "success") {
+      return {
+        title: "斗鱼签到成功",
+        subtitle: `+${d.fishBall}鱼丸 +${d.addExp}经验`,
+        message:
+          `✅ 今日签到成功\n` +
+          `📅 日期: ${d.today}\n` +
+          `🔥 连续签到: ${d.continuous} 天\n` +
+          `📅 本月签到: ${d.monthDays} 天\n` +
+          `📊 总签到次数: ${d.totalDays} 次\n` +
+          `📈 总经验值: ${d.totalExp}`
+      };
     }
-
-    return result;
-}
-
-function notify({ title, subtitle, message }) {
-    console.log(message);
-    if (ENABLE_NOTIFICATION) {
-        $notification.post(title, subtitle, message);
+    if (status === "already") {
+      return {
+        title: "斗鱼签到状态",
+        subtitle: `今日已签到，连续 ${d.continuous} 天`,
+        message:
+          `ℹ️ 今日已签到\n` +
+          `📅 日期: ${d.today}\n` +
+          `🔥 连续签到: ${d.continuous} 天\n` +
+          `📅 本月签到: ${d.monthDays} 天\n` +
+          `📊 总签到次数: ${d.totalDays} 次\n` +
+          `📈 总经验值: ${d.totalExp}`
+      };
     }
-}
-
-// ==================== 核心业务 ====================
-
-// 查询签到状态
-async function getSignInfo() {
-    try {
-        const resp = await requestWithPromise(
-            makeRequest(
-                "https://apiv2.douyucdn.cn/h5nc/sign/getSign",
-                `token=${USER_TOKEN}`
-            )
-        );
-        return resp.error === "0" ? resp.data : null;
-    } catch {
-        return null;
+    if (status === "not_signed_but_query_ok") {
+      return {
+        title: "斗鱼签到异常",
+        subtitle: "签到请求失败，但状态可查询",
+        message:
+          `⚠️ 签到请求未成功，且并非“已签到”返回\n` +
+          `📅 日期: ${d.today}\n` +
+          `🔥 连续签到: ${d.continuous} 天\n` +
+          `请检查 token / did / Cookie 是否过期`
+      };
     }
-}
+    return {
+      title: "斗鱼签到失败",
+      subtitle: "请求异常",
+      message: "❌ 签到失败，状态也无法获取\n请检查网络或 Cookie 是否失效"
+    };
+  }
 
-// 执行签到
-async function doSign() {
-    try {
-        const resp = await requestWithPromise(
-            makeRequest(
-                "https://apiv2.douyucdn.cn/h5nc/sign/sendSign",
-                `client_sys=ios&did=${DEVICE_ID}&token=${USER_TOKEN}`
-            )
-        );
+  // ========== 核心 ==========
+  async function getSignInfo() {
+    const req = makeRequest(API.info, { token: USER_TOKEN });
+    const resp = await postJSON(req);
+    const code = toErrorCode(resp);
+    if (code === "0") return resp.data || {};
+    throw new Error(`getSignInfo error=${code}`);
+  }
 
-        if (resp.error === "0") return { status: "success", data: resp.data };
-        if (resp.error === "6305") return { status: "already_signed" };
+  async function doSign() {
+    const req = makeRequest(API.sign, {
+      client_sys: "ios",
+      did: DEVICE_ID,
+      token: USER_TOKEN
+    });
+    const resp = await postJSON(req);
+    const code = toErrorCode(resp);
 
-        return { status: "fail" };
-    } catch {
-        return { status: "fail" };
-    }
-}
+    if (code === "0") return { status: "success", data: resp.data || {} };
+    if (code === "6305") return { status: "already" }; // 今日已签到
+    return { status: "fail", code };
+  }
 
-// ==================== 主流程 ====================
-
-async function main() {
+  async function main() {
     if (!DY_COOKIE.acf_auth) {
-        notify({
-            title: "斗鱼签到失败",
-            subtitle: "",
-            message: "❌ 未检测到 acf_auth，请先运行抓 Cookie 脚本"
-        });
-        return;
+      return notify("斗鱼签到失败", "缺少Cookie", "❌ 未检测到 acf_auth，请先抓取 Cookie");
     }
 
-    const signResult = await doSign();
-
-    if (signResult.status === "success") {
-        notify(formatSignMessage(signResult.data, "success"));
-        return;
+    let signRet;
+    try {
+      signRet = await doSign();
+    } catch (e) {
+      signRet = { status: "fail", reason: e.message };
     }
 
-    if (signResult.status === "already_signed") {
+    if (signRet.status === "success") {
+      return notify(...Object.values(render("success", signRet.data)));
+    }
+
+    if (signRet.status === "already") {
+      try {
         const info = await getSignInfo();
-        notify(
-            info
-                ? formatSignMessage(info, "already_signed")
-                : formatSignMessage({}, "already_signed_unknown")
-        );
-        return;
+        return notify(...Object.values(render("already", info)));
+      } catch {
+        return notify("斗鱼签到状态", "今日已签到", "ℹ️ 今日已签到，但查询详情失败");
+      }
     }
 
-    const info = await getSignInfo();
-    notify(
-        info
-            ? formatSignMessage(info, "already_signed")
-            : formatSignMessage({}, "fail")
-    );
-}
+    // fail: 不再误报“已签到”
+    try {
+      const info = await getSignInfo();
+      notify(...Object.values(render("not_signed_but_query_ok", info)));
+    } catch {
+      notify(...Object.values(render("hard_fail")));
+    }
+  }
 
-// ==================== 执行入口 ====================
-
-main().finally(() => $done());
+  main().catch(e => {
+    notify("斗鱼签到异常", "", `❌ 脚本异常: ${e.message}`);
+  }).finally(() => $done());
+})();
