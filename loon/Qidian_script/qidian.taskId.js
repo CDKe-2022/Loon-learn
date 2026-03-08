@@ -1,5 +1,5 @@
 /*
-脚本功能: 获取 起点读书 任务信息 (仅支持 Loon)
+脚本功能: 获取 起点读书 任务信息 (仅支持 Loon, 变更检测版)
 操作步骤: 我 --> 福利中心
 
 [rewrite local]
@@ -34,105 +34,98 @@ function notify(subtitle, message) {
   $notification.post(CONFIG.NAME, subtitle || "", message || "");
 }
 
+function read(key) {
+  return $persistentStore.read(key) || "";
+}
+
+function write(key, val) {
+  return $persistentStore.write(String(val), key);
+}
+
 function parseJSON(raw) {
   try {
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
-/**
- * 提取任务1 ID（qd_taskId）
- * 兼容旧脚本行为：旧脚本实际因 (a = b) 最终使用了 TaskList[1]
- * 因此这里优先取 index 1，其次 index 0
- */
 function extractTaskId1(data) {
   const list = data?.DailyBenefitModule?.TaskList;
   if (!Array.isArray(list) || list.length === 0) return "";
-
-  const id = list?.[1]?.TaskId || list?.[0]?.TaskId || "";
-  return id ? String(id) : "";
+  // 与你之前逻辑保持一致倾向：优先 index 1，其次 0
+  return String(list?.[1]?.TaskId || list?.[0]?.TaskId || "");
 }
 
-/**
- * 提取任务2 ID（qd_taskId_2）
- * 旧脚本通过 Icon === "额外看3次小视频得奖励" 精确匹配
- * 这里用 includes 提升稳健性，避免文案轻微变更导致失效
- */
 function extractTaskId2(data) {
   const list = data?.VideoRewardTab?.TaskList;
-  if (!Array.isArray(list) || list.length === 0) return "";
-
+  if (!Array.isArray(list)) return "";
   const found = list.find((item) => {
     const text = String(item?.Icon || item?.Title || item?.TaskName || "");
     return text.includes(CONFIG.EXTRA_VIDEO_HINT);
   });
-
-  const id = found?.TaskId || "";
-  return id ? String(id) : "";
+  return String(found?.TaskId || "");
 }
 
 (function main() {
   try {
     if (typeof $response === "undefined" || !$response) {
-      log("当前非 response 上下文，跳过。");
-      notify("⚠️执行环境不正确", "请确认使用 script-response-body 触发");
+      log("非 response 上下文，跳过");
       return;
     }
 
     const rawBody = $response.body || "";
     if (!rawBody) {
       log("🔴响应体为空");
-      notify("🔴任务信息获取失败", "响应体为空");
       return;
     }
 
     const obj = parseJSON(rawBody);
     if (!obj) {
       log("🔴响应 JSON 解析失败");
-      notify("🔴任务信息获取失败", "响应 JSON 解析失败，请查看日志");
       return;
     }
 
     const data = obj?.Data || {};
-    const taskId1 = extractTaskId1(data);
-    const taskId2 = extractTaskId2(data);
+    const newId1 = extractTaskId1(data);
+    const newId2 = extractTaskId2(data);
 
-    const writeResult = {
-      task1: false,
-      task2: false,
-    };
-
-    if (taskId1) {
-      writeResult.task1 = $persistentStore.write(taskId1, CONFIG.TASK_ID_KEY_1);
-    }
-    if (taskId2) {
-      writeResult.task2 = $persistentStore.write(taskId2, CONFIG.TASK_ID_KEY_2);
-    }
-
-    // 完整成功
-    if (taskId1 && taskId2 && writeResult.task1 && writeResult.task2) {
-      log("🎉任务信息获取成功!");
-      log(`taskId_1: ${taskId1}`);
-      log(`taskId_2: ${taskId2}`);
-      notify("✅任务信息获取成功", `taskId_1: ${taskId1}\ntaskId_2: ${taskId2}`);
+    if (!newId1 || !newId2) {
+      log("🔴未解析到完整 taskId，跳过写入");
       return;
     }
 
-    // 部分成功/失败详情
-    const details = [];
-    if (!taskId1) details.push("未解析到 taskId_1");
-    else if (!writeResult.task1) details.push("taskId_1 写入失败");
+    const oldId1 = read(CONFIG.TASK_ID_KEY_1);
+    const oldId2 = read(CONFIG.TASK_ID_KEY_2);
 
-    if (!taskId2) details.push("未解析到 taskId_2");
-    else if (!writeResult.task2) details.push("taskId_2 写入失败");
+    // 核心：变更检测
+    const sameAsLocal = oldId1 === newId1 && oldId2 === newId2;
 
-    const msg = details.join("；");
-    log(`🔴任务信息获取不完整: ${msg}`);
-    notify("⚠️任务信息获取不完整", msg);
+    if (sameAsLocal) {
+      // 一致：不重复写入 / 不重复通知 / 不重复刷新
+      log("✅ taskId 未变化，跳过写入与通知");
+      return;
+    }
+
+    // 不一致或首次：覆盖写入并通知
+    const ok1 = write(CONFIG.TASK_ID_KEY_1, newId1);
+    const ok2 = write(CONFIG.TASK_ID_KEY_2, newId2);
+
+    if (ok1 && ok2) {
+      const firstTime = !oldId1 || !oldId2;
+      if (firstTime) {
+        log(`🎉首次获取成功: taskId_1=${newId1}, taskId_2=${newId2}`);
+        notify("✅首次获取任务信息成功", `taskId_1: ${newId1}\ntaskId_2: ${newId2}`);
+      } else {
+        log(`🔄检测到变更并已更新: ${oldId1} -> ${newId1}, ${oldId2} -> ${newId2}`);
+        notify("🔄任务信息已更新", `taskId_1: ${oldId1} → ${newId1}\ntaskId_2: ${oldId2} → ${newId2}`);
+      }
+    } else {
+      log("🔴写入本地存储失败");
+      notify("⚠️任务信息更新失败", "写入本地存储失败");
+    }
   } catch (e) {
-    log(`🔴脚本异常: ${e && e.message ? e.message : e}`);
+    log(`🔴脚本异常: ${e?.message || e}`);
     notify("脚本异常", "请查看日志");
   } finally {
     safeDone();
