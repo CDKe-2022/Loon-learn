@@ -146,6 +146,6 @@
   } catch (e) {
     console.log("❌ 脚本异常: " + (e && e.stack ? e.stack : e));
   } finally {
-    $done();
+    $done({});
   }
 })();
