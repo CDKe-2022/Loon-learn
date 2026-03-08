@@ -1,82 +1,150 @@
 /*
-脚本名称：douyu_cookie_capture.js
+脚本名称：douyu_cookie_capture_optimized.js
 脚本功能：
-1. 从响应头抓取 acf_auth、acf_uid（修正 acf_uid=0 问题）
-2. 从请求头抓取 install_id、ttreq
+1) 从请求 Cookie 抓取 install_id、ttreq
+2) 从响应 Set-Cookie 抓取 acf_auth、acf_uid（过滤 acf_uid=0）
+3) 仅在值变化时写入并通知
 脚本类型：http-response
 */
 
 (function () {
   try {
-    /* ========= 1️⃣ 请求头 ========= */
-    const reqHeaders = $request && $request.headers || {};
-    const reqCookie = reqHeaders["Cookie"] || reqHeaders["cookie"] || "";
+    // ===== 工具函数 =====
+    const getHeader = (headers, name) => {
+      if (!headers) return "";
+      const target = String(name).toLowerCase();
+      for (const k in headers) {
+        if (String(k).toLowerCase() === target) return headers[k];
+      }
+      return "";
+    };
 
-    let installId = "";
-    let ttreq = "";
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    if (reqCookie) {
-      const m1 = reqCookie.match(/install_id=([^;]+)/);
-      const m2 = reqCookie.match(/ttreq=([^;]+)/);
-      if (m1) installId = m1[1];
-      if (m2) ttreq = m2[1];
-    }
+    const getCookieValue = (cookieStr, key) => {
+      if (!cookieStr) return "";
+      const re = new RegExp(`(?:^|;\\s*)${escapeRegExp(key)}=([^;]*)`);
+      const m = cookieStr.match(re);
+      return m ? m[1] : "";
+    };
 
-    /* ========= 2️⃣ 响应头 ========= */
-    const respHeaders = $response && $response.headers;
-    if (!respHeaders) return $done();
+    // 更稳健地切分 Set-Cookie（避免 Expires 里的逗号被误切）
+    const splitSetCookie = (input) => {
+      if (!input) return [];
+      if (Array.isArray(input)) return input;
 
-    let setCookie = respHeaders["Set-Cookie"] || respHeaders["set-cookie"];
-    if (!setCookie) return $done();
+      const s = String(input);
+      const out = [];
+      let buf = "";
+      let inExpires = false;
 
-    if (typeof setCookie === "string") {
-      setCookie = setCookie.split(/,(?=[^;]+?=)/);
-    }
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+
+        // 检测 Expires=
+        if (!inExpires && s.slice(i, i + 8).toLowerCase() === "expires=") {
+          inExpires = true;
+          buf += ch;
+          continue;
+        }
+
+        if (inExpires && ch === ";") {
+          inExpires = false;
+          buf += ch;
+          continue;
+        }
+
+        // 仅在非 Expires 区间内，逗号作为 cookie 分隔符
+        if (!inExpires && ch === ",") {
+          // 逗号后面像“ key=...”才切分
+          const rest = s.slice(i + 1);
+          if (/^\s*[^=;, \t]+=/.test(rest)) {
+            if (buf.trim()) out.push(buf.trim());
+            buf = "";
+            continue;
+          }
+        }
+
+        buf += ch;
+      }
+
+      if (buf.trim()) out.push(buf.trim());
+      return out;
+    };
+
+    const mask = (v) => {
+      if (!v) return "";
+      if (v.length <= 8) return "***";
+      return `${v.slice(0, 4)}***${v.slice(-4)}`;
+    };
+
+    const writeIfChanged = (storeKey, newVal, changedList) => {
+      if (!newVal) return;
+      const oldVal = $persistentStore.read(storeKey) || "";
+      if (oldVal !== newVal) {
+        $persistentStore.write(newVal, storeKey);
+        changedList.push(storeKey);
+      }
+    };
+
+    // ===== 1) 请求头抓取 =====
+    const reqHeaders = ($request && $request.headers) || {};
+    const reqCookie = getHeader(reqHeaders, "cookie") || "";
+
+    const installId = getCookieValue(reqCookie, "install_id");
+    const ttreq = getCookieValue(reqCookie, "ttreq");
+
+    // ===== 2) 响应头抓取 =====
+    const respHeaders = ($response && $response.headers) || {};
+    const rawSetCookie = getHeader(respHeaders, "set-cookie");
+    const setCookies = splitSetCookie(rawSetCookie);
 
     let acfAuth = "";
     let acfUid = "";
 
-    // ⚠️ 注意：这里不再用 if (!acfUid)
-    for (const c of setCookie) {
-      const authMatch = c.match(/acf_auth=([^;]+)/);
-      if (authMatch) {
-        acfAuth = authMatch[1];
-      }
+    for (const c of setCookies) {
+      const a = getCookieValue(c, "acf_auth");
+      if (a) acfAuth = a;
 
-      const uidMatch = c.match(/acf_uid=([^;]+)/);
-      if (uidMatch) {
-        const uidVal = uidMatch[1];
-        // 过滤 acf_uid=0
-        if (uidVal !== "0") {
-          acfUid = uidVal;
-        }
-      }
+      const u = getCookieValue(c, "acf_uid");
+      // 过滤 acf_uid=0
+      if (u && u !== "0") acfUid = u;
     }
 
-    /* ========= 3️⃣ 存储 ========= */
-    if (acfAuth) $persistentStore.write(acfAuth, "douyu_acf_auth");
-    if (acfUid)  $persistentStore.write(acfUid,  "douyu_acf_uid");
-    if (installId) $persistentStore.write(installId, "douyu_install_id");
-    if (ttreq)     $persistentStore.write(ttreq,     "douyu_ttreq");
+    // ===== 3) 仅变更写入 =====
+    const changed = [];
+    writeIfChanged("douyu_acf_auth", acfAuth, changed);
+    writeIfChanged("douyu_acf_uid", acfUid, changed);
+    writeIfChanged("douyu_install_id", installId, changed);
+    writeIfChanged("douyu_ttreq", ttreq, changed);
 
-    /* ========= 4️⃣ 日志 ========= */
-    console.log("✅ 斗鱼 Cookie 抓取成功：");
-    if (acfAuth) console.log("acf_auth=" + acfAuth);
-    if (acfUid)  console.log("acf_uid=" + acfUid);
-    if (installId) console.log("install_id=" + installId);
-    if (ttreq)     console.log("ttreq=" + ttreq);
+    // ===== 4) 日志 =====
+    if (changed.length) {
+      console.log("✅ 斗鱼 Cookie 已更新: " + changed.join(", "));
+      if (acfAuth) console.log("acf_auth=" + mask(acfAuth));
+      if (acfUid) console.log("acf_uid=" + acfUid);
+      if (installId) console.log("install_id=" + mask(installId));
+      if (ttreq) console.log("ttreq=" + mask(ttreq));
+    } else {
+      console.log("ℹ️ 斗鱼 Cookie 无变化");
+    }
 
-    /* ========= 5️⃣ 通知 ========= */
-    $notification.post(
-      "斗鱼已抓取新Cookie",
-      (acfAuth ? `acf_auth=${acfAuth}\n` : "") +
-      (acfUid  ? `acf_uid=${acfUid}\n`  : "") +
-      (installId ? `install_id=${installId}\n` : "") +
-      (ttreq ? `ttreq=${ttreq}` : "")
-    );
+    // ===== 5) 通知（有更新才通知）=====
+    if (changed.length) {
+      const lines = [];
+      if (acfAuth) lines.push(`acf_auth=${mask(acfAuth)}`);
+      if (acfUid) lines.push(`acf_uid=${acfUid}`);
+      if (installId) lines.push(`install_id=${mask(installId)}`);
+      if (ttreq) lines.push(`ttreq=${mask(ttreq)}`);
 
+      $notification.post(
+        "斗鱼 Cookie 已更新",
+        changed.join(", "),
+        lines.join("\n")
+      );
+    }
   } catch (e) {
-    console.log("❌ 脚本异常：" + e);
+    console.log("❌ 脚本异常: " + (e && e.stack ? e.stack : e));
   } finally {
     $done();
   }
