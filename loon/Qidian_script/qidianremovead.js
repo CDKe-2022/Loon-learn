@@ -1,5 +1,6 @@
 /*
 脚本引用 https://raw.githubusercontent.com/app2smile/rules/master/js/qidian.js
+目前该脚本已经不再使用（可以参考写脚本）
 */
 // 2024-06-12 10:06:16
 let url = $request.url;
