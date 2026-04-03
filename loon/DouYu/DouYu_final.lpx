@@ -43,7 +43,7 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 ^https://vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com/live-tag/.*\.json$ response-body-json-jq 'map(del(.ads))'
 
 # 首页轮播图和视频流广告
-^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 response-body-json-jq '.data.rec_card |= map(.card_banner |= map(select(has("ad") | not))) |.data.rec_cont |= map(select(has("ad") | not))'
+^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 response-body-json-jq '.data.rec_card |= (.[]? |= (.card_banner |= map(select(has("ad") | not)))) | .data.rec_cont |= map(select(has("ad") | not))'
 
 [Argument]
 DYSign = switch, true, false, tag = 斗鱼签到, desc = 控制是否执行斗鱼签到任务
