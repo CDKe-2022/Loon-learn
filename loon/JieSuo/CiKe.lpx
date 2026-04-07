@@ -7,9 +7,17 @@
 #!icon = https://github.com/CDKe-2022/Loon-learn/blob/main/icon/Assassin%E2%80%99s%20Creed%20Rebellion.png?raw=true
 #!date = 2025-08-25
 
-[Rewrite]
+#[Rewrite]
 # #刺客信条燎原，刷钱用复写
-^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.mapMissionId = "RegionA_Bronze_01" | .loot=[{"_id":"SC","_amount":1000000000}]'
+#^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.mapMissionId = "RegionA_Bronze_01" | .loot=[{"_id":"SC","_amount":1000000000}]'
+#
+
+
+[Argument]
+mode = select,"刷钱","刷经验书","刷另一种钱",tag=刷资源模式,desc=选择要刷的资源类型
+
+[Script]
+http-response ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission script-path=ac_rebellion.js, requires-body = true, tag = 刺客信条燎原, argument=[{mode}]
 
 [MitM]
 hostname = latest.live.acr.ubisoft.com
