@@ -19,10 +19,10 @@
 
 
 [Argument]
-mode = select,"刷钱","刷经验书","刷另一种钱",tag=刷资源模式,desc=选择要刷的资源类型
+mode = select,"刷钱","刷大经验书","刷小经验书","刷铁",tag=刷资源模式,desc=选择要刷的资源类型
 
 [Script]
 http-response ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission script-path=ac_rebellion.js, requires-body = true, tag = 刺客信条燎原, argument=[{mode}]
 
-[MitM]
+[Mitm]
 hostname = latest.live.acr.ubisoft.com
