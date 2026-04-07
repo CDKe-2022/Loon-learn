@@ -12,9 +12,10 @@
 #^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.mapMissionId = "RegionA_Bronze_01" | .loot=[{"_id":"SC","_amount":1000000000}]'
 #刺客信条燎原，5-4区域，刷经验书用复写
 ^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.loot |= map(if ._id=="BI5" then ._amount=6000 else . end)'
-刷小经验书
+#刷小经验书
 #^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.loot |= map(if ._id=="BI4" then ._amount=999 elif ._id=="BI3" then ._amount=999 else . end)'
-
+#刺客信条燎原，刷铁用复写
+^https:\/\/latest\.live\.acr\.ubisoft\.com\/api\/v1\/extensions\/mission\/rushMapMission(\?.*)? response-body-json-jq '.mapMissionId = "RegionB_Silver_05" | .loot=[{"_id":"CMI2","_amount":10000}]'
 
 
 [Argument]
