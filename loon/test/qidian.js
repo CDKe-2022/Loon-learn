@@ -48,8 +48,18 @@ async function runTask(optionsStr, taskLabel) {
     console.log(`🟡跳过执行 ${taskLabel}: 会话信息为空`);
     return;
   }
+
+  // 【修复重点】必须将字符串解析为对象，才能传给 $httpClient.post
+  let options;
+  try {
+    options = JSON.parse(optionsStr);
+  } catch (e) {
+    console.error(`🔴解析 ${taskLabel} 会话信息失败: ${e.message}`);
+    return;
+  }
+
   return new Promise((resolve) => {
-    $httpClient.post(optionsStr, (error, response, data) => {
+    $httpClient.post(options, (error, response, data) => {
       if (error) {
         console.log(`🔴${taskLabel} 请求失败: ${error}`);
         resolve(); 
@@ -107,11 +117,10 @@ async function runTask(optionsStr, taskLabel) {
         let currentOptions = JSON.parse(JSON.stringify(templateObj));
         
         // 核心：将请求体里的旧 taskId 替换为当前的 SubTaskId
-        // 请求体格式：banId=0&taskId=123456&type=1
         currentOptions.body = currentOptions.body.replace(/taskId=[^&]+/, `taskId=${currentId}`);
         
         console.log(`🟡任务3(广告·加点！)执行: 第 ${k + 1} 块 (ID: ${currentId})`);
-        // 注意 runTask 接收的是字符串
+        // 传入序列化后的字符串，runTask内部会自动解析
         await runTask(JSON.stringify(currentOptions), `任务3-第${k+1}块`);
         
         if (k < readingIds.length - 1) await wait(timeout * 1000);
