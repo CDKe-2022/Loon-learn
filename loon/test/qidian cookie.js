@@ -1,67 +1,103 @@
 /* 
 脚本功能: 获取 起点读书 广告信息
+操作步骤: 我 --> 福利中心 --> 手动观看一个广告
+
 [Script]
 http-request ^https?:\/\/(h5|magev6)\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=qidian.cookie.js, requires-body=true
+
 [MITM]
 hostname = %APPEND% h5.if.qidian.com, magev6.if.qidian.com
 */
 
+// --- 配置常量 ---
 const CONFIG = {
+  // 存储键名
   TASK_ID_KEY_1: "qd_taskId",
   TASK_ID_KEY_2: "qd_taskId_2",
-  READING_TASK_SUBIDS_KEY: "qd_reading_task_subids", // 读取ID数组
+  TASK_ID_KEY_3: "qd_reading_task_subid", // 新增：对应阅读页“广告·加点！”任务
+  
   SESSION_KEY_1: "qd_session",
   SESSION_KEY_2: "qd_session_2",
-  SESSION_KEY_3: "qd_session_3", // 存阅读任务模板
+  SESSION_KEY_3: "qd_session_3",           // 新增：存储阅读任务的 session
+  
+  // 通知配置
   NOTIFICATION_TITLE: "起点读书",
   NOTIFICATION_SUBTITLE_SUCCESS_1: "🎉广告1信息获取成功!",
   NOTIFICATION_SUBTITLE_SUCCESS_2: "🎉广告2信息获取成功!",
-  NOTIFICATION_SUBTITLE_SUCCESS_3: "🎉广告3(阅读任务)模板获取成功!",
+  NOTIFICATION_SUBTITLE_SUCCESS_3: "🎉广告3(广告·加点！)信息获取成功!", // 新增
   NOTIFICATION_SUBTITLE_FAIL: "🔴广告信息获取失败!",
   NOTIFICATION_SUBTITLE_WRITE_FAIL: "🔴信息写入失败!",
 };
 
+// --- 读取预设的任务ID ---
 const taskId = $persistentStore.read(CONFIG.TASK_ID_KEY_1);
 const taskId_2 = $persistentStore.read(CONFIG.TASK_ID_KEY_2);
-// 读取阅读任务ID数组
-const readingTaskIds = JSON.parse($persistentStore.read(CONFIG.READING_TASK_SUBIDS_KEY) || "[]");
+const taskId_3 = $persistentStore.read(CONFIG.TASK_ID_KEY_3); // 新增读取
 
+/**
+ * 处理任务匹配和会话信息写入
+ * @param {Object} session - 包含请求信息的对象
+ * @param {string} taskIdToCheck - 要检查的taskId
+ * @param {string} sessionKey - 用于存储session的键名
+ * @param {string} successMsg - 成功时的通知消息
+ * @returns {boolean} - 操作是否成功
+ */
 function processTask(session, taskIdToCheck, sessionKey, successMsg) {
+  // 检查taskId是否存在
   if (taskIdToCheck && session.body && session.body.includes(taskIdToCheck)) {
     try {
-      if ($persistentStore.write(JSON.stringify(session), sessionKey)) {
+      // 尝试写入持久化存储
+      const writeResult = $persistentStore.write(JSON.stringify(session), sessionKey);
+      if (writeResult) {
+        console.log(successMsg);
         $notification.post(CONFIG.NOTIFICATION_TITLE, "", successMsg);
-        return true;
+        return true; // 成功
+      } else {
+        // $persistentStore.write 返回false，写入失败
+        console.log(CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL);
+        $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL);
+        return false; // 失败
       }
     } catch (error) {
-      console.error(`写入失败: ${error.message}`);
-      return false;
+      // 捕获写入过程中可能的异常
+      console.error(`写入持久化存储时发生错误: ${error.message}`);
+      console.log(CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL);
+      $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL);
+      return false; // 失败
     }
   }
-  return false;
+  return false; // 未匹配到taskId
 }
 
+// --- 主执行逻辑 ---
 !(async () => {
-  const session = { url: $request.url, body: $request.body, headers: $request.headers };
+  const session = {
+    url: $request.url,
+    body: $request.body,
+    headers: $request.headers,
+  };
+  console.log('捕获的请求信息:', JSON.stringify(session)); // 使用更清晰的日志
 
-  if (processTask(session, taskId, CONFIG.SESSION_KEY_1, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_1)) return;
-  if (processTask(session, taskId_2, CONFIG.SESSION_KEY_2, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_2)) return;
-
-  // 新增：遍历阅读任务ID数组，只要匹配上一个，就作为模板存储
-  for (const rId of readingTaskIds) {
-    if (rId && session.body && session.body.includes(rId)) {
-      try {
-        if ($persistentStore.write(JSON.stringify(session), CONFIG.SESSION_KEY_3)) {
-          console.log(`🎉阅读任务模板获取成功，匹配ID: ${rId}`);
-          $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3);
-          return;
-        }
-      } catch (error) {
-        console.error(`写入失败: ${error.message}`);
-      }
-      break;
-    }
+  // 尝试处理 taskId_1
+  if (processTask(session, taskId, CONFIG.SESSION_KEY_1, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_1)) {
+    return; // 如果成功处理了taskId_1，直接返回
   }
 
+  // 尝试处理 taskId_2
+  if (processTask(session, taskId_2, CONFIG.SESSION_KEY_2, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_2)) {
+    return; // 如果成功处理了taskId_2，直接返回
+  }
+
+  // 尝试处理 taskId_3 (新增)
+  if (processTask(session, taskId_3, CONFIG.SESSION_KEY_3, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3)) {
+    return; // 如果成功处理了taskId_3，直接返回
+  }
+
+  // 如果三个taskId都没匹配上
   console.log(CONFIG.NOTIFICATION_SUBTITLE_FAIL);
-})().finally(() => { $done({}); });
+  $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_FAIL);
+
+})().finally(() => {
+  // 确保脚本在所有情况下都能正确结束
+  $done({});
+});
