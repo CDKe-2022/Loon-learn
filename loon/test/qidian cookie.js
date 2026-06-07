@@ -29,7 +29,7 @@ const CONFIG = {
   NOTIFICATION_SUBTITLE_WRITE_FAIL: "🔴信息写入失败!",
 };
 
-const MAX_SESSION_COUNT = 20; // 修复问题2：防止 Session 字典无限增长的保底阈值
+const MAX_SESSION_COUNT = 20; // 防止 Session 字典无限增长的保底阈值
 
 // --- 读取预设的任务ID ---
 const taskId = $persistentStore.read(CONFIG.TASK_ID_KEY_1);
@@ -37,7 +37,7 @@ const taskId_2 = $persistentStore.read(CONFIG.TASK_ID_KEY_2);
 const readingDetailStr = $persistentStore.read(CONFIG.READING_TASK_DETAIL_KEY);
 
 /**
- * 修复问题1：安全提取 taskId，兼容 Form 和 JSON，严格避免 0 值被误判
+ * 安全提取 taskId，兼容 Form 和 JSON，严格避免 0 值被误判
  */
 function getTaskIdFromBody(body) {
   if (!body) return null;
@@ -52,7 +52,7 @@ function getTaskIdFromBody(body) {
   // 尝试 JSON 格式解析
   try {
     const obj = JSON.parse(body);
-    // 修复问题1：使用 != null 严格判断，避免 taskId 为 0 时被逻辑或 (||) 吞掉
+    // 使用 != null 严格判断，避免 taskId 为 0 时被逻辑或 (||) 吞掉
     if (obj?.taskId != null) return String(obj.taskId);
     if (obj?.TaskId != null) return String(obj.TaskId);
   } catch (e) {}
@@ -61,7 +61,7 @@ function getTaskIdFromBody(body) {
 }
 
 /**
- * 修复问题5：构建精简 Session，扩充白名单，保留关键鉴权 Header
+ * 构建精简 Session，扩充白名单，保留关键鉴权 Header
  */
 function buildSession() {
   const headers = { ...$request.headers };
@@ -72,7 +72,7 @@ function buildSession() {
     return key ? headers[key] : undefined;
   };
 
-  // 扩充白名单：保留领奖可能需要的所有关键字段
+  // 白名单：保留领奖可能需要的所有关键字段
   const keptHeaders = {
     Cookie: extractHeader('cookie'),
     'User-Agent': extractHeader('user-agent'),
@@ -87,6 +87,7 @@ function buildSession() {
 
   return {
     url: $request.url,
+    taskId: getTaskIdFromBody($request.body), // 显式提取 taskId，避免后续重复解析 body
     body: $request.body,
     headers: keptHeaders
   };
@@ -96,12 +97,13 @@ function buildSession() {
  * 处理单任务匹配和会话信息写入
  */
 function processTask(session, taskIdToCheck, sessionKey, successMsg) {
-  // 修复问题4：统一空值判断，避免 "0" 等边缘值被误杀
+  // 统一空值判断，避免 "0" 等边缘值被误杀
   if (taskIdToCheck === undefined || taskIdToCheck === null) {
     return false;
   }
   
-  const reqTaskId = getTaskIdFromBody(session.body);
+  // 统一使用已解析的 session.taskId
+  const reqTaskId = session.taskId;
   if (reqTaskId === String(taskIdToCheck)) {
     try {
       const writeResult = $persistentStore.write(JSON.stringify(session), sessionKey);
@@ -115,7 +117,7 @@ function processTask(session, taskIdToCheck, sessionKey, successMsg) {
         return false;
       }
     } catch (error) {
-      console.error(`写入持久化存储时发生错误: ${error.message}`);
+      console.log(`写入持久化存储时发生错误: ${error.message}`);
       return false;
     }
   }
@@ -132,7 +134,8 @@ function processReadingTaskArray(session, detailStr, detailKey, sessionsKey, suc
     const tasks = JSON.parse(detailStr);
     if (!Array.isArray(tasks) || tasks.length === 0) return false;
 
-    const reqTaskId = getTaskIdFromBody(session.body);
+    // 统一使用已解析的 session.taskId
+    const reqTaskId = session.taskId;
     if (!reqTaskId) return false;
 
     const matchedIndex = tasks.findIndex(task => String(task.SubTaskId) === reqTaskId);
@@ -147,31 +150,45 @@ function processReadingTaskArray(session, detailStr, detailKey, sessionsKey, suc
       
       // 2. 构建/更新 Session 字典
       let sessionsMap = {};
+      const oldSessionsStr = $persistentStore.read(sessionsKey) || "{}"; // 备份旧数据用于回滚
       try {
-        const oldSessionsStr = $persistentStore.read(sessionsKey);
-        if (oldSessionsStr) sessionsMap = JSON.parse(oldSessionsStr);
+        sessionsMap = JSON.parse(oldSessionsStr);
       } catch (e) {
         console.log("历史阅读Session缓存损坏，已自动重建");
         sessionsMap = {};
       }
 
-      // 修复问题2：保底清理，防止无限增长
-      const sessionKeys = Object.keys(sessionsMap);
-      if (sessionKeys.length >= MAX_SESSION_COUNT) {
-        const oldestKey = sessionKeys[0]; // JS 对象键按插入顺序，最前的是最旧的
+      // 使用 timestamp 记录，彻底解决 Integer Index 排序导致的淘汰错乱
+      sessionsMap[matchedSubId] = {
+        session: session,
+        timestamp: Date.now()
+      };
+
+      // 淘汰最旧数据
+      if (Object.keys(sessionsMap).length > MAX_SESSION_COUNT) {
+        const oldestEntry = Object.entries(sessionsMap).sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+        const oldestKey = oldestEntry[0];
         delete sessionsMap[oldestKey];
         console.log(`Session 存储已达上限，清理最旧记录: ${oldestKey}`);
       }
 
-      sessionsMap[matchedSubId] = session;
-
-      // 序列化
       const newTasksStr = JSON.stringify(newTasks);
       const newSessionsStr = JSON.stringify(sessionsMap);
 
-      // 修复问题3：核心事务顺序调整！先写 Session (最重要)，再写 Task 列表
+      // 3. 核心事务：先写 Session，若 Task 写入失败则回滚 Session
       const sessionsSaved = $persistentStore.write(newSessionsStr, sessionsKey);
       const tasksSaved = $persistentStore.write(newTasksStr, detailKey);
+
+      if (!tasksSaved && sessionsSaved) {
+        // Task写入失败，回滚Session到覆盖前状态
+        const rollbackSaved = $persistentStore.write(oldSessionsStr, sessionsKey);
+        if (!rollbackSaved) {
+          console.log("严重: Session回滚失败，数据可能不一致!");
+        }
+        console.log(`${CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL} (Task写入失败)`);
+        $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_WRITE_FAIL);
+        return false;
+      }
 
       if (sessionsSaved && tasksSaved) {
         const remainCount = newTasks.length;
@@ -188,7 +205,8 @@ function processReadingTaskArray(session, detailStr, detailKey, sessionsKey, suc
       }
     }
   } catch (error) {
-    console.error(`处理阅读任务数组时发生错误: ${error.message}`);
+    // 统一使用 console.log 保证兼容性
+    console.log(`处理阅读任务数组时发生错误: ${error.message}`);
   }
   
   return false;
@@ -197,14 +215,14 @@ function processReadingTaskArray(session, detailStr, detailKey, sessionsKey, suc
 // --- 主执行逻辑 ---
 !(async () => {
   const session = buildSession();
-  console.log(`已捕获广告请求: ${session.url}, taskId=${getTaskIdFromBody(session.body)}`);
+  console.log(`已捕获广告请求: ${session.url}, taskId=${session.taskId}`);
 
   // 1. 尝试处理 taskId_1
   if (processTask(session, taskId, CONFIG.SESSION_KEY_1, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_1)) {
     return;
   }
 
-  // 2. 尝试处理 阅读页任务
+  // 2. 尝试处理 阅读页任务 (优先匹配，防止被 taskId_2 截胡)
   if (processReadingTaskArray(session, readingDetailStr, CONFIG.READING_TASK_DETAIL_KEY, CONFIG.READING_SESSIONS_KEY, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3)) {
     return;
   }
