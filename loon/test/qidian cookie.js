@@ -103,15 +103,14 @@ function processTask(session, taskIdToCheck, sessionKey, successMsg) {
 
 /**
  * 处理阅读页“广告·加点！”数组任务的匹配和会话写入
- * 匹配成功后，会将已完成的 SubTaskId 从数组中移除并更新存储
+ * 【核心修改】：此脚本仅负责抓取 Session 模板，不消耗/删除数组元素。数组消耗交由 run.js 执行成功后处理。
  * @param {Object} session - 包含请求信息的对象
  * @param {string} subIdsStr - 存储在持久化中的 SubTaskId 数组字符串
- * @param {string} idKey - 存储SubTaskId数组的键名
  * @param {string} sessionKey - 用于存储session的键名
  * @param {string} successMsg - 成功时的通知消息
  * @returns {boolean} - 操作是否成功
  */
-function processReadingTaskArray(session, subIdsStr, idKey, sessionKey, successMsg) {
+function processReadingTaskArray(session, subIdsStr, sessionKey, successMsg) {
   if (!subIdsStr) return false;
   
   try {
@@ -136,19 +135,13 @@ function processReadingTaskArray(session, subIdsStr, idKey, sessionKey, successM
       // 1. 写入 Session
       const sessionSaved = $persistentStore.write(JSON.stringify(session), sessionKey);
       
-      // 2. 从数组中移除已匹配的 SubTaskId
-      subIds.splice(matchedIndex, 1);
-      
-      // 3. 将剩余的数组重新写回持久化存储
-      const listSaved = $persistentStore.write(JSON.stringify(subIds), idKey);
-      
-      // 4. 严格校验两次写入结果
-      if (sessionSaved && listSaved) {
-        const remainCount = subIds.length;
-        const finalMsg = `${successMsg} (剩余${remainCount}个待完成)`;
+      // 2. 校验写入结果
+      if (sessionSaved) {
+        const totalCount = subIds.length;
+        const finalMsg = `${successMsg} (共${totalCount}个待执行)`;
         
         console.log(finalMsg);
-        console.log(`已完成 SubTaskId: ${matchedSubId}`);
+        console.log(`匹配到 SubTaskId: ${matchedSubId}`);
         $notification.post(CONFIG.NOTIFICATION_TITLE, "", finalMsg);
         return true;
       } else {
@@ -176,7 +169,7 @@ function processReadingTaskArray(session, subIdsStr, idKey, sessionKey, successM
   }
 
   // 2. 尝试处理 taskId_3 (阅读页“广告·加点！”数组任务) - 优先于 taskId_2 匹配，防止 ID 冲突被截胡
-  if (processReadingTaskArray(session, taskId_3_Str, CONFIG.TASK_ID_KEY_3, CONFIG.SESSION_KEY_3, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3)) {
+  if (processReadingTaskArray(session, taskId_3_Str, CONFIG.SESSION_KEY_3, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3)) {
     return;
   }
 
