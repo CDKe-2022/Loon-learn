@@ -11,9 +11,6 @@ const CONFIG = {
   TASK_ID_KEY_2: "qd_taskId_2",
   READING_TASK_SUBIDS_KEY: "qd_reading_task_subids", // 存储可操作的 SubTaskId 数组 (JSON格式)
 
-  // 用来记录“当天是否已获取过TaskId”的标记（存日期字符串 YYYYMMDD）
-  TASK_ID_DATE_KEY: "qd_taskId_date",
-
   // 通知配置
   NOTIFICATION_TITLE: "起点读书",
   NOTIFICATION_SUBTITLE_SUCCESS: "🎉任务信息获取成功!",
@@ -30,34 +27,6 @@ const CONFIG = {
   LOG_PREFIX_FAIL: "🔴任务信息获取失败!",
   LOG_PREFIX_SCRIPT_ERROR: "🔴脚本运行异常:",
 };
-
-/**
- * 获取当前日期的 YYYYMMDD 字符串
- * @returns {string}
- */
-function todayKey() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}${m}${day}`;
-}
-
-/**
- * 判断今天是否已经获取过 TaskId
- * @returns {boolean}
- */
-function isTaskIdAlreadyFetchedToday() {
-  const saved = $persistentStore.read(CONFIG.TASK_ID_DATE_KEY);
-  return saved === todayKey();
-}
-
-/**
- * 标记“今天已获取过 TaskId”
- */
-function markTaskIdFetched() {
-  $persistentStore.write(todayKey(), CONFIG.TASK_ID_DATE_KEY);
-}
 
 /**
  * 安全地获取嵌套对象的属性值
@@ -113,13 +82,6 @@ function writeStore(value, key) {
 // --- 主执行逻辑 ---
 (() => {
   try {
-    // 0. 判断“今天是否已获取过 TaskId”
-    if (isTaskIdAlreadyFetchedToday()) {
-      console.log('今天已获取过 TaskId，跳过本次请求');
-      $done({});
-      return;
-    }
-
     // 1. 解析响应体
     const obj = JSON.parse($response.body);
 
@@ -135,30 +97,46 @@ function writeStore(value, key) {
     const readingTaskList = safeGet(obj, 'Data.ReadingPageTaskModule.TaskList');
     const readingSubTaskIds = findAvailableReadingSubTaskIds(readingTaskList, CONFIG.TARGET_READING_TASK_TITLE);
 
-    // 4. 检查必需的 ID 是否存在
-    if (dailyTaskId && videoTaskId && readingSubTaskIds.length > 0) {
-      // 5. 写入持久化存储
+    // 4. 检查必需的主 ID 是否存在 (放宽对 readingSubTaskIds 的限制，允许为空数组以更新已完成状态)
+    if (dailyTaskId && videoTaskId) {
+      
+      // 读取旧数据进行比对
+      const oldTaskId1 = $persistentStore.read(CONFIG.TASK_ID_KEY_1);
+      const oldTaskId2 = $persistentStore.read(CONFIG.TASK_ID_KEY_2);
+      const oldSubIdsStr = $persistentStore.read(CONFIG.READING_TASK_SUBIDS_KEY);
+      const newSubIdsStr = JSON.stringify(readingSubTaskIds);
+
+      // 如果数据完全没有变化，则跳过写入，减少 IO 消耗
+      if (oldTaskId1 === dailyTaskId && oldTaskId2 === videoTaskId && oldSubIdsStr === newSubIdsStr) {
+        console.log('任务信息未发生变化，无需更新');
+        $done({});
+        return;
+      }
+
+      // 5. 数据有变化，写入持久化存储
       const write1Success = writeStore(dailyTaskId, CONFIG.TASK_ID_KEY_1);
       const write2Success = writeStore(videoTaskId, CONFIG.TASK_ID_KEY_2);
-      const write3Success = writeStore(JSON.stringify(readingSubTaskIds), CONFIG.READING_TASK_SUBIDS_KEY);
+      const write3Success = writeStore(newSubIdsStr, CONFIG.READING_TASK_SUBIDS_KEY);
 
       if (write1Success && write2Success && write3Success) {
-        // 6. 标记“今天已获取过 TaskId”
-        markTaskIdFetched();
-
-        // 7. 成功通知和日志（增强日志格式）
-        console.log(CONFIG.LOG_PREFIX_SUCCESS);
+        
+        // 7. 成功日志（增强日志格式）
+        console.log(CONFIG.LOG_PREFIX_SUCCESS + " (数据已更新)");
         console.log(`taskId: ${dailyTaskId}`);
         console.log(`taskId_2: ${videoTaskId}`);
         console.log(`reading_subids(${readingSubTaskIds.length}): ${readingSubTaskIds.join(', ')}`);
+        
+        // 如果你不想每次数据变动都弹通知，可以把下面这行注释掉
         $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_SUCCESS);
+        
       } else {
         console.log(`${CONFIG.LOG_PREFIX_FAIL} (持久化存储写入失败)`);
         $notification.post(CONFIG.NOTIFICATION_TITLE, "", `${CONFIG.NOTIFICATION_SUBTITLE_FAIL} (写入失败)`);
       }
+      
     } else {
-      // 9. 必需的 ID 获取失败
-      console.log(`${CONFIG.LOG_PREFIX_FAIL} (缺少ID: dailyTaskId=${dailyTaskId}, videoTaskId=${videoTaskId}, readingSubTaskIdsLength=${readingSubTaskIds.length})`);
+      // 9. 必需的主 ID 获取失败
+      console.log(`${CONFIG.LOG_PREFIX_FAIL} (缺少主ID: dailyTaskId=${dailyTaskId}, videoTaskId=${videoTaskId})`);
       $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_FAIL);
     }
   } catch (e) {
