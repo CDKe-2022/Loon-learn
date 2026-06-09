@@ -7,7 +7,7 @@
 
 // --- 配置常量 ---
 const CONFIG = {
-  // 存储键名（增加描述性命名）
+  // 存储键名
   DAILY_TASK_KEY: "qd_taskId",
   VIDEO_TASK_KEY: "qd_taskId_2",
   READING_SUBID_KEYS: [
@@ -15,17 +15,21 @@ const CONFIG = {
     "qd_reading_task_subid_2",
     "qd_reading_task_subid_3"
   ],
+  // 【新增】阅读任务进度键 (用于状态机重置)
+  READING_PROGRESS_KEY: "qd_reading_progress",
   
-  // 通知配置
+  // 通知与匹配配置
   NOTIFICATION_TITLE: "起点读书",
-  
-  // 目标匹配规则
   TARGET_VIDEO_TASK_ICON: "额外看3次小视频得奖励",
   TARGET_READING_TASK_TITLE: "广告·加点！",
 };
 
 /**
  * 安全获取对象深层属性
+ * @param {Object} obj - 目标对象
+ * @param {String} path - 路径，如 'a.b.c'
+ * @param {*} defaultValue - 默认值
+ * @returns {*}
  */
 function safeGet(obj, path, defaultValue = undefined) {
   if (!obj || !path) return defaultValue;
@@ -63,7 +67,7 @@ function findReadingTaskSubIds(taskList, targetTitle, maxCount = 3) {
 }
 
 /**
- * 安全写入持久化存储（允许空字符串用于覆盖旧数据）
+ * 安全写入持久化存储
  */
 function writeStore(value, key) {
   const valToWrite = (value === undefined || value === null) ? "" : String(value);
@@ -81,8 +85,6 @@ function writeStore(value, key) {
     if (!respBody) throw new Error("未捕获到响应体");
     
     const obj = JSON.parse(respBody);
-    
-    // 修改点1：起点接口成功标志是 Result: 0，而不是 Code
     const result = obj.Result ?? obj.result;
     if (result !== undefined && result !== 0) {
       throw new Error(`接口返回非成功状态: Result=${result}`);
@@ -93,7 +95,7 @@ function writeStore(value, key) {
       throw new Error("响应数据 Data 结构无效");
     }
 
-    // 2. 提取福利任务 ID（取第一个有效的 TaskId）
+    // 2. 提取福利任务 ID
     const dailyTaskList = safeGet(data, 'DailyBenefitModule.TaskList', []);
     let newDailyTaskId = undefined;
     if (Array.isArray(dailyTaskList)) {
@@ -111,10 +113,9 @@ function writeStore(value, key) {
 
     // 4. 提取阅读页任务 IDs
     const readingTaskList = safeGet(data, 'ReadingPageTaskModule.TaskList', []);
-    const newReadingSubIds = findReadingTaskSubIds(readingTaskList, CONFIG.TARGET_READING_TASK_TITLE, 3);
+    const newReadingSubIds = findReadingTaskSubIds(readingTaskList, CONFIG.TARGET_READING_TASK_TITLE, 上下文);
 
-    // 5. 模块独立更新逻辑（仅在抓取到新数据时才覆盖本地）
-    
+    // 5. 模块独立更新逻辑
     // [模块A] 福利任务
     if (newDailyTaskId) {
       const oldVal = $persistentStore.read(CONFIG.DAILY_TASK_KEY) || "";
@@ -133,30 +134,35 @@ function writeStore(value, key) {
       }
     }
 
-    // [模块C] 阅读页任务
+    // [模块C] 阅读页任务 + 进度重置逻辑
+    let readingChanged = false;
     if (newReadingSubIds.length > 0) {
       const oldVals = CONFIG.READING_SUBID_KEYS.map(k => $persistentStore.read(k) || "");
-      let needUpdate = false;
-      
+      // 检查是否有变化
       for (let i = 0; i < 3; i++) {
         const newVal = newReadingSubIds[i] || "";
-        if (oldVals[i] !== newVal) needUpdate = true;
+        if (oldVals[i] !== newVal) {
+          readingChanged = true;
+          break;
+        }
       }
       
-      if (needUpdate) {
+      if (readingChanged) {
+        // 写入新ID
         for (let i = 0; i < 3; i++) {
           writeStore(newReadingSubIds[i] || "", CONFIG.READING_SUBID_KEYS[i]);
         }
+        // 【核心功能】如果阅读任务ID有更新，重置进度状态机
+        writeStore("0", CONFIG.READING_PROGRESS_KEY);
+        console.log("🟡阅读任务ID已更新，进度状态机已重置为 0");
         isDataChanged = true;
       }
-    } 
-    // 【核心修复】：保留“未抓到则不清空”逻辑，防止接口波动导致误删有效任务ID
+    }
 
-    // 6. 统一日志与通知输出
+    // 6. 日志与通知
     logMsg = `Daily: ${newDailyTaskId || '-'}, Video: ${newVideoTaskId || '-'}, Reading: ${JSON.stringify(newReadingSubIds)}`;
     console.log(isDataChanged ? `🟡检测到变化已更新 | ${logMsg}` : `🟢数据无变化 | ${logMsg}`);
     
-    // 修改点2：重写脚本应尽量保持安静，仅在数据发生变化或异常时弹通知，避免频繁打扰
     if (isDataChanged) {
       $notification.post(CONFIG.NOTIFICATION_TITLE, "🎉任务信息已更新!", logMsg);
     }
