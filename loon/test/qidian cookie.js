@@ -1,30 +1,32 @@
-/* 
-脚本功能: 获取 起点读书 广告信息
-操作步骤: 我 --> 福利中心 --> 手动观看一个广告
-
-[Script]
-http-request ^https?:\/\/(h5|magev6)\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=qidian.cookie.js, requires-body=true
-
-[MITM]
-hostname = %APPEND% h5.if.qidian.com, magev6.if.qidian.com
-*/
+/* 脚本功能: 获取 起点读书 广告信息
+   操作步骤: 我 --> 福利中心 --> 手动观看一个广告
+   [Script]
+   http-request ^https?:\/\/(h5|magev6)\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=qidian.cookie.js, requires-body=true
+   [MITM]
+   hostname = %APPEND% h5.if.qidian.com, magev6.if.qidian.com */
 
 // --- 配置常量 ---
 const CONFIG = {
   // 存储键名
   TASK_ID_KEY_1: "qd_taskId",
   TASK_ID_KEY_2: "qd_taskId_2",
-  TASK_ID_KEY_3: "qd_reading_task_subid", // 新增：对应阅读页“广告·加点！”任务
-  
+  TASK_ID_KEY_3_1: "qd_reading_task_subid_1", // 广告·加点！子任务1
+  TASK_ID_KEY_3_2: "qd_reading_task_subid_2", // 广告·加点！子任务2
+  TASK_ID_KEY_3_3: "qd_reading_task_subid_3", // 广告·加点！子任务3
+
   SESSION_KEY_1: "qd_session",
   SESSION_KEY_2: "qd_session_2",
-  SESSION_KEY_3: "qd_session_3",           // 新增：存储阅读任务的 session
-  
+  SESSION_KEY_3_1: "qd_session_3_1", // 广告·加点！子任务1会话
+  SESSION_KEY_3_2: "qd_session_3_2", // 广告·加点！子任务2会话
+  SESSION_KEY_3_3: "qd_session_3_3", // 广告·加点！子任务3会话
+
   // 通知配置
   NOTIFICATION_TITLE: "起点读书",
   NOTIFICATION_SUBTITLE_SUCCESS_1: "🎉广告1信息获取成功!",
   NOTIFICATION_SUBTITLE_SUCCESS_2: "🎉广告2信息获取成功!",
-  NOTIFICATION_SUBTITLE_SUCCESS_3: "🎉广告3(广告·加点！)信息获取成功!", // 新增
+  NOTIFICATION_SUBTITLE_SUCCESS_3_1: "🎉广告3-1(广告·加点！)信息获取成功!",
+  NOTIFICATION_SUBTITLE_SUCCESS_3_2: "🎉广告3-2(广告·加点！)信息获取成功!",
+  NOTIFICATION_SUBTITLE_SUCCESS_3_3: "🎉广告3-3(广告·加点！)信息获取成功!",
   NOTIFICATION_SUBTITLE_FAIL: "🔴广告信息获取失败!",
   NOTIFICATION_SUBTITLE_WRITE_FAIL: "🔴信息写入失败!",
 };
@@ -32,7 +34,9 @@ const CONFIG = {
 // --- 读取预设的任务ID ---
 const taskId = $persistentStore.read(CONFIG.TASK_ID_KEY_1);
 const taskId_2 = $persistentStore.read(CONFIG.TASK_ID_KEY_2);
-const taskId_3 = $persistentStore.read(CONFIG.TASK_ID_KEY_3); // 新增读取
+const taskId_3_1 = $persistentStore.read(CONFIG.TASK_ID_KEY_3_1);
+const taskId_3_2 = $persistentStore.read(CONFIG.TASK_ID_KEY_3_2);
+const taskId_3_3 = $persistentStore.read(CONFIG.TASK_ID_KEY_3_3);
 
 /**
  * 处理任务匹配和会话信息写入
@@ -88,15 +92,24 @@ function processTask(session, taskIdToCheck, sessionKey, successMsg) {
     return; // 如果成功处理了taskId_2，直接返回
   }
 
-  // 尝试处理 taskId_3 (新增)
-  if (processTask(session, taskId_3, CONFIG.SESSION_KEY_3, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3)) {
-    return; // 如果成功处理了taskId_3，直接返回
+  // 尝试处理 taskId_3_1 (广告·加点！子任务1)
+  if (processTask(session, taskId_3_1, CONFIG.SESSION_KEY_3_1, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3_1)) {
+    return;
   }
 
-  // 如果三个taskId都没匹配上
+  // 尝试处理 taskId_3_2 (广告·加点！子任务2)
+  if (processTask(session, taskId_3_2, CONFIG.SESSION_KEY_3_2, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3_2)) {
+    return;
+  }
+
+  // 尝试处理 taskId_3_3 (广告·加点！子任务3)
+  if (processTask(session, taskId_3_3, CONFIG.SESSION_KEY_3_3, CONFIG.NOTIFICATION_SUBTITLE_SUCCESS_3_3)) {
+    return;
+  }
+
+  // 如果所有taskId都没匹配上
   console.log(CONFIG.NOTIFICATION_SUBTITLE_FAIL);
   $notification.post(CONFIG.NOTIFICATION_TITLE, "", CONFIG.NOTIFICATION_SUBTITLE_FAIL);
-
 })().finally(() => {
   // 确保脚本在所有情况下都能正确结束
   $done({});
