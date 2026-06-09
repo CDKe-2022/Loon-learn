@@ -7,7 +7,7 @@
   "repo": "https://github.com/KeHuang/Script",
   "apps": [
     {
-      "id": "qidian_ads",
+      "id": "qidian.ads",
       "name": "广告任务配置",
       "author": "@KeHuang",
       "desc": "💡 首次使用请进入对应页面手动观看一次广告，脚本将自动抓取所需数据。",
@@ -15,56 +15,42 @@
         "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png"
       ],
       "keys": [
-        "qd_status",
-        "qd_task_id_1",
-        "qd_session_1",
-        "qd_task_id_2",
+        "qd_taskId",
+        "qd_session",
+        "qd_taskId_2",
         "qd_session_2",
-        "qd_sub_id_1",
+        "qd_reading_task_subid_1",
         "qd_reading_session_1",
-        "qd_sub_id_2",
+        "qd_reading_task_subid_2",
         "qd_reading_session_2",
-        "qd_sub_id_improve",
-        "qd_reading_session_improve",
+        "qd_reading_task_subid_3",
+        "qd_reading_session_3",
         "qd_timeout"
       ],
       "categories": [
-        {
-          "name": "📊 状态信息",
-          "desc": "显示脚本运行状态和抓包情况",
-          "settings": [
-            {
-              "id": "qd_status",
-              "name": "运行状态",
-              "type": "text",
-              "val": "就绪",
-              "desc": "当前脚本运行状态及数据抓取提示"
-            }
-          ]
-        },
         {
           "name": "🎁 福利中心广告",
           "desc": "对应 App 内【福利中心】页面的任务",
           "settings": [
             {
-              "id": "qd_task_id_1",
-              "name": "1. 每日视频福利 ID",
+              "id": "qd_taskId",
+              "name": "每日视频福利 TaskId",
               "type": "text",
               "val": "",
               "placeholder": "自动获取",
               "desc": "路径：福利中心 → 每日视频福利"
             },
             {
-              "id": "qd_session_1",
-              "name": "1. 每日视频福利 Session",
+              "id": "qd_session",
+              "name": "每日视频福利 Session",
               "type": "textarea",
               "val": "",
               "placeholder": "自动获取（勿动）",
-              "desc": "脚本自动抓取请求体，请勿手动修改"
+              "desc": "包含Url/Headers/Body，脚本自动抓取，请勿手动修改"
             },
             {
-              "id": "qd_task_id_2",
-              "name": "2. 限时彩蛋 ID",
+              "id": "qd_taskId_2",
+              "name": "限时彩蛋 TaskId",
               "type": "text",
               "val": "",
               "placeholder": "自动获取",
@@ -72,11 +58,11 @@
             },
             {
               "id": "qd_session_2",
-              "name": "2. 限时彩蛋 Session",
+              "name": "限时彩蛋 Session",
               "type": "textarea",
               "val": "",
               "placeholder": "自动获取（勿动）",
-              "desc": "脚本自动抓取请求体，请勿手动修改"
+              "desc": "包含Url/Headers/Body，脚本自动抓取，请勿手动修改"
             }
           ]
         },
@@ -85,12 +71,12 @@
           "desc": "对应小说阅读页面的【加点】广告任务",
           "settings": [
             {
-              "id": "qd_sub_id_1",
+              "id": "qd_reading_task_subid_1",
               "name": "组① SubId",
               "type": "text",
               "val": "",
               "placeholder": "自动获取",
-              "desc": "阅读页广告任务第一组"
+              "desc": "阅读页广告任务第一组子任务ID"
             },
             {
               "id": "qd_reading_session_1",
@@ -98,15 +84,15 @@
               "type": "textarea",
               "val": "",
               "placeholder": "自动获取（用完即焚）",
-              "desc": "执行完成后自动清空"
+              "desc": "执行完成后会被脚本自动清空以保证安全"
             },
             {
-              "id": "qd_sub_id_2",
+              "id": "qd_reading_task_subid_2",
               "name": "组② SubId",
               "type": "text",
               "val": "",
               "placeholder": "自动获取",
-              "desc": "阅读页广告任务第二组"
+              "desc": "阅读页广告任务第二组子任务ID"
             },
             {
               "id": "qd_reading_session_2",
@@ -114,23 +100,23 @@
               "type": "textarea",
               "val": "",
               "placeholder": "自动获取（用完即焚）",
-              "desc": "执行完成后自动清空"
+              "desc": "执行完成后会被脚本自动清空以保证安全"
             },
             {
-              "id": "qd_sub_id_improve",
+              "id": "qd_reading_task_subid_3",
               "name": "组③ SubId",
               "type": "text",
               "val": "",
               "placeholder": "自动获取",
-              "desc": "阅读页广告任务第三组（提升阅读时长）"
+              "desc": "阅读页广告任务第三组子任务ID"
             },
             {
-              "id": "qd_reading_session_improve",
+              "id": "qd_reading_session_3",
               "name": "组③ Session",
               "type": "textarea",
               "val": "",
               "placeholder": "自动获取（用完即焚）",
-              "desc": "执行完成后自动清空"
+              "desc": "执行完成后会被脚本自动清空以保证安全"
             }
           ]
         },
@@ -140,10 +126,10 @@
           "settings": [
             {
               "id": "qd_timeout",
-              "name": "广告执行间隔",
+              "name": "广告执行间隔时间",
               "type": "number",
               "val": 0.5,
-              "desc": "单位：秒。建议范围 0.5 ~ 3 秒。网络不佳时请调大。"
+              "desc": "单位：秒。建议范围 0.5 ~ 3 秒，网络不佳时可适当调大"
             }
           ]
         }
