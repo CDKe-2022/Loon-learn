@@ -1,14 +1,14 @@
 {
   "id": "qidian.ads.sub",
-  "name": "起点读书 · 广告任务订阅",
+  "name": "KeHuang脚本订阅",
   "description": "起点读书自动广告任务（任务1/2/3）+ BoxJS 可视化配置",
-  "author": "@你的名字",
+  "author": "@KeHuang",
   "icon": "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png",
   "repo": "https://github.com/你的GitHub用户名/你的仓库",
   "apps": [
     {
       "id": "qidian.ads",
-      "name": "起点读书 · 广告任务",
+      "name": "起点读书·广告任务",
       "keys": [
         "qd_taskId",
         "qd_session",
