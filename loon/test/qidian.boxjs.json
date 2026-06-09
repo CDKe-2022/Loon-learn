@@ -1,0 +1,110 @@
+{
+  "id": "qd_reading_box",
+  "name": "起点读书 · 广告任务配置",
+  "keys": [
+    "qd_taskId",
+    "qd_session",
+    "qd_taskId_2",
+    "qd_session_2",
+    "qd_reading_task_subid_1",
+    "qd_reading_session_1",
+    "qd_reading_task_subid_2",
+    "qd_reading_session_2",
+    "qd_reading_task_subid_3",
+    "qd_reading_session_3",
+    "qd_timeout"
+  ],
+  "settings": [
+    {
+      "id": "qd_taskId",
+      "name": "任务一：每日福利 TaskId",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取，也可手动填写",
+      "desc": "福利中心-每日视频福利的任务ID"
+    },
+    {
+      "id": "qd_session",
+      "name": "任务一：Session 数据",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取，包含Url/Headers/Body",
+      "desc": "任务一完整请求体，包含Argus签名，勿随意改动"
+    },
+    {
+      "id": "qd_taskId_2",
+      "name": "任务二：限时彩蛋 TaskId",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取，也可手动填写",
+      "desc": "福利中心-限时彩蛋的任务ID"
+    },
+    {
+      "id": "qd_session_2",
+      "name": "任务二：Session 数据",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取，包含Url/Headers/Body",
+      "desc": "任务二完整请求体，包含Argus签名，勿随意改动"
+    },
+    {
+      "id": "qd_reading_task_subid_1",
+      "name": "任务三-组1：加点 SubId",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取",
+      "desc": "阅读页-广告·加点！组1的子任务ID"
+    },
+    {
+      "id": "qd_reading_session_1",
+      "name": "任务三-组1：Session 数据",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取 (用完即焚)",
+      "desc": "阅读页广告组1的请求体，执行完成后会被清空"
+    },
+    {
+      "id": "qd_reading_task_subid_2",
+      "name": "任务三-组2：加点 SubId",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取",
+      "desc": "阅读页-广告·加点！组2的子任务ID"
+    },
+    {
+      "id": "qd_reading_session_2",
+      "name": "任务三-组2：Session 数据",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取 (用完即焚)",
+      "desc": "阅读页广告组2的请求体，执行完成后会被清空"
+    },
+    {
+      "id": "qd_reading_task_subid_3",
+      "name": "任务三-组3：加点 SubId",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取",
+      "desc": "阅读页-广告·加点！组3的子任务ID"
+    },
+    {
+      "id": "qd_reading_session_3",
+      "name": "任务三-组3：Session 数据",
+      "val": "",
+      "type": "text",
+      "placeholder": "自动获取 (用完即焚)",
+      "desc": "阅读页广告组3的请求体，执行完成后会被清空"
+    },
+    {
+      "id": "qd_timeout",
+      "name": "广告执行间隔时间 (秒)",
+      "val": "0.5",
+      "type": "number",
+      "desc": "每个广告任务之间的等待时间，默认0.5秒，网络不佳可改大"
+    }
+  ],
+  "author": "@YourName",
+  "repo": "",
+  "icon": "https://raw.githubusercontent.com/Orz-3/mini/master/Color/yuedu.png",
+  "desc": "起点读书自动广告面板，支持查看与修改TaskId、Session及间隔时间"
+}
