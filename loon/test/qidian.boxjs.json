@@ -1,10 +1,10 @@
 {
   "id": "qidian.ads.sub",
   "name": "KeHuang脚本订阅",
-  "description": "起点读书自动广告任务（任务1/2/3）+ 斗鱼每日签到 + Cookie 抓取",
+  "description": "起点读书自动广告任务（任务1/2/3）+ BoxJS 可视化配置",
   "author": "@KeHuang",
   "icon": "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png",
-  "repo": "https://github.com/你的GitHub用户名/你的仓库",
+  "repo": "https://github.com/CDKe-2022/Loon-learn",
   "apps": [
     {
       "id": "qidian.ads",
@@ -113,84 +113,11 @@
         }
       ],
       "script": "https://raw.githubusercontent.com/你的GitHub用户名/你的仓库/main/Scripts/qidian.js",
-      "author": "@你的名字",
-      "repo": "https://github.com/你的GitHub用户名/你的仓库",
+      "author": "@Kehuang",
+      "repo": "https://github.com/CDKe-2022/Loon-learn",
       "icons": [
         "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png",
         "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png"
-      ]
-    },
-    {
-      "id": "douyu.sign",
-      "name": "斗鱼每日签到（Loon 优化版 + Cookie 抓取）",
-      "keys": [
-        "douyu_device_id",
-        "douyu_user_token",
-        "douyu_acf_auth",
-        "douyu_acf_uid",
-        "douyu_install_id",
-        "douyu_ttreq"
-      ],
-      "desc": "1) 通过 http-response 脚本自动抓取 acf_auth / acf_uid / install_id / ttreq；2) 每日自动签到并查询状态；3) Cookie 仅在变更时写入并通知",
-      "settings": [
-        {
-          "id": "douyu_device_id",
-          "name": "Device ID (did)",
-          "val": "",
-          "type": "text",
-          "placeholder": "d2699126c76fbe037a3cb50200001621",
-          "desc": "斗鱼设备 ID，默认值可在脚本里修改，一般抓包获取"
-        },
-        {
-          "id": "douyu_user_token",
-          "name": "User Token",
-          "val": "",
-          "type": "text",
-          "placeholder": "160153378_11_e79954d2d6e04f51_2_90552255",
-          "desc": "斗鱼用户 token，默认值可在脚本里修改，一般抓包获取"
-        },
-        {
-          "id": "douyu_acf_auth",
-          "name": "Cookie：acf_auth（自动抓取）",
-          "val": "",
-          "type": "textarea",
-          "placeholder": "由 http-response 脚本自动写入",
-          "desc": "斗鱼 Cookie 中的 acf_auth，通过 douyu_cookie_capture_optimized.js 自动抓取"
-        },
-        {
-          "id": "douyu_acf_uid",
-          "name": "Cookie：acf_uid（自动抓取）",
-          "val": "",
-          "type": "text",
-          "placeholder": "由 http-response 脚本自动写入",
-          "desc": "斗鱼 Cookie 中的 acf_uid，通过 douyu_cookie_capture_optimized.js 自动抓取（过滤 acf_uid=0）"
-        },
-        {
-          "id": "douyu_install_id",
-          "name": "Cookie：install_id（自动抓取）",
-          "val": "",
-          "type": "text",
-          "placeholder": "由 http-response 脚本自动写入",
-          "desc": "斗鱼 Cookie 中的 install_id，通过 douyu_cookie_capture_optimized.js 从请求 Cookie 抓取"
-        },
-        {
-          "id": "douyu_ttreq",
-          "name": "Cookie：ttreq（自动抓取）",
-          "val": "",
-          "type": "text",
-          "placeholder": "由 http-response 脚本自动写入",
-          "desc": "斗鱼 Cookie 中的 ttreq，通过 douyu_cookie_capture_optimized.js 从请求 Cookie 抓取"
-        }
-      ],
-      "script": [
-        "https://raw.githubusercontent.com/你的GitHub用户名/你的仓库/main/Scripts/douyu_sign.js",
-        "https://raw.githubusercontent.com/你的GitHub用户名/你的仓库/main/Scripts/douyu_cookie_capture_optimized.js"
-      ],
-      "author": "@KeHuang",
-      "repo": "https://github.com/你的GitHub用户名/你的仓库",
-      "icons": [
-        "https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png",
-        "https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png"
       ]
     }
   ]
