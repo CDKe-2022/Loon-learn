@@ -1,20 +1,18 @@
 /* 🥳 脚本功能: 自动观看 起点读书 阅读页广告 (任务3: 广告·加点！)
-   执行策略: 状态机驱动 (0→1→2→3)，Session永不清除，可审计可回滚
+   执行策略: 单次只刷一组，原样重放不篡改Body(防签名校验失败)，刷完清空自动轮替
    默认间隔时间: 0.5s (可通过 qd_timeout 修改) */
 
 const CONFIG = {
+  // 读取 Cookie 脚本存下的 3 组 Session
   READING_SESSION_KEYS: [
     "qd_reading_session_1", 
     "qd_reading_session_2", 
     "qd_reading_session_3"
   ],
-  // 新增：进度状态键
-  READING_PROGRESS_KEY: "qd_reading_progress",
-  
   TIMEOUT_KEY: "qd_timeout",
   NOTIFICATION_TITLE: "起点读书",
   
-  // 每组执行次数。手动抓包看1次，脚本只需再刷2次。
+  // 每组执行次数。手动抓包看1次，脚本只需再刷2次。如果想刷3次改成3。
   TASK_3_EXECUTIONS: 2, 
   DEFAULT_TIMEOUT_SECONDS: 0.5,
   SUCCESS_RESULT_CODE: 0,
@@ -24,9 +22,11 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 核心执行函数：直接反序列化原样重放，绝不篡改
 async function runTask(sessionStr, taskLabel) {
   let options;
   try {
+    // 此时 options 包含了原始的 url, headers, body
     options = JSON.parse(sessionStr);
   } catch (e) {
     console.error(`🔴解析 ${taskLabel} 会话信息失败: ${e.message}`);
@@ -34,6 +34,8 @@ async function runTask(sessionStr, taskLabel) {
   }
   
   return new Promise((resolve) => {
+    // Loon/Surge 的 $httpClient.post 会直接使用 options 中的原样 Header 和 Body
+    // 这保证了 Argus 签名等防伪字段不被破坏
     $httpClient.post(options, (error, response, data) => {
       if (error) {
         console.log(`🔴${taskLabel} 请求失败: ${error}`);
@@ -46,9 +48,9 @@ async function runTask(sessionStr, taskLabel) {
           console.log(`🎉${taskLabel} 成功!`);
           resolve(true);
         } else {
-          // 即使返回"已领取"等非0状态，我们也视为本轮完成，允许推进状态
-          console.log(`🔴${taskLabel} 失败(或已完成): ${data}`);
-          resolve(true); // 注意这里改为 true，防止因重复点击导致状态机卡死
+          // 失败可能是因为签名过期、任务次数已满等
+          console.log(`🔴${taskLabel} 失败: ${data}`);
+          resolve(false);
         }
       } catch (e) {
         console.log(`🔴${taskLabel} 解析响应失败`);
@@ -59,48 +61,44 @@ async function runTask(sessionStr, taskLabel) {
 }
 
 (async () => {
-  // 1. 读取当前进度
-  let progress = parseInt($persistentStore.read(CONFIG.READING_PROGRESS_KEY) || "0", 10);
-  
-  if (progress >= 3) {
-    console.log("✅今日阅读广告任务已全部完成 (Progress: 3)");
-    $notification.post(CONFIG.NOTIFICATION_TITLE, "✅任务已完成", "今日阅读广告已全部刷完");
-    return;
+  // 1. 按顺序寻找当前需要刷的组
+  let currentSessionStr = null;
+  let currentSessionKey = "";
+  let currentGroupLabel = "";
+
+  for (let i = 0; i < CONFIG.READING_SESSION_KEYS.length; i++) {
+    const sess = $persistentStore.read(CONFIG.READING_SESSION_KEYS[i]);
+    if (sess) {
+      currentSessionStr = sess;
+      currentSessionKey = CONFIG.READING_SESSION_KEYS[i];
+      currentGroupLabel = `任务3-组${i + 1}(广告·加点！)`;
+      break; // 找到第一个存在的即停止寻找
+    }
   }
 
-  // 2. 根据进度定位要执行的组
-  const currentSessionKey = CONFIG.READING_SESSION_KEYS[progress];
-  const currentSessionStr = $persistentStore.read(currentSessionKey);
-  const currentGroupIndex = progress + 1;
-  const currentGroupLabel = `任务3-组${currentGroupIndex}(广告·加点！)`;
-
   if (!currentSessionStr) {
-    console.log(`🟡未找到组${currentGroupIndex}的会话，请先手动观看获取 (当前Progress: ${progress})`);
-    $notification.post(CONFIG.NOTIFICATION_TITLE, "⚠️无数据", `未找到组${currentGroupIndex}的会话，请先手动观看`);
+    console.log("🟡未找到任何阅读广告会话，请先手动观看获取");
+    $notification.post(CONFIG.NOTIFICATION_TITLE, "⚠️无数据", "未找到广告·加点！会话");
     return;
   }
 
   const timeoutSeconds = $persistentStore.read(CONFIG.TIMEOUT_KEY);
   const timeout = timeoutSeconds ? Number(timeoutSeconds) : CONFIG.DEFAULT_TIMEOUT_SECONDS;
 
-  // 3. 执行当前组
-  console.log(`🚀当前进度: ${progress} -> 开始执行: ${currentGroupLabel}`);
-  let allSuccess = true;
+  // 2. 开始执行当前组
+  console.log(`🚀开始执行: ${currentGroupLabel}`);
   for (let i = 0; i < CONFIG.TASK_3_EXECUTIONS; i++) {
     console.log(`🟡${currentGroupLabel}执行: 第 ${i + 1} 次`);
-    const success = await runTask(currentSessionStr, currentGroupLabel);
-    if (!success) allSuccess = false;
+    await runTask(currentSessionStr, currentGroupLabel);
     if (i < CONFIG.TASK_3_EXECUTIONS - 1) await wait(timeout * 1000);
   }
 
-  // 4. 推进状态机 (只要执行完毕，无论接口返回成功还是已领取，都推进状态)
-  const newProgress = progress + 1;
-  $persistentStore.write(String(newProgress), CONFIG.READING_PROGRESS_KEY);
-  console.log(`✅${currentGroupLabel} 执行流程结束，进度推进至: ${newProgress}`);
-  
-  // Session 不做任何删除操作，保留供审计
-  $notification.post(CONFIG.NOTIFICATION_TITLE, "✅单组执行完成", `${currentGroupLabel} 已完成，当前进度: ${newProgress}/3`);
+  // 3. 用完即焚：清空当前组的 Session，下次运行自动轮到下一组
+  $persistentStore.write("", currentSessionKey);
+  console.log(`🧹已清空 ${currentGroupLabel} 的会话数据，下次将自动执行下一组`);
 
+  $notification.post(CONFIG.NOTIFICATION_TITLE, "✅单组执行完成", `${currentGroupLabel} 已完成`);
+  
 })().catch((e) => {
   console.error("🔴脚本执行出错: ", e);
 }).finally(() => {
