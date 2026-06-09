@@ -8,7 +8,7 @@
   "apps": [
     {
       "id": "qidian.ads",
-      "name": "起点读书·广告任务",
+      "name": "起点读书",
       "keys": [
         "qd_taskId",
         "qd_session",
