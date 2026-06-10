@@ -1,7 +1,7 @@
 /*
 🥳 脚本功能: 自动观看 起点读书 常规广告 (仅任务1和任务2)
 
-任务1: 福利中心 --> 每日视频福利 (默认 7 次)
+任务1: 福利中心 --> 每日视频福利 (默认 8 次)
 任务2: 福利中心 --> 限时彩蛋 (默认 2 次)
 
 默认间隔时间:
@@ -23,7 +23,7 @@ const CONFIG = {
   NOTIFICATION_SUBTITLE_EXECUTION_COMPLETE: "常规广告执行完成",
 
   // 循环次数
-  TASK_1_EXECUTIONS: 7,
+  TASK_1_EXECUTIONS: 8,
   TASK_2_EXECUTIONS: 2,
 
   // 默认超时时间(秒)
