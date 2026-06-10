@@ -1,18 +1,16 @@
 /*
-🥳 脚本功能: 自动观看 起点读书 广告 (仅支持 Loon)
+🥳 脚本功能: 自动观看 起点读书 常规广告 (仅任务1和任务2)
 
-任务1: 福利中心 --> 每日视频福利 --> 手动看一个视频
-任务2: 福利中心 --> 限时彩蛋 --> 额外看三次小视频奖励 --> 手动看一个视频
-
-默认执行次数:
-- 任务1: 8 次
-- 任务2: 2 次
+任务1: 福利中心 --> 每日视频福利 (默认 7 次)
+任务2: 福利中心 --> 限时彩蛋 (默认 2 次)
 
 默认间隔时间:
 - 0.5 秒 (可通过 qd_timeout 修改，单位：秒)
+
+注: 任务3(广告·加点)为一次性签名，已独立至其他脚本处理，本脚本不予干涉。
 */
 
-// --- 配置常量 ---
+// --- 配置常量 (严格对齐现版本 BoxJS 参数) ---
 const CONFIG = {
   // 存储键名
   SESSION_KEY_1: "qd_session",
@@ -22,10 +20,10 @@ const CONFIG = {
   // 通知配置
   NOTIFICATION_TITLE: "起点读书",
   NOTIFICATION_SUBTITLE_MISSING_DATA: "信息不全! 请通过重写获取信息",
-  NOTIFICATION_SUBTITLE_EXECUTION_COMPLETE: "脚本执行完成",
+  NOTIFICATION_SUBTITLE_EXECUTION_COMPLETE: "常规广告执行完成",
 
   // 循环次数
-  TASK_1_EXECUTIONS: 8,
+  TASK_1_EXECUTIONS: 7,
   TASK_2_EXECUTIONS: 2,
 
   // 默认超时时间(秒)
@@ -55,7 +53,7 @@ function parsePositiveNumber(raw, fallback) {
 }
 
 function cloneRequestOptions(options) {
-  // 避免请求对象在多次调用中被意外污染
+  // 核心防坑：避免请求对象在多次调用中被底层 HTTP 库意外污染 (如篡改 Headers)
   return {
     ...options,
     headers: options && options.headers ? { ...options.headers } : undefined,
@@ -72,8 +70,8 @@ function readInitData() {
   const rawSession2 = $persistentStore.read(CONFIG.SESSION_KEY_2);
 
   const missingItems = [];
-  if (!rawSession1) missingItems.push("广告1会话");
-  if (!rawSession2) missingItems.push("广告2会话");
+  if (!rawSession1) missingItems.push("任务1会话");
+  if (!rawSession2) missingItems.push("任务2会话");
 
   if (missingItems.length > 0) {
     const errorMsg = `⚠️缺少: ${missingItems.join(", ")}。${CONFIG.NOTIFICATION_SUBTITLE_MISSING_DATA}`;
@@ -157,7 +155,7 @@ async function executeBatch(taskLabel, options, count, intervalMs) {
   let fail = 0;
 
   for (let i = 1; i <= count; i++) {
-    console.log(`🟡${taskLabel} 执行: 第 ${i} 次`);
+    console.log(`🟡${taskLabel} 执行: 第 ${i}/${count} 次`);
     const ok = await runTaskOnce(options, taskLabel, i, count);
     if (ok) success++;
     else fail++;
@@ -173,13 +171,15 @@ async function executeBatch(taskLabel, options, count, intervalMs) {
 // --- 主流程 ---
 (async () => {
   const init = readInitData();
-  if (!init) return;
+  if (!init) return safeDone();
 
   console.log(`⏱️ 设置的间隔时间: ${init.timeoutSeconds} 秒`);
 
-  const result1 = await executeBatch("任务1", init.session1, CONFIG.TASK_1_EXECUTIONS, init.timeoutMs);
-  const result2 = await executeBatch("任务2", init.session2, CONFIG.TASK_2_EXECUTIONS, init.timeoutMs);
+  // 分别执行任务1和任务2
+  const result1 = await executeBatch("任务1(每日福利)", init.session1, CONFIG.TASK_1_EXECUTIONS, init.timeoutMs);
+  const result2 = await executeBatch("任务2(限时彩蛋)", init.session2, CONFIG.TASK_2_EXECUTIONS, init.timeoutMs);
 
+  // 汇总通知
   const summary =
     `任务1: 成功 ${result1.success}/${result1.total}，失败 ${result1.fail}\n` +
     `任务2: 成功 ${result2.success}/${result2.total}，失败 ${result2.fail}`;
