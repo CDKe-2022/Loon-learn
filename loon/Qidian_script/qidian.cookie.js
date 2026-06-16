@@ -1,123 +1,97 @@
-/*
-脚本功能: 获取 起点读书 广告信息 (仅支持 Loon)
-操作步骤: 我 --> 福利中心 --> 手动观看一个广告
-
-[rewrite local]
-https:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch url script-request-body your_script_url
-
-[MITM]
-hostname = h5.if.qidian.com
-*/
+/* 脚本功能: 获取 起点读书 广告信息 (完美适配单Session策略)
+   操作步骤: 
+   1. 进入福利中心 (自动捕获任务1、2的Session)
+   2. 阅读页看1分钟书后点击"加点"广告 (自动捕获任务3对应组的Session)
+   
+   [Script]
+   http-request ^https?:\/\/(h5|magev6)\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/finishWatch script-path=qidian.cookie.js, requires-body=true
+   [MITM]
+   hostname = %APPEND% h5.if.qidian.com, magev6.if.qidian.com */
 
 const CONFIG = {
-  NAME: "起点读书",
+  // 任务一 & 任务二
   TASK_ID_KEY_1: "qd_taskId",
-  TASK_ID_KEY_2: "qd_taskId_2",
   SESSION_KEY_1: "qd_session",
+  
+  TASK_ID_KEY_2: "qd_taskId_2",
   SESSION_KEY_2: "qd_session_2",
+  
+  // 任务三 (阅读·加点，动态适配多组任务)
+  // 读取上一个脚本写入的逗号分隔ID串
+  READING_TASK_IDS_KEY: "qd_reading_task_subids",
+  // 动态拼接Session存储键：qd_reading_session_1, qd_reading_session_2...
+  READING_SESSION_PREFIX: "qd_reading_session_",
+
+  NOTIFICATION_TITLE: "起点读书",
 };
 
-let doneCalled = false;
-function safeDone(obj = {}) {
-  if (!doneCalled) {
-    doneCalled = true;
-    $done(obj);
-  }
-}
-
-function log(msg) {
-  console.log(`[${CONFIG.NAME}] ${msg}`);
-}
-
-function notify(subtitle, message) {
-  $notification.post(CONFIG.NAME, subtitle || "", message || "");
-}
-
-function readTrim(key) {
-  const val = $persistentStore.read(key);
-  return val ? String(val).trim() : "";
-}
-
-function sanitizeHeaders(headers) {
-  const h = { ...(headers || {}) };
-  // 回放请求时，这些头可能导致兼容问题，去掉更稳
-  delete h["Content-Length"];
-  delete h["content-length"];
-  delete h["Host"];
-  delete h["host"];
-  delete h["Connection"];
-  delete h["connection"];
-  delete h["Proxy-Connection"];
-  delete h["proxy-connection"];
-  return h;
-}
-
-function buildSessionFromRequest(req) {
-  return {
-    url: req.url || "",
-    body: req.body || "",
-    headers: sanitizeHeaders(req.headers),
-  };
-}
-
-(function main() {
+/**
+ * 通用保存函数 (全量保存，防止丢失 Argus 签名头导致重放失败)
+ */
+function saveSession(session, key, msg) {
   try {
-    if (typeof $request === "undefined" || !$request) {
-      log("当前非 request 上下文，跳过。");
-      notify("⚠️执行环境不正确", "请确认使用 script-request-body 触发");
-      return;
-    }
-
-    const taskId1 = readTrim(CONFIG.TASK_ID_KEY_1);
-    const taskId2 = readTrim(CONFIG.TASK_ID_KEY_2);
-
-    if (!taskId1 || !taskId2) {
-      const missing = [];
-      if (!taskId1) missing.push("qd_taskId");
-      if (!taskId2) missing.push("qd_taskId_2");
-      const msg = `缺少任务ID: ${missing.join(", ")}，请先获取 taskId 后再抓广告会话`;
-      log(`🔴${msg}`);
-      notify("⚠️信息不全", msg);
-      return;
-    }
-
-    const session = buildSessionFromRequest($request);
-    const body = session.body;
-
-    if (!body) {
-      log("🔴请求体为空，无法识别广告类型");
-      notify("🔴抓取失败", "请求体为空");
-      return;
-    }
-
-    let targetKey = "";
-    let label = "";
-
-    if (body.includes(taskId1)) {
-      targetKey = CONFIG.SESSION_KEY_1;
-      label = "广告1";
-    } else if (body.includes(taskId2)) {
-      targetKey = CONFIG.SESSION_KEY_2;
-      label = "广告2";
+    // 直接全量序列化存储，不精简 Header
+    const result = $persistentStore.write(JSON.stringify(session), key);
+    
+    if (result) {
+      console.log(msg);
+      $notification.post(CONFIG.NOTIFICATION_TITLE, "", msg);
+      return true;
     } else {
-      log("🔴请求体中未匹配到 taskId1/taskId2");
-      log(`url: ${session.url}`);
-      notify("🔴抓取失败", "未匹配到任务ID，请先手动观看对应广告");
-      return;
-    }
-
-    const ok = $persistentStore.write(JSON.stringify(session), targetKey);
-    if (ok) {
-      log(`🎉${label}信息获取成功 -> ${targetKey}`);
-      notify("✅抓取成功", `${label}信息获取成功`);
-    } else {
-      log(`🔴${label}信息写入失败 -> ${targetKey}`);
-      notify("🔴抓取失败", `${label}信息写入失败`);
+      throw new Error("Write failed");
     }
   } catch (e) {
-    log(`🔴脚本异常: ${e && e.message ? e.message : e}`);
-    notify("脚本异常", "请查看日志");
-  } finally {
-    safeDone();
+    console.log("🔴信息写入失败:", e.message);
+    $notification.post(CONFIG.NOTIFICATION_TITLE, "", "🔴信息写入失败!");
+    return false;
   }
-})();
+}
+
+!(async () => {
+  const session = {
+    url: $request.url,
+    body: $request.body,
+    headers: $request.headers,
+  };
+  console.log('捕获的请求URL:', session.url);
+
+  // 1. 检查是否为 任务一 (福利)
+  const taskId1 = $persistentStore.read(CONFIG.TASK_ID_KEY_1);
+  if (taskId1 && session.body && session.body.includes(taskId1)) {
+    if (saveSession(session, CONFIG.SESSION_KEY_1, "🎉任务一(Session)获取成功!")) {
+      return; 
+    }
+  }
+
+  // 2. 检查是否为 任务二 (视频)
+  const taskId2 = $persistentStore.read(CONFIG.TASK_ID_KEY_2);
+  if (taskId2 && session.body && session.body.includes(taskId2)) {
+    if (saveSession(session, CONFIG.SESSION_KEY_2, "🎉任务二(Session)获取成功!")) {
+      return;
+    }
+  }
+
+  // 3. 检查是否为 任务三 (阅读·加点) -> 动态拆分ID，按序号存储Session
+  const readingTaskIdsStr = $persistentStore.read(CONFIG.READING_TASK_IDS_KEY);
+  if (readingTaskIdsStr) {
+    // 将 "id1,id2,id3..." 拆分成数组
+    const readingTaskIds = readingTaskIdsStr.split(',');
+    
+    for (let i = 0; i < readingTaskIds.length; i++) {
+      const taskId = readingTaskIds[i];
+      if (taskId && session.body && session.body.includes(taskId)) {
+        // 动态生成对应的 Session Key，如 qd_reading_session_1
+        const sessionKey = `${CONFIG.READING_SESSION_PREFIX}${i + 1}`;
+        if (saveSession(session, sessionKey, `🎉阅读广告-组${i + 1}(Session)获取成功!`)) {
+          return;
+        }
+      }
+    }
+  }
+
+  // 4. 都不匹配 (可能是其他无关的广告请求)
+  console.log("⚪未匹配到已知任务ID，已忽略本次请求");
+
+})().finally(() => {
+  $done({});
+});
