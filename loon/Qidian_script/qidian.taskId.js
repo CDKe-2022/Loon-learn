@@ -1,133 +1,138 @@
-/*
-脚本功能: 获取 起点读书 任务信息 (仅支持 Loon, 变更检测版)
-操作步骤: 我 --> 福利中心
+/* 脚本功能: 获取 起点读书 任务信息 (仅 Loon)
+   操作步骤: 我 --> 福利中心
+   [rewrite local]
+   https:\/\/h5\.if\.qidian\.com\/argus\/api\/v2\/video\/adv\/mainPage url script-response-body qidian.taskId.js
+   [MITM]
+   hostname = h5.if.qidian.com */
 
-[rewrite local]
-https:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/video\/adv\/mainPage url script-response-body your_script_url
-
-[MITM]
-hostname = h5.if.qidian.com
-*/
-
+// --- 配置常量 ---
 const CONFIG = {
-  NAME: "起点读书",
-  TASK_ID_KEY_1: "qd_taskId",
-  TASK_ID_KEY_2: "qd_taskId_2",
-
-  // 额外小视频任务识别关键词（兼容文案微调）
-  EXTRA_VIDEO_HINT: "额外看3次小视频",
+  DAILY_TASK_KEY: "qd_taskId",
+  VIDEO_TASK_KEY: "qd_taskId_2",
+  
+  // 核心优化：不再写死 _1 到 _6，改为单键存储所有ID，用逗号分隔
+  READING_SUBIDS_KEY: "qd_reading_task_subids", 
+  
+  NOTIFICATION_TITLE: "起点读书",
+  
+  TARGET_VIDEO_TASK_ICON: "额外看3次小视频得奖励",
+  TARGET_READING_TASK_TITLE: "广告·加点", 
 };
 
-let doneCalled = false;
-function safeDone(obj = {}) {
-  if (!doneCalled) {
-    doneCalled = true;
-    $done(obj);
+function safeGet(obj, path, defaultValue = undefined) {
+  if (!obj || !path) return defaultValue;
+  const keys = path.split('.');
+  let current = obj;
+  for (const key of keys) {
+    if (current === null || typeof current !== 'object') return defaultValue;
+    current = current[key];
   }
+  return current === undefined ? defaultValue : current;
 }
 
-function log(msg) {
-  console.log(`[${CONFIG.NAME}] ${msg}`);
+function findTaskIdByIcon(taskList, targetIcon) {
+  if (!Array.isArray(taskList)) return undefined;
+  const task = taskList.find(t => t?.Icon === targetIcon);
+  return task?.TaskId;
 }
 
-function notify(subtitle, message) {
-  $notification.post(CONFIG.NAME, subtitle || "", message || "");
-}
-
-function read(key) {
-  return $persistentStore.read(key) || "";
-}
-
-function write(key, val) {
-  return $persistentStore.write(String(val), key);
-}
-
-function parseJSON(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+/**
+ * 提取所有包含关键词的 SubTaskId
+ */
+function findAllReadingSubIds(taskList, targetTitle) {
+  if (!Array.isArray(taskList)) return [];
+  const result = [];
+  for (const task of taskList) {
+    const title = task?.Title || "";
+    if (title.includes(targetTitle) && task?.SubTaskId) {
+      result.push(String(task.SubTaskId));
+    }
   }
+  return result;
 }
 
-function extractTaskId1(data) {
-  const list = data?.DailyBenefitModule?.TaskList;
-  if (!Array.isArray(list) || list.length === 0) return "";
-  // 与你之前逻辑保持一致倾向：优先 index 1，其次 0
-  return String(list?.[1]?.TaskId || list?.[0]?.TaskId || "");
+function writeStore(value, key) {
+  const valToWrite = (value === undefined || value === null) ? "" : String(value);
+  $persistentStore.write(valToWrite, key);
 }
 
-function extractTaskId2(data) {
-  const list = data?.VideoRewardTab?.TaskList;
-  if (!Array.isArray(list)) return "";
-  const found = list.find((item) => {
-    const text = String(item?.Icon || item?.Title || item?.TaskName || "");
-    return text.includes(CONFIG.EXTRA_VIDEO_HINT);
-  });
-  return String(found?.TaskId || "");
-}
+// --- 主执行逻辑 ---
+(() => {
+  let isDataChanged = false;
+  let logMsg = "";
 
-(function main() {
   try {
-    if (typeof $response === "undefined" || !$response) {
-      log("非 response 上下文，跳过");
-      return;
+    const respBody = $response.body;
+    if (!respBody) throw new Error("未捕获到响应体");
+    
+    const obj = JSON.parse(respBody);
+    
+    const result = obj.Result ?? obj.result;
+    if (result !== undefined && result !== 0) {
+      throw new Error(`接口返回非成功状态: Result=${result}`);
     }
 
-    const rawBody = $response.body || "";
-    if (!rawBody) {
-      log("🔴响应体为空");
-      return;
+    const data = obj.Data;
+    if (!data || typeof data !== 'object') {
+      throw new Error("响应数据 Data 结构无效");
     }
 
-    const obj = parseJSON(rawBody);
-    if (!obj) {
-      log("🔴响应 JSON 解析失败");
-      return;
-    }
-
-    const data = obj?.Data || {};
-    const newId1 = extractTaskId1(data);
-    const newId2 = extractTaskId2(data);
-
-    if (!newId1 || !newId2) {
-      log("🔴未解析到完整 taskId，跳过写入");
-      return;
-    }
-
-    const oldId1 = read(CONFIG.TASK_ID_KEY_1);
-    const oldId2 = read(CONFIG.TASK_ID_KEY_2);
-
-    // 核心：变更检测
-    const sameAsLocal = oldId1 === newId1 && oldId2 === newId2;
-
-    if (sameAsLocal) {
-      // 一致：不重复写入 / 不重复通知 / 不重复刷新
-      log("✅ taskId 未变化，跳过写入与通知");
-      return;
-    }
-
-    // 不一致或首次：覆盖写入并通知
-    const ok1 = write(CONFIG.TASK_ID_KEY_1, newId1);
-    const ok2 = write(CONFIG.TASK_ID_KEY_2, newId2);
-
-    if (ok1 && ok2) {
-      const firstTime = !oldId1 || !oldId2;
-      if (firstTime) {
-        log(`🎉首次获取成功: taskId_1=${newId1}, taskId_2=${newId2}`);
-        notify("✅首次获取任务信息成功", `taskId_1: ${newId1}\ntaskId_2: ${newId2}`);
-      } else {
-        log(`🔄检测到变更并已更新: ${oldId1} -> ${newId1}, ${oldId2} -> ${newId2}`);
-        notify("🔄任务信息已更新", `taskId_1: ${oldId1} → ${newId1}\ntaskId_2: ${oldId2} → ${newId2}`);
+    // 1. 福利任务
+    const dailyTaskList = safeGet(data, 'DailyBenefitModule.TaskList', []);
+    let newDailyTaskId = undefined;
+    if (Array.isArray(dailyTaskList)) {
+      for (const task of dailyTaskList) {
+        if (task?.TaskId) { newDailyTaskId = task.TaskId; break; }
       }
-    } else {
-      log("🔴写入本地存储失败");
-      notify("⚠️任务信息更新失败", "写入本地存储失败");
     }
+
+    // 2. 视频任务
+    const videoTaskList = safeGet(data, 'VideoRewardTab.TaskList', []);
+    const newVideoTaskId = findTaskIdByIcon(videoTaskList, CONFIG.TARGET_VIDEO_TASK_ICON);
+
+    // 3. 阅读页任务 (动态获取所有，不限制数量)
+    const readingTaskList = safeGet(data, 'ReadingPageTaskModule.TaskList', []);
+    const newReadingSubIds = findAllReadingSubIds(readingTaskList, CONFIG.TARGET_READING_TASK_TITLE);
+
+    // --- 存储逻辑 ---
+    
+    if (newDailyTaskId) {
+      const oldVal = $persistentStore.read(CONFIG.DAILY_TASK_KEY) || "";
+      if (oldVal !== String(newDailyTaskId)) {
+        writeStore(newDailyTaskId, CONFIG.DAILY_TASK_KEY);
+        isDataChanged = true;
+      }
+    }
+
+    if (newVideoTaskId) {
+      const oldVal = $persistentStore.read(CONFIG.VIDEO_TASK_KEY) || "";
+      if (oldVal !== String(newVideoTaskId)) {
+        writeStore(newVideoTaskId, CONFIG.VIDEO_TASK_KEY);
+        isDataChanged = true;
+      }
+    }
+
+    // 核心优化：将数组用逗号拼接成字符串存入，例如 "id1,id2,id3,id4,id5,id6"
+    if (newReadingSubIds.length > 0) {
+      const newValStr = newReadingSubIds.join(',');
+      const oldValStr = $persistentStore.read(CONFIG.READING_SUBIDS_KEY) || "";
+      if (oldValStr !== newValStr) {
+        writeStore(newValStr, CONFIG.READING_SUBIDS_KEY);
+        isDataChanged = true;
+      }
+    }
+
+    logMsg = `Daily: ${newDailyTaskId || '-'}, Video: ${newVideoTaskId || '-'}, Reading(${newReadingSubIds.length}个): ${newReadingSubIds.join(',')}`;
+    console.log(isDataChanged ? `🟡检测到变化已更新 | ${logMsg}` : `🟢数据无变化 | ${logMsg}`);
+    
+    if (isDataChanged) {
+      $notification.post(CONFIG.NOTIFICATION_TITLE, "🎉任务信息已更新!", logMsg);
+    }
+
   } catch (e) {
-    log(`🔴脚本异常: ${e?.message || e}`);
-    notify("脚本异常", "请查看日志");
+    console.log(`🔴脚本运行异常: ${e.message}`);
+    $notification.post(CONFIG.NOTIFICATION_TITLE, "🔴获取失败", e.message);
   } finally {
-    safeDone();
+    $done({});
   }
 })();
