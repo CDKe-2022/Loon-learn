@@ -1,0 +1,158 @@
+{
+  "id": "qidian.ads.sub",
+  "name": "KeHuang脚本订阅 (起点+斗鱼)",
+  "description": "起点读书自动广告任务 + 斗鱼每日签到任务 + BoxJS 可视化配置",
+  "author": "@KeHuang",
+  "icon": "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png",
+  "repo": "https://github.com/CDKe-2022/Loon-learn",
+  "apps": [
+    {
+      "id": "qidian.ads",
+      "name": "起点读书",
+      "keys": [
+        "qd_taskId",
+        "qd_session",
+        "qd_taskId_2",
+        "qd_session_2",
+        "qd_reading_task_subids",
+        "qd_reading_session_queue",
+        "qd_timeout"
+      ],
+      "desc": "任务1：每日福利；任务2：限时彩蛋；任务3：广告·加点（队列存储，单键管理）",
+      "settings": [
+        {
+          "id": "qd_taskId",
+          "name": "任务一：每日福利 TaskId",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "福利中心-每日视频福利的任务ID"
+        },
+        {
+          "id": "qd_session",
+          "name": "任务一：Session 数据",
+          "val": "",
+          "type": "textarea",
+          "placeholder": "自动获取",
+          "desc": "任务一完整请求体，建议不要手动修改"
+        },
+        {
+          "id": "qd_taskId_2",
+          "name": "任务二：限时彩蛋 TaskId",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "福利中心-限时彩蛋的任务ID"
+        },
+        {
+          "id": "qd_session_2",
+          "name": "任务二：Session 数据",
+          "val": "",
+          "type": "textarea",
+          "placeholder": "自动获取",
+          "desc": "任务二完整请求体，建议不要手动修改"
+        },
+        {
+          "id": "qd_reading_task_subids",
+          "name": "任务三：加点 SubIds",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取，格式：id1,id2,id3...",
+          "desc": "阅读页-广告·加点！所有子任务ID，自动捕获并逗号分隔"
+        },
+        {
+          "id": "qd_reading_session_queue",
+          "name": "任务三：Session 队列",
+          "val": "[]",
+          "type": "textarea",
+          "placeholder": "自动获取 (用完即焚)",
+          "desc": "阅读页广告请求体队列。脚本自动以数组形式存入，执行成功后自动删除首个，完成清空。"
+        },
+        {
+          "id": "qd_timeout",
+          "name": "广告执行间隔时间 (秒)",
+          "val": 0.5,
+          "type": "number",
+          "desc": "每个广告任务之间的等待时间，默认0.5秒"
+        }
+      ],
+      "script": "https://raw.githubusercontent.com/你的GitHub用户名/你的仓库/main/Scripts/qidian.js",
+      "author": "@Kehuang",
+      "repo": "https://github.com/CDKe-2022/Loon-learn",
+      "icons": [
+        "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png",
+        "https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/qidian.png"
+      ]
+    },
+    {
+      "id": "douyu.sign",
+      "name": "斗鱼",
+      "keys": [
+        "douyu_acf_auth",
+        "douyu_acf_uid",
+        "douyu_install_id",
+        "douyu_ttreq",
+        "douyu_device_id",
+        "douyu_user_token"
+      ],
+      "desc": "斗鱼每日签到所需参数配置 (支持自动抓取 Cookie)",
+      "settings": [
+        {
+          "id": "douyu_acf_auth",
+          "name": "斗鱼 acf_auth",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "从响应 Set-Cookie 中自动抓取"
+        },
+        {
+          "id": "douyu_acf_uid",
+          "name": "斗鱼 acf_uid",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "从响应 Set-Cookie 中自动抓取 (已过滤 acf_uid=0)"
+        },
+        {
+          "id": "douyu_install_id",
+          "name": "斗鱼 install_id",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "从请求 Cookie 中自动抓取"
+        },
+        {
+          "id": "douyu_ttreq",
+          "name": "斗鱼 ttreq",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动获取",
+          "desc": "从请求 Cookie 中自动抓取"
+        },
+        {
+          "id": "douyu_device_id",
+          "name": "斗鱼 device_id",
+          "val": "d2699126c76fbe037a3cb50200001621",
+          "type": "text",
+          "placeholder": "默认设备ID",
+          "desc": "斗鱼签到设备ID，如遇异常可手动修改"
+        },
+        {
+          "id": "douyu_user_token",
+          "name": "斗鱼 user_token",
+          "val": "160153378_11_e79954d2d6e04f51_2_90552255",
+          "type": "text",
+          "placeholder": "默认用户Token",
+          "desc": "斗鱼签到用户Token，如遇异常可手动修改"
+        }
+      ],
+      "script": "https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js",
+      "author": "可莉🅥 & qwen",
+      "repo": "https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md",
+      "icons": [
+        "https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png",
+        "https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png"
+      ]
+    }
+  ]
+}
