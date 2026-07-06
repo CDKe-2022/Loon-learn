@@ -1,0 +1,13 @@
+#!name=WPS 签到
+#!desc=😀 WPS Office 每日签到 + 福利中心多项任务\n🤫 脚本包含功能：每日签到，打卡领会员，天天抽奖，会员试用申请，限量爆款领取，小程序打卡\n🤫 使用步骤：1、按下方对应平台配置,开启重写脚本 + cron 2、打开「WPS」APP → 进任意活动页(任务中心 / 福利中心「天天领福利」)停留 1 秒 3、收到 ✅ WPS Cookie 获取成功 通知即抓取成功 4、cron 每天 10:00 触发
+#!author=ChatGPT
+#!homepage=https://github.com/MaYIHEI/paperclip
+#!icon=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png
+
+[MITM]
+hostname = personal-act.wps.cn
+
+[Script]
+http-request ^https:\/\/personal-act\.wps\.cn\/activity-rubik\/activity\/page_info tag=WPS Cookie, script-path=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/wps/wps.cookie.js, requires-body=false, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png
+
+cron "0 10 * * *" script-path=https://raw.githubusercontent.com/MaYIHEI/paperclip/refs/heads/main/app/wps/wps.js, tag=WPS签到, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
