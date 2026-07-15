@@ -14,11 +14,11 @@ const CK_KEY = "wps_sid"; // 只存 wps_sid 这一个长效登录态(activity �
 (function main() {
     if (typeof $request === "undefined") {
         console.log("[ERROR] 该脚本仅作为 http-request 重写脚本运行");
-        $done();
+        $done({});
         return;
     }
     if ($request.method === "OPTIONS") {
-        $done();
+        $done({});
         return;
     }
 
@@ -31,7 +31,7 @@ const CK_KEY = "wps_sid"; // 只存 wps_sid 这一个长效登录态(activity �
 
         if (!m) {
             console.log("[WARN] 请求头里没找到 wps_sid,可能该请求未带登录态,换个活动页重试");
-            $done();
+            $done({});
             return;
         }
         const sid = m[1];
@@ -39,7 +39,7 @@ const CK_KEY = "wps_sid"; // 只存 wps_sid 这一个长效登录态(activity �
         const old = $persistentStore.read(CK_KEY) || "";
         if (old === sid) {
             console.log("[INFO] wps_sid 未变,跳过更新");
-            $done();
+            $done({});
             return;
         }
 
