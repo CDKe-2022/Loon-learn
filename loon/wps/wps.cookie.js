@@ -50,7 +50,7 @@ const CK_KEY = "wps_sid"; // 只存 wps_sid 这一个长效登录态(activity �
         console.log("[ERROR] cookie 抓取失败: " + e);
     }
 
-    $done();
+    $done({});
 })();
 
 function maskSid(s) {
