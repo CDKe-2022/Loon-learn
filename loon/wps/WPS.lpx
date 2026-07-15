@@ -1,7 +1,5 @@
 #!name=WPS 签到
-#!desc=WPS Office 每日签到 + 福利中心多项任务
-#!脚本包含功能：每日签到，打卡领会员，天天抽奖，会员试用申请，限量爆款领取，小程序打卡
-#!使用步骤：1、按下方配置开启脚本 2、打开「WPS」APP 进任意活动页(任务中心/福利中心)停留 1 秒 3、收到 ✅ WPS Cookie 获取成功 通知即抓取成功 4、cron 每天 10:00 触发
+#!desc=WPS Office 每日签到 + 福利中心多项任务。脚本包含功能：每日签到，打卡领会员，天天抽奖，会员试用申请，限量爆款领取，小程序打卡。使用步骤：1、按下方配置开启脚本 2、打开「WPS」APP 进任意活动页(任务中心/福利中心)停留 1 秒 3、收到 ✅ WPS Cookie 获取成功 通知即抓取成功 4、cron 每天 10:00 触发
 #!author=ChatGPT
 #!homepage=https://github.com/MaYIHEI/paperclip
 #!icon=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png
