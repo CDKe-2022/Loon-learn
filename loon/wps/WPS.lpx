@@ -21,6 +21,6 @@ wps_clear = switch,false,tag=清除Cookie,desc=开启后本次运行先清除已
 hostname = personal-act.wps.cn
 
 [Script]
-http-request ^https:\/\/personal-act\.wps\.cn\/activity-rubik\/activity\/page_info tag=WPS Cookie, script-path=https://example.com/wps.cookie.optimized.js, requires-body=false, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
+http-request ^https:\/\/personal-act\.wps\.cn\/activity-rubik\/activity\/page_info tag=WPS Cookie, script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/wps/wps.cookie.js, requires-body=false, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
 
-cron "0 10 * * *" script-path=https://example.com/wps.optimized.js, tag=WPS签到, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true, argument=[{wps_debug},{wps_task_hot},{wps_task_trial},{wps_task_signin},{wps_task_fragment},{wps_task_lottery},{wps_task_clockin},{wps_clear}]
+cron "0 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/wps/wps.js, tag=WPS签到, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true, argument=[{wps_debug},{wps_task_hot},{wps_task_trial},{wps_task_signin},{wps_task_fragment},{wps_task_lottery},{wps_task_clockin},{wps_clear}]
