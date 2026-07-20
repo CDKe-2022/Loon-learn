@@ -20,18 +20,37 @@
 
 const CK_KEY = "wps_sid";
 
-const SCRIPT_VERSION = "1.0"; // 改一次 +1,确认拉到最新版
+const SCRIPT_VERSION = "1.1"; // 改一次 +1,确认拉到最新版
+const HTTP_TIMEOUT_MS = 15000; // 单次请求超时
+const TASK_TIMEOUT_MS = 45000; // 单个任务软超时
 console.log(`[INFO] 脚本版本 ${SCRIPT_VERSION}`);
 
-// 任务开关:关闭才跳过(兼容字符串 "false"/"0" 与布尔 false,不同 BoxJS 存法都认);未设置=默认开启
-function taskOff(k) {
-    const v = $persistentStore.read(k);
-    return v === false || v === "false" || v === "0";
+// 参数读取:优先取插件通过 argument 传入的值,没有时回退到持久化存储(兼容旧用法/手动调试)
+function readRaw(k) {
+    if (typeof $argument === "object" && $argument && Object.prototype.hasOwnProperty.call($argument, k)) {
+        return $argument[k];
+    }
+    return $persistentStore.read(k);
 }
 
-// 调试日志:BoxJS 设 wps_debug=true 才打印接口原始响应(平时只看任务汇总)
+function readFlag(k, defaultValue) {
+    const v = readRaw(k);
+    if (v === undefined || v === null || v === "") return defaultValue;
+    if (typeof v === "boolean") return v;
+    const s = String(v).trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(s)) return true;
+    if (["false", "0", "no", "off"].includes(s)) return false;
+    return defaultValue;
+}
+
+// 任务开关:关闭才跳过;未设置=默认开启
+function taskOff(k) {
+    return !readFlag(k, true);
+}
+
+// 调试日志:插件参数或持久化值设为 true 才打印接口原始响应
 function debug(content) {
-    if (($persistentStore.read("wps_debug") || "false") !== "true") return;
+    if (!readFlag("wps_debug", false)) return;
     console.log(`[DEBUG] ${typeof content === "string" ? content : JSON.stringify(content)}`);
 }
 
@@ -40,6 +59,25 @@ let _taskIdx = 0, _taskTotal = 0;
 function step(tag, msg) {
     const prefix = _taskTotal ? `[STEP] (${_taskIdx}/${_taskTotal}) ${tag}` : `[STEP] ${tag}`;
     console.log(`${prefix} → ${msg}`);
+}
+
+async function runManagedTask(tag, run) {
+    try {
+        await Promise.race([
+            run(),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`任务超时(${Math.floor(TASK_TIMEOUT_MS / 1000)}s)`)), TASK_TIMEOUT_MS)
+            ),
+        ]);
+    } catch (e) {
+        const msg = String(e && e.message ? e.message : e);
+        if (/任务超时/.test(msg)) {
+            console.log(`[WARN] ${tag} 超时: ${msg}`);
+            results.push(`⚠️ ${tag}:超时`);
+            return;
+        }
+        throw e;
+    }
 }
 
 // ===== 接口 =====
@@ -83,11 +121,11 @@ const ACTION_GAP = [5, 10];
 
 let results = []; // 各任务结果汇总,最后一条通知
 
-// 清除 cookie 开关(BoxJS 写 wps_clear=true)
-if (String($persistentStore.read("wps_clear") || "false") === "true") {
+// 清除 cookie 开关:支持 argument 或持久化值;如果来自旧持久化方式,顺手复位避免重复清空
+if (readFlag("wps_clear", false)) {
     $persistentStore.write("", CK_KEY);
     $persistentStore.write("false", "wps_clear");
-    $notification.post("WPS", "", "✅ Cookie 已清除，请重新抓取");
+    $notification.post("WPS", "", "✅ Cookie 已清除，请重新抓取；若来自插件开关，请手动关闭“清除Cookie”");
     $done();
 } else {
     main().catch((e) => {
@@ -141,28 +179,28 @@ async function main() {
     //      invalid connection,排最后离尖峰最远(被前面任务自然往后挪几十秒),再叠加它
     //      自带的「开头随机错峰 + 4 次退避重试」兜底(即便单独开它也靠这两层扛尖峰)。
     const tasks = [
-        ["wps_task_hot", () => taskHot()],
-        ["wps_task_trial", () => taskTrial()],
-        ["wps_task_signin", () => taskSignIn(uid)],
-        ["wps_task_fragment", () => taskFragment()],
-        ["wps_task_lottery", () => taskLottery()],
-        ["wps_task_clockin", () => taskClockIn()],
+        ["wps_task_hot", "限量爆款", () => taskHot()],
+        ["wps_task_trial", "会员试用", () => taskTrial()],
+        ["wps_task_signin", "每日签到", () => taskSignIn(uid)],
+        ["wps_task_fragment", "打卡领会员", () => taskFragment()],
+        ["wps_task_lottery", "天天抽奖", () => taskLottery()],
+        ["wps_task_clockin", "小程序打卡", () => taskClockIn()],
     ];
-    // 打印每个开关实际读到的原始值(排查 BoxJS 是否生效:null=未设置默认开)
-    console.log(`[INFO] 任务开关 ${tasks.map(([k]) => `${k.slice(9)}=${JSON.stringify($persistentStore.read(k))}`).join(" ")}`);
+    // 打印每个开关实际读到的原始值(argument 优先; null=未设置默认开)
+    console.log(`[INFO] 任务开关 ${tasks.map(([k]) => `${k.slice(9)}=${JSON.stringify(readRaw(k))}`).join(" ")}`);
 
     // 统计实际要执行的任务数(关掉的不算)
     const activeTasks = tasks.filter(([k]) => !taskOff(k));
     _taskTotal = activeTasks.length;
 
     let ran = 0;
-    for (const [key, run] of tasks) {
+    for (const [key, label, run] of tasks) {
         if (taskOff(key)) continue;                    // 关闭该任务 → 跳过
         _taskIdx = ++ran;
         if (ran > 1) await sleep(jitter(ACTION_GAP)); // 任务间随机间隔避风控
-        await run();
+        await runManagedTask(label, run);
     }
-    if (!ran) results.push("ℹ️ 所有任务均已在 BoxJS 关闭");
+    if (!ran) results.push("ℹ️ 所有任务均已关闭");
 
     console.log(`[STEP] 全部任务完成,共执行 ${ran} 项`);
     $notification.post("WPS 任务汇总", "", results.join("\n"));
@@ -571,7 +609,7 @@ async function taskClockIn() {
 
         // 动态密钥 s_key(带 wps_sid):info 接口在整点 10:00 后端负载尖峰时偶发应用层错
         // (msg:"invalid connection",非 cookie 失效——手动错峰跑就正常)。重试 4 次 + 递增退避,
-        // 尽量盖过尖峰窗口;退避序列 0/3/6/9s,总耗时上限约 18s(clockin 排首位,不挤占后续任务)。
+        // 尽量盖过尖峰窗口;退避序列 0/3/6/9s,总耗时上限约 18s。
         step(tag, "获取动态密钥 s_key(最多重试4次)");
         let s_key = "", infBody = "";
         const backoff = [0, 3000, 6000, 9000];
@@ -673,7 +711,7 @@ function rawReq(method, url, { sid, body, date, signature } = {}) {
     return new Promise((resolve, reject) => {
         const cb = (err, resp, data) =>
             err ? reject(err) : resolve({ status: (resp && (resp.status || resp.statusCode)) || 0, body: data || "" });
-        const req = { url, headers };
+        const req = { url, headers, timeout: HTTP_TIMEOUT_MS };
         if (body) req.body = body;
         method === "POST" ? $httpClient.post(req, cb) : $httpClient.get(req, cb);
     });
@@ -698,7 +736,7 @@ function httpReq(method, url, { body, token } = {}) {
     if (body) headers["Content-Type"] = "application/json";
     if (token) headers["token"] = token;
     return new Promise((resolve, reject) => {
-        const req = { url, headers };
+        const req = { url, headers, timeout: HTTP_TIMEOUT_MS };
         if (body) req.body = body;
         const cb = (err, resp, data) => {
             if (err) return reject(err);
