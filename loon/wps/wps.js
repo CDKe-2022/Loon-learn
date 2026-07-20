@@ -73,7 +73,7 @@ async function runManagedTask(tag, run) {
         const msg = String(e && e.message ? e.message : e);
         if (/任务超时/.test(msg)) {
             console.log(`[WARN] ${tag} 超时: ${msg}`);
-            results.push(`⚠️ ${tag}:超时`);
+            addResult("warn", tag, "超时", { reason: msg });
             return;
         }
         throw e;
@@ -94,23 +94,31 @@ const CLOCK_IN = "https://personal-bus.wps.cn/activity/clock_in/v1/clock_in";
 const CLOCK_REWARD = "https://personal-bus.wps.cn/activity/clock_in/v1/reward"; // 领取昨日打卡奖励(同套 Signature)
 const CLOCK_CONF = "https://personal-act.wpscdn.cn/srcapi/act/rubik-service/honeycomb-adapter/client/module-info?pid=113&mg_id=47736&id=48312";
 
-// ===== 福利中心活动「WPS618 天天领福利」的组件标识(活动换期需更新) =====
-const FLZX = { activity_number: "HD2025031721339450", page_number: "YM2025060910400185" };
-// page_info 必带的 position:真 app 用它定位「福利中心」页,缺了服务端会返回未带用户态的空渲染
-//(打卡的 sign_series_id 读不到 → 误判没序列 → 又新建序列从第 1 天起)。mk_key 是渠道追踪,留空即可。
-const FLZX_POSITION = "ios_flzx_grzxsdjg3001";
-// component_action(签到/领取)的 component_uniq_number 不需要 filter_params(实测不参与鉴权),故不带
-
-const COMPONENTS = {
-    // 福利中心打卡免费领会员
-    fragment: { component_number: "ZJ2025061815352884", component_node_id: "FN1769668388sb3w", type: 42 },
-    // 天天抽奖
-    lottery: { component_number: "ZJ2025092916519174", component_node_id: "FN1779447163CApn", type: 45, session_id: 3002 },
-    // 会员免费试用(瓜分奖品,次日开奖;每天可申领 2 次,先 preview 拿当天奖品再申领)
-    trial: { component_number: "ZJ2025041115207603", component_node_id: "FN1744359116PWbV", type: 32 },
-    // 限量爆款「每天10点可领·任选1个」(privilege_select,每天 1 次机会;优先抢超级会员)
-    hot: { component_number: "ZJ2025041115200788", component_node_id: "FN1744358694RbIn", type: 31 },
+// ===== 活动配置区 =====
+// 后续活动换期时，优先只改这里：activity/page/components/position。
+const ACTIVITY_PROFILE = {
+    flzx: {
+        name: "福利中心",
+        activity_number: "HD2025031721339450",
+        page_number: "YM2025060910400185",
+        // page_info 必带的 position:真 app 用它定位「福利中心」页,缺了服务端会返回未带用户态的空渲染
+        // (打卡的 sign_series_id 读不到 → 误判没序列 → 又新建序列从第 1 天起)。mk_key 是渠道追踪,留空即可。
+        position: "ios_flzx_grzxsdjg3001",
+        components: {
+            // 福利中心打卡免费领会员
+            fragment: { name: "打卡领会员", component_number: "ZJ2025061815352884", component_node_id: "FN1769668388sb3w", type: 42 },
+            // 天天抽奖
+            lottery: { name: "天天抽奖", component_number: "ZJ2025092916519174", component_node_id: "FN1779447163CApn", type: 45, session_id: 3002 },
+            // 会员免费试用(瓜分奖品,次日开奖;每天可申领 2 次,先 preview 拿当天奖品再申领)
+            trial: { name: "会员试用", component_number: "ZJ2025041115207603", component_node_id: "FN1744359116PWbV", type: 32 },
+            // 限量爆款「每天10点可领·任选1个」(privilege_select,每天 1 次机会;优先抢超级会员)
+            hot: { name: "限量爆款", component_number: "ZJ2025041115200788", component_node_id: "FN1744358694RbIn", type: 31 },
+        },
+    },
 };
+const ACTIVITY = ACTIVITY_PROFILE.flzx;
+// component_action(签到/领取)的 component_uniq_number 不需要 filter_params(实测不参与鉴权),故不带
+const COMPONENTS = ACTIVITY.components;
 
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 WpsiOS/26.6.1";
 // 小程序打卡走微信小程序 UA(打卡接口在 personal-bus 域,不带 APP 的 Origin/Referer)
@@ -119,7 +127,142 @@ const MINI_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWeb
 // 动作间隔(秒,[最小,最大] 每步独立取随机,各不相等):10 点抢完顺手把其余做了,模拟真人手动操作避风控
 const ACTION_GAP = [5, 10];
 
-let results = []; // 各任务结果汇总,最后一条通知
+let results = []; // 结构化结果汇总,最后统一渲染通知
+
+function addResult(status, tag, message, extra) {
+    results.push({
+        status: status || "info",
+        tag: tag || "未命名任务",
+        message: message || "",
+        extra: extra || {},
+    });
+}
+
+function statusEmoji(status) {
+    switch (status) {
+        case "success": return "✅";
+        case "warn": return "⚠️";
+        case "error": return "❌";
+        default: return "ℹ️";
+    }
+}
+
+function renderResultsSummary() {
+    const counts = { success: 0, warn: 0, error: 0, info: 0 };
+    for (const item of results) counts[item.status] = (counts[item.status] || 0) + 1;
+    const lines = [];
+    const headline = [
+        counts.success ? `成功${counts.success}` : "",
+        counts.warn ? `警告${counts.warn}` : "",
+        counts.error ? `异常${counts.error}` : "",
+        counts.info ? `提示${counts.info}` : "",
+    ].filter(Boolean).join("  ");
+    if (headline) lines.push(headline);
+    for (const item of results) {
+        lines.push(`${statusEmoji(item.status)} ${item.tag}${item.message ? `:${item.message}` : ""}`);
+    }
+    return lines.join("\n");
+}
+
+function buildComponentUniq(comp) {
+    return {
+        activity_number: ACTIVITY.activity_number,
+        page_number: ACTIVITY.page_number,
+        component_number: comp.component_number,
+        component_node_id: comp.component_node_id,
+    };
+}
+
+function summarizeComponents(list, limit) {
+    return (list || []).slice(0, limit || 8).map((c) => {
+        const no = c && c.number ? c.number : "?";
+        const node = c && c.component_node_id ? c.component_node_id : "?";
+        const keys = c ? Object.keys(c).filter((k) => !["number", "component_node_id"].includes(k)).slice(0, 4).join("|") : "";
+        return `${no}/${node}${keys ? `[${keys}]` : ""}`;
+    }).join(" ; ");
+}
+
+const COMPONENT_PROBE_FIELDS = {
+    hot: "privilege_select",
+    fragment: "fragment_collect",
+    lottery: "lottery_v2",
+    trial: "divide_prize",
+};
+
+function describeComponent(c) {
+    const no = c && c.number ? c.number : "?";
+    const node = c && c.component_node_id ? c.component_node_id : "?";
+    const keys = c ? Object.keys(c).filter((k) => !["number", "component_node_id"].includes(k)).slice(0, 6).join("|") : "";
+    return `number=${no}, node=${node}${keys ? `, fields=${keys}` : ""}`;
+}
+
+function probeComponentCandidates(list, key) {
+    const comp = COMPONENTS[key] || {};
+    const field = COMPONENT_PROBE_FIELDS[key];
+    const all = Array.isArray(list) ? list : [];
+    const exactNumber = all.filter((c) => c && c.number === comp.component_number);
+    const exactNode = all.filter((c) => c && c.component_node_id === comp.component_node_id);
+    const byField = field ? all.filter((c) => c && typeof c[field] === "object") : [];
+    const sections = [];
+    if (exactNumber.length) sections.push(`同 number -> ${exactNumber.slice(0, 5).map(describeComponent).join(" ; ")}`);
+    if (exactNode.length) sections.push(`同 node -> ${exactNode.slice(0, 5).map(describeComponent).join(" ; ")}`);
+    if (byField.length) sections.push(`同字段 ${field} -> ${byField.slice(0, 5).map(describeComponent).join(" ; ")}`);
+    if (!sections.length && all.length) sections.push(`前几个组件 -> ${all.slice(0, 8).map(describeComponent).join(" ; ")}`);
+    return sections.join(" || ");
+}
+
+function formatActivityIssue(code, extra) {
+    const detail = extra ? `，${extra}` : "";
+    switch (code) {
+        case "page_info_request_failed":
+            return { step: "活动页状态请求失败", result: `活动可能换期(page_info 请求失败${detail})` };
+        case "page_info_non_json":
+            return { step: "活动页状态返回异常", result: `活动可能换期(page_info 非 JSON${detail})` };
+        case "page_info_result_not_ok":
+            return { step: "活动页状态未通过", result: `活动可能换期(page_info result 非 ok${detail})` };
+        case "page_info_structure_changed":
+            return { step: "活动页结构变化", result: `活动可能换期(page_info 结构变化${detail})` };
+        case "component_missing":
+            return { step: "未找到活动组件", result: `活动可能换期(缺少组件${detail})` };
+        case "component_structure_changed":
+            return { step: "活动组件结构变化", result: `活动可能换期(组件结构变化${detail})` };
+        default:
+            return { step: "活动配置异常", result: `活动可能换期(${code}${detail})` };
+    }
+}
+
+function reportActivityIssue(tag, code, extra, detail, list) {
+    const msg = formatActivityIssue(code, extra);
+    step(tag, msg.step);
+    addResult("warn", tag, msg.result, { code, detail, extra });
+    if (detail) debug(`${tag} ${code}: ${detail}`);
+    if (Array.isArray(list) && list.length) debug(`${tag} 组件候选: ${summarizeComponents(list, 10)}`);
+}
+
+function ensureComponentShape(tag, key, node, fieldName, list) {
+    if (node && node[fieldName] && typeof node[fieldName] === "object") return node[fieldName];
+    const comp = COMPONENTS[key];
+    reportActivityIssue(tag, "component_structure_changed", `${comp.name || key} 缺少 ${fieldName}`, JSON.stringify(node || {}).slice(0, 240), list);
+    const probe = probeComponentCandidates(list, key);
+    if (probe) debug(`${tag} 探测日志: ${probe}`);
+    return null;
+}
+
+function resolveActivityComponent(tag, list, key) {
+    const comp = COMPONENTS[key];
+    const node = findComp(list, comp.component_number, comp.component_node_id);
+    if (node) return node;
+    reportActivityIssue(
+        tag,
+        "component_missing",
+        `${comp.name || key} ${comp.component_number}/${comp.component_node_id}`,
+        `预期组件不存在`,
+        list
+    );
+    const probe = probeComponentCandidates(list, key);
+    if (probe) debug(`${tag} 探测日志: ${probe}`);
+    return null;
+}
 
 // 清除 cookie 开关:支持 argument 或持久化值;如果来自旧持久化方式,顺手复位避免重复清空
 if (readFlag("wps_clear", false)) {
@@ -200,10 +343,10 @@ async function main() {
         if (ran > 1) await sleep(jitter(ACTION_GAP)); // 任务间随机间隔避风控
         await runManagedTask(label, run);
     }
-    if (!ran) results.push("ℹ️ 所有任务均已关闭");
+    if (!ran) addResult("info", "任务开关", "所有任务均已关闭");
 
     console.log(`[STEP] 全部任务完成,共执行 ${ran} 项`);
-    $notification.post("WPS 任务汇总", "", results.join("\n"));
+    $notification.post("WPS 任务汇总", "", renderResultsSummary());
 }
 
 // ============ 任务:每日签到(请求体加密)============
@@ -217,7 +360,7 @@ async function taskSignIn(uid) {
         const info = (JSON.parse(di.body).data || {}).info || {};
         if (info.has_sign) {
             step(tag, "今日已签到,跳过");
-            results.push(`✅ ${tag}:已签到`);
+            addResult("success", tag, "已签到");
             return;
         }
 
@@ -241,14 +384,14 @@ async function taskSignIn(uid) {
         if (j && j.result === "ok") {
             const names = ((j.data || {}).rewards || []).map((x) => x.reward_name).filter(Boolean);
             step(tag, `完成 ✅${names.length ? " " + names.join("/") : ""}`);
-            results.push(`✅ ${tag}:成功${names.length ? " " + names.join("/") : ""}`);
+            addResult("success", tag, `成功${names.length ? " " + names.join("/") : ""}`, { rewards: names });
         } else {
             const st = classify(j && (j.ext_msg || j.msg), "已签到");
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t);
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
         }
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -257,12 +400,7 @@ async function taskSignIn(uid) {
 
 async function taskComponent(tag, comp, action, payload, doneLabel) {
     try {
-        const uniq = {
-            activity_number: FLZX.activity_number,
-            page_number: FLZX.page_number,
-            component_number: comp.component_number,
-            component_node_id: comp.component_node_id,
-        };
+        const uniq = buildComponentUniq(comp);
 
         const reqObj = { component_uniq_number: uniq, component_type: comp.type, component_action: action };
         for (const k in payload) reqObj[k] = payload[k];
@@ -271,31 +409,31 @@ async function taskComponent(tag, comp, action, payload, doneLabel) {
         const r = await httpReq("POST", COMPONENT, { body: JSON.stringify(reqObj) });
         const j = safeJson(r.body);
         if (!j) {
-            results.push(`❌ ${tag}:无响应`);
+            addResult("error", tag, "无响应");
             debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
             return;
         }
         // 外层 result 只代表请求被受理(打卡已签时这里直接报 Duplicate 错);真正成败看内层 data.<action>.success
         if (j.result !== "ok") {
             const st = classify(j.msg || j.ext_msg, doneLabel);
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t);
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
             return;
         }
         const inner = (j.data || {})[action.split(".")[0]] || {};
         if (inner.success === true) {
-            results.push(`✅ ${tag}:成功${inner.reward_name ? " " + inner.reward_name : ""}`);
+            addResult("success", tag, `成功${inner.reward_name ? " " + inner.reward_name : ""}`);
         } else {
             // 内层失败:优先看 reason,抽奖次数用完(error_code 10005)归为已达上限
             let reason = inner.reason || "";
             if (!reason && inner.error_code === 10005) reason = "次数用完";
             if (!reason) reason = j.msg || (inner.error_code ? `code ${inner.error_code}` : "");
             const st = classify(reason, doneLabel);
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t, { reason });
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
         }
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -304,15 +442,18 @@ async function taskComponent(tag, comp, action, payload, doneLabel) {
 // page_info 返回活动页全部组件的实时状态(各组件挂自己的业务字段),多个任务都从这里取状态。
 async function fetchPageInfo() {
     // 必带 filter_params 的 position,否则服务端返回的组件不含本用户态(打卡序列/选择记录读不到)
-    const filter = encodeURIComponent(JSON.stringify({ cs_from: "", mk_key: "", position: FLZX_POSITION }));
-    const pi = await httpReq("GET",
-        `${PAGE_INFO}?activity_number=${FLZX.activity_number}&page_number=${FLZX.page_number}&filter_params=${filter}`);
-    const pj = safeJson(pi.body);
-    if (!pj || pj.result !== "ok" || !Array.isArray(pj.data)) {
-        debug(`page_info 异常: ${(pi.body || "").slice(0, 300)}`);
-        return null;
+    const filter = encodeURIComponent(JSON.stringify({ cs_from: "", mk_key: "", position: ACTIVITY.position }));
+    const url = `${PAGE_INFO}?activity_number=${ACTIVITY.activity_number}&page_number=${ACTIVITY.page_number}&filter_params=${filter}`;
+    try {
+        const pi = await httpReq("GET", url);
+        const pj = safeJson(pi.body);
+        if (!pj) return { ok: false, code: "page_info_non_json", detail: (pi.body || "").slice(0, 300) };
+        if (pj.result !== "ok") return { ok: false, code: "page_info_result_not_ok", detail: (pi.body || "").slice(0, 300) };
+        if (!Array.isArray(pj.data)) return { ok: false, code: "page_info_structure_changed", detail: (pi.body || "").slice(0, 300) };
+        return { ok: true, list: pj.data };
+    } catch (e) {
+        return { ok: false, code: "page_info_request_failed", detail: String(e) };
     }
-    return pj.data;
 }
 // 在 page_info 组件数组里按组件号 + 节点号定位某个组件
 function findComp(list, number, node) {
@@ -331,15 +472,22 @@ async function taskHot() {
     const comp = COMPONENTS.hot;
     try {
         step(tag, "获取活动页状态");
-        const list = await fetchPageInfo();
-        if (!list) { step(tag, "page_info 无响应"); results.push(`❌ ${tag}:page_info 无响应`); return; }
-        const node = findComp(list, comp.component_number, comp.component_node_id);
-        const ps = (node && node.privilege_select) || {};
+        const page = await fetchPageInfo();
+        if (!page.ok) {
+            reportActivityIssue(tag, page.code, `${ACTIVITY.name} page_info`, page.detail);
+            return;
+        }
+        const node = resolveActivityComponent(tag, page.list, "hot");
+        if (!node) return;
+        const ps = ensureComponentShape(tag, "hot", node, "privilege_select", page.list) || {};
         const details = ps.privilege_select_details || [];
-        if (!details.length) { step(tag, "未找到爆款组件(可能已换期)"); results.push(`⚠️ ${tag}:未找到爆款组件(可能已换期,需重抓)`); return; }
+        if (!details.length) {
+            reportActivityIssue(tag, "component_structure_changed", "限量爆款缺少 privilege_select_details", JSON.stringify(node).slice(0, 260), page.list);
+            return;
+        }
 
         // 今天这次机会已用掉
-        if (ps.select_reach_limit) { step(tag, "今日已领取"); results.push(`✅ ${tag}:已领取(今日已选)`); return; }
+        if (ps.select_reach_limit) { step(tag, "今日已领取"); addResult("success", tag, "已领取(今日已选)"); return; }
 
         // 按价值排序:会员优先,其次积分多的优先(hours*100 + nums,会员再加底分)
         const score = (d) => (d.privilege_type === "privilege" ? 10000 : 0) + (d.hours || 0) * 100 + (d.nums || 0);
@@ -351,12 +499,7 @@ async function taskHot() {
             const d = ranked[i];
             step(tag, `尝试第${i + 1}档: ${d.title || "pid " + d.privilege_id}`);
             const reqObj = {
-                component_uniq_number: {
-                    activity_number: FLZX.activity_number,
-                    page_number: FLZX.page_number,
-                    component_number: comp.component_number,
-                    component_node_id: comp.component_node_id,
-                },
+                component_uniq_number: buildComponentUniq(comp),
                 component_type: comp.type,
                 component_action: "privilege_select.exec",
                 // group_id 与 privilege_id 各选项不一定相等(会员是 1/101),都取自 detail
@@ -367,16 +510,16 @@ async function taskHot() {
             const inner = (j && j.data && j.data.privilege_select) || {};
             if (j && j.result === "ok" && inner.success === true) {
                 step(tag, `抢到 ✅ ${d.title || "pid " + d.privilege_id}`);
-                results.push(`✅ ${tag}:成功 ${d.title || "pid " + d.privilege_id}`);
+                addResult("success", tag, `成功 ${d.title || "pid " + d.privilege_id}`);
                 done = true;
                 break;
             }
             // 这档没抢到(多半已秒光)→ 记一笔继续抢下一档
             debug(`${tag} ${d.title}(pid ${d.privilege_id})未中: ${(r.body || "").slice(0, 200)}`);
         }
-        if (!done) results.push(`⚠️ ${tag}:未领到(超级会员已秒光、其余也没抢到)`);
+        if (!done) addResult("warn", tag, "未领到(超级会员已秒光、其余也没抢到)");
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -394,17 +537,17 @@ async function taskFragment() {
 
         // 1) 取当前序列状态:page_info 返回各组件,fragment 组件挂 sign_series_id + sign_records
         step(tag, "获取活动页状态");
-        const list = await fetchPageInfo();
-        const node = findComp(list, comp.component_number);
-        // 安全闸:page_info 没拿到 fragment 组件(网络错/换期)→ 绝不盲签,否则会被当「新序列」从头开始。
-        // 宁可今天不签(用户开 app 点一下即可),也不把已坚持的连续天数清零。
-        if (!node) {
-            step(tag, "未取到序列状态,跳过(避免误清零)");
-            results.push(`⚠️ ${tag}:未取到序列状态,跳过(避免误清零连续天数)`);
-            debug(`${tag} page_info 未含 fragment 组件 ${comp.component_number}`);
+        const page = await fetchPageInfo();
+        if (!page.ok) {
+            reportActivityIssue(tag, page.code, `${ACTIVITY.name} page_info`, page.detail);
             return;
         }
-        const fc = node.fragment_collect || {};
+        const node = resolveActivityComponent(tag, page.list, "fragment");
+        // 安全闸:page_info 没拿到 fragment 组件(网络错/换期)→ 绝不盲签,否则会被当「新序列」从头开始。
+        // 宁可今天不签(用户开 app 点一下即可),也不把已坚持的连续天数清零。
+        if (!node) return;
+        const fc = ensureComponentShape(tag, "fragment", node, "fragment_collect", page.list);
+        if (!fc) return;
         const seriesId = fc.sign_series_id || "";
         const records = fc.sign_records || [];
         debug(`${tag} 读到 series_id=${seriesId || "(空)"} records=${records.map((r) => r.sign_date + ":" + r.sign_status).join(",")}`);
@@ -413,7 +556,7 @@ async function taskFragment() {
         const todayRec = records.find((r) => r && r.sign_date === today);
         if (todayRec && todayRec.sign_status === "signed") {
             step(tag, "今日已打卡,跳过");
-            results.push(`✅ ${tag}:已打卡`);
+            addResult("success", tag, "已打卡");
             return;
         }
 
@@ -421,12 +564,7 @@ async function taskFragment() {
         const isNew = !seriesId;
         step(tag, `提交打卡${isNew ? "(新序列)" : "(复用序列 " + seriesId.slice(-6) + ")"}`);
         const reqObj = {
-            component_uniq_number: {
-                activity_number: FLZX.activity_number,
-                page_number: FLZX.page_number,
-                component_number: comp.component_number,
-                component_node_id: comp.component_node_id,
-            },
+            component_uniq_number: buildComponentUniq(comp),
             component_type: comp.type,
             component_action: "fragment_collect.sign_in",
             fragment_collect: { sign_date: today, series_id: seriesId, is_new_sign_series: isNew },
@@ -434,27 +572,27 @@ async function taskFragment() {
         const r = await httpReq("POST", COMPONENT, { body: JSON.stringify(reqObj) });
         const j = safeJson(r.body);
         if (!j) {
-            results.push(`❌ ${tag}:无响应`);
+            addResult("error", tag, "无响应");
             debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
             return;
         }
         if (j.result !== "ok") {
             const st = classify(j.msg || j.ext_msg, "已打卡");
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t);
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
             return;
         }
         const inner = (j.data || {}).fragment_collect || {};
         if (inner.success === true) {
             step(tag, `打卡成功 ✅${isNew ? "(新序列)" : ""}`);
-            results.push(`✅ ${tag}:成功${isNew ? "(新序列)" : ""}`);
+            addResult("success", tag, `成功${isNew ? "(新序列)" : ""}`);
         } else {
             const st = classify(inner.reason || j.msg, "已打卡");
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t);
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
         }
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -468,9 +606,14 @@ async function taskLottery() {
     const comp = COMPONENTS.lottery;
     try {
         step(tag, "获取活动页状态");
-        const list = await fetchPageInfo();
-        const node = findComp(list, comp.component_number, comp.component_node_id);
-        const lv = (node && node.lottery_v2) || {};
+        const page = await fetchPageInfo();
+        if (!page.ok) {
+            reportActivityIssue(tag, page.code, `${ACTIVITY.name} page_info`, page.detail);
+            return;
+        }
+        const node = resolveActivityComponent(tag, page.list, "lottery");
+        if (!node) return;
+        const lv = ensureComponentShape(tag, "lottery", node, "lottery_v2", page.list) || {};
         const sessions = lv.lottery_list || [];
         // 优先进行中的场次,取不到再退活动内置 session_id(3002)
         const sess = sessions.find((s) => s && s.session_status === "IN_PROGRESS") || sessions[0];
@@ -480,18 +623,13 @@ async function taskLottery() {
         if (times < 1) {
             // 免费次数还没刷出来(cron 跑太早)= 正常,如实报,别误判已达上限
             step(tag, "今日暂无免费次数");
-            results.push(`✅ ${tag}:今日暂无免费次数`);
+            addResult("success", tag, "今日暂无免费次数");
             return;
         }
 
         step(tag, `有${times}次免费机会,开始抽奖`);
         const reqObj = {
-            component_uniq_number: {
-                activity_number: FLZX.activity_number,
-                page_number: FLZX.page_number,
-                component_number: comp.component_number,
-                component_node_id: comp.component_node_id,
-            },
+            component_uniq_number: buildComponentUniq(comp),
             component_type: comp.type,
             component_action: "lottery_v2.exec",
             lottery_v2: { session_id: sessionId },
@@ -500,17 +638,17 @@ async function taskLottery() {
         const j = safeJson(r.body);
         const inner = (j && j.data && j.data.lottery_v2) || {};
         if (j && j.result === "ok" && inner.success === true) {
-            results.push(`✅ ${tag}:成功${inner.reward_name ? " " + inner.reward_name : ""}`);
+            addResult("success", tag, `成功${inner.reward_name ? " " + inner.reward_name : ""}`);
         } else {
             // 极少数:刚读到次数但 exec 时已被用掉 → error_code 10005 归「次数用完」
             let reason = inner.send_msg || "";
             if (!reason && inner.error_code === 10005) reason = "次数用完";
             const st = classify(reason || (j && j.msg), "已完成");
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t, { reason });
             if (st.e !== "✅") debug(`${tag} 响应: ${(r.body || "").slice(0, 300)}`);
         }
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -522,14 +660,15 @@ async function taskLottery() {
 async function taskTrial() {
     const tag = "会员试用";
     try {
+        const comp = COMPONENTS.trial;
         const base = {
-            activity_number: FLZX.activity_number,
-            page_number: FLZX.page_number,
-            component_number: COMPONENTS.trial.component_number,
-            component_node_id: COMPONENTS.trial.component_node_id,
+            activity_number: ACTIVITY.activity_number,
+            page_number: ACTIVITY.page_number,
+            component_number: comp.component_number,
+            component_node_id: comp.component_node_id,
         };
         const callTrial = async (action, extra) => {
-            const reqObj = { component_uniq_number: base, component_type: COMPONENTS.trial.type, component_action: action };
+            const reqObj = { component_uniq_number: base, component_type: comp.type, component_action: action };
             for (const k in extra) reqObj[k] = extra[k];
             const r = await httpReq("POST", COMPONENT, { body: JSON.stringify(reqObj) });
             return safeJson(r.body);
@@ -543,7 +682,7 @@ async function taskTrial() {
         // 没明细 / 三档都已申领 → 直接收成一句(正常完成,不逐项罗列)
         if (!details.length || details.every((d) => d.has_join)) {
             step(tag, "全部已申请,跳过");
-            results.push(`✅ ${tag}:全部已申请`);
+            addResult("success", tag, "全部已申请");
             return;
         }
 
@@ -576,9 +715,9 @@ async function taskTrial() {
         }
         // 三档全部到位(本次成功或之前已申请)→ 折叠成一句;有问题才逐项罗列
         step(tag, allGood ? "全部申领完成 ✅" : `完成(有${parts.filter(p => p.includes("已领完") || p.includes("没资格")).length}项异常)`);
-        results.push(allGood ? `✅ ${tag}:全部已申请` : `⚠️ ${tag}:${parts.join(" ")}`);
+        addResult(allGood ? "success" : "warn", tag, allGood ? "全部已申请" : parts.join(" "));
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -629,7 +768,7 @@ async function taskClockIn() {
             step(tag, `取 ${which} 失败,降级处理`);
             const src = !ss ? cfBody : infBody;
             const m = ((safeJson(src) || {}).msg) || src.slice(0, 60) || `缺 ${which}`;
-            results.push(`⚠️ ${tag}:接口异常(取 ${which} 失败:${m})`);
+            addResult("warn", tag, `接口异常(取 ${which} 失败:${m})`, { which, raw: src.slice(0, 120) });
             debug(`${tag} info: ss=${!!ss} s_key=${!!s_key} cf=${cfBody.slice(0, 120)} inf=${infBody.slice(0, 120)}`);
             return;
         }
@@ -646,10 +785,10 @@ async function taskClockIn() {
             const d = j.data || {};
             const rw = d.reward_name || (d.prize && d.prize.name) || (d.reward && d.reward.name) || "";
             step(tag, `打卡完成 ✅${rw ? " " + rw : ""}`);
-            results.push(`✅ ${tag}:成功${rw ? " " + rw : ""}`);
+            addResult("success", tag, `成功${rw ? " " + rw : ""}`);
         } else {
             const st = classify(j && j.msg, "已打卡");
-            results.push(`${st.e} ${tag}:${st.t}`);
+            addResult(st.e === "✅" ? "success" : "warn", tag, st.t);
             if (st.e !== "✅") debug(`${tag} 响应: ${r.body.slice(0, 300)}`);
         }
 
@@ -657,7 +796,7 @@ async function taskClockIn() {
         step(tag, "检查昨日打卡奖励");
         await claimClockInRewards(tag, infBody, sid, s_key, ss);
     } catch (e) {
-        results.push(`❌ ${tag}:异常`);
+        addResult("error", tag, "异常", { error: String(e) });
         console.log(`[ERROR] ${tag}: ${e}`);
     }
 }
@@ -675,7 +814,7 @@ async function claimClockInRewards(tag, infBody, sid, s_key, ss) {
         if (!pend.length) {
             // 空场也报一行,避免「跑没跑、有没有可领」全靠猜;两种成因分开提示
             step(tag, list.length ? "昨日奖励暂无可领(未到开放时间)" : "未取到奖励列表");
-            results.push(list.length ? "ℹ️ 昨日奖励:暂无可领(未到开放时间)" : "⚠️ 领奖:未取到奖励列表");
+            addResult(list.length ? "info" : "warn", list.length ? "昨日奖励" : "领奖", list.length ? "暂无可领(未到开放时间)" : "未取到奖励列表");
             return;
         }
 
@@ -694,8 +833,8 @@ async function claimClockInRewards(tag, infBody, sid, s_key, ss) {
             else { fail.push(name); debug(`领奖 ${name}(${rw.reward_id}) 失败: ${(r.body || "").slice(0, 200)}`); }
             await sleep(jitter(ACTION_GAP)); // 多个奖励之间留间隔
         }
-        if (got.length) results.push(`✅ 领昨日奖励:${got.join("、")}`);
-        if (fail.length) results.push(`⚠️ 待领奖励未领成功(可去小程序手动领):${fail.join("、")}`);
+        if (got.length) addResult("success", "领昨日奖励", got.join("、"));
+        if (fail.length) addResult("warn", "待领奖励未领成功(可去小程序手动领)", fail.join("、"));
     } catch (e) {
         console.log(`[ERROR] 领昨日奖励: ${e}`);
     }
