@@ -1,18 +1,11 @@
 #!name=WPS 签到
-#!desc=WPS Office 每日签到 + 福利中心多项任务。脚本包含功能：每日签到，打卡领会员，天天抽奖，会员试用申请，限量爆款领取，小程序打卡。使用步骤：1、按下方配置开启脚本 2、打开「WPS」APP 进任意活动页(任务中心/福利中心)停留 1 秒 3、收到 ✅ WPS Cookie 获取成功 通知即抓取成功 4、cron 每天 10:00 触发
+#!desc=WPS Office 每日签到 + 福利中心多项任务。脚本包含功能：每日签到，打卡领会员，天天抽奖，会员试用申请，限量爆款领取，小程序打卡。使用步骤：1、先将 [Script] 中两个 script-path 替换为你发布后的优化版脚本地址 2、按下方配置开启脚本 3、打开「WPS」APP 进任意活动页(任务中心/福利中心)停留 1 秒 4、收到 ✅ WPS Cookie 获取成功 通知即抓取成功 5、cron 每天 10:00 触发
 #!author=ChatGPT
 #!homepage=https://github.com/MaYIHEI/paperclip
 #!icon=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png
 #!system = iOS
 #!loon_version = 3.2.1(733)
 #!tag = 签到,WPS
-#!switch = wps_debug
-#!switch = wps_task_hot
-#!switch = wps_task_trial
-#!switch = wps_task_signin
-#!switch = wps_task_fragment
-#!switch = wps_task_lottery
-#!switch = wps_task_clockin
 
 [Argument]
 wps_debug = switch,false,tag=调试日志,desc=开启后打印接口原始响应
@@ -22,11 +15,12 @@ wps_task_signin = switch,true,tag=每日签到,desc=WPS每日签到领积分
 wps_task_fragment = switch,true,tag=打卡领会员,desc=福利中心连续打卡领会员
 wps_task_lottery = switch,true,tag=天天抽奖,desc=福利中心免费抽奖
 wps_task_clockin = switch,true,tag=小程序打卡,desc=小程序每日打卡送积分
+wps_clear = switch,false,tag=清除Cookie,desc=开启后本次运行先清除已保存的 wps_sid；清除完成后请记得手动关闭
 
 [MITM]
 hostname = personal-act.wps.cn
 
 [Script]
-http-request ^https:\/\/personal-act\.wps\.cn\/activity-rubik\/activity\/page_info tag=WPS Cookie, script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/wps/wps.cookie.js, requires-body=false, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
+http-request ^https:\/\/personal-act\.wps\.cn\/activity-rubik\/activity\/page_info tag=WPS Cookie, script-path=https://example.com/wps.cookie.optimized.js, requires-body=false, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
 
-cron "0 10 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/wps/wps.js, tag=WPS签到, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true
+cron "0 10 * * *" script-path=https://example.com/wps.optimized.js, tag=WPS签到, img-url=https://raw.githubusercontent.com/MaYIHEI/pin/refs/heads/main/app/wps.png, enable=true, argument=[{wps_debug},{wps_task_hot},{wps_task_trial},{wps_task_signin},{wps_task_fragment},{wps_task_lottery},{wps_task_clockin},{wps_clear}]
