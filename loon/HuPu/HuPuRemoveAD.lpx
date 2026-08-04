@@ -1,58 +1,36 @@
 #!name=虎扑去广告
-#!desc=移除开屏广告、搜索热词、首页 Banner、我的页面推广及其它广告内容。
+#!desc=移除虎扑开屏广告、首页顶部推广、我的页面多余模块及各类横幅推广。
 #!author=ZenmoFeiShi[https://github.com/ZenmoFeiShi]
-#!homepage=https://hub.kelee.one
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/HUPU.png
 #!openUrl=https://apps.apple.com/app/id906632439
 #!tag=去广告
 #!loon_version=3.5.1(978)
-#!date=2026-08-05
+#!homepage=https://hub.kelee.one
+#!date=2026-08-04 11:42:51
 
 [Rewrite]
+# --- 拦截广告请求 (Request 阶段，节省流量) ---
+request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bplapi\/reddot\/v1\/app\/getReddot/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/(bbsallapi\/tag\/v1\/heatTag|bbsrankapi\/v1\/rating\/list)/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/search\/v2\/(hintkeylist|hotkeylist)/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/goblin\.hupu\.com\/\d\/\d\.\d\.\d+\/interfaceAd\/getOther\/v\d/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/goblin\.hupu\.com\/\d\/\d\.\d\.\d+\/interfaceAd\/getOther\/batch/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/fairy\.mobileapi\.hupu\.com\/gallery\/getmod2/i then reject(200)
+request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/3\/8\.0\.86\/bplcommentapi\/bpl\/score_tab\/groups/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/3\/8\.0\.86\/bplapi\/banner\/getLocationBanners/i then reject_dict(200)
 
-##############################
-# Request
-##############################
+# --- 修改响应体 (Response 阶段，必须等拿到数据再修改) ---
+# 1. 去掉 hotList 顶部 banner
+response if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/buffer\/hotList/i then response.json.jq("del(.result.topBanner)")
 
-# 红点
-request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bplapi\/reddot\/v1\/app\/getReddot$/i then reject_dict(200)
+# 2. 去掉 preview/banners 的 data
+response if ${url} ~= /^https:\/\/fairy\.mobileapi\.hupu\.com\/mang\/preview\/banners/i then response.json.jq("del(.data)")
 
-# 搜索热词
-request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/search\/v2\/(hintkeylist|hotkeylist)$/i then reject_dict(200)
+# 3. 过滤 bbsallapi/lego/data → 删除指定入口 + 删除「我的应用」
+response if ${url} ~= /^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bbsallapi\/lego\/data/i then response.json.jq(`if .data and .data.cards then (.data.cards[]? | select(.code=="multiIcon") | .components |= map(select(.data.title as $t | ["个性换肤","专家预测","邀请好友","版主中心","JRs战术板","草稿箱","58同城"] | index($t) | not))) | .data.cards |= map(select((.components[]?.data.title? // "") != "我的应用")) else . end`)
 
-# 比赛广告
-request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bplcommentapi\/bpl\/score_tab\/groups$/i then reject_dict(200)
-
-request if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bplapi\/banner\/getLocationBanners$/i then reject_dict(200)
-
-# 社区热榜
-request if ${url} ~= /^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bbsallapi\/tag\/v1\/heatTag$/i then reject_dict(200)
-
-request if ${url} ~= /^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bbsrankapi\/v1\/rating\/list$/i then reject_dict(200)
-
-# Goblin 广告
-request if ${url} ~= /^https:\/\/goblin\.hupu\.com\/\d\/\d+\.\d+\.\d+\/interfaceAd\/getOther\/v\d+$/i then reject_dict(200)
-
-request if ${url} ~= /^https:\/\/goblin\.hupu\.com\/\d\/\d+\.\d+\.\d+\/interfaceAd\/getOther\/batch$/i then reject_dict(200)
-
-# Gallery
-request if ${url} ~= /^https:\/\/fairy\.mobileapi\.hupu\.com\/gallery\/getmod2$/i then reject(200)
-
-##############################
-# Response
-##############################
-
-# 首页顶部 Banner
-response if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/buffer\/hotList$/i then response.json.jq("del(.result.topBanner)")
-
-# 首页 Banner
-response if ${url} ~= /^https:\/\/fairy\.mobileapi\.hupu\.com\/mang\/preview\/banners$/i then response.json.jq("del(.data)")
-
-# 我的页面
-response if ${url} ~= /^https:\/\/bbs\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bbsallapi\/lego\/data$/i then response.json.jq("if .data and .data.cards then (.data.cards[]? | select(.code==\"multiIcon\") | .components |= map(select(.data.title as $t | [\"个性换肤\",\"专家预测\",\"邀请好友\",\"版主中心\",\"JRs战术板\",\"草稿箱\",\"58同城\"] | index($t) | not))) | .data.cards |= map(select((.components[]?.data.title? // \"\") != \"我的应用\")) else . end")
-
-# 用户页面
-response if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d+\.\d+\.\d+\/bplapi\/user\/v1\/more$/i then response.json.jq("del(.result.vipInfo)")
+# 4. 去掉用户 more 页 vipInfo
+response if ${url} ~= /^https:\/\/games\.mobileapi\.hupu\.com\/\d\/\d\.\d\.\d+\/bplapi\/user\/v1\/more/i then response.json.jq("del(.result.vipInfo)")
 
 [MITM]
 hostname = games.mobileapi.hupu.com, fairy.mobileapi.hupu.com, bbs.mobileapi.hupu.com, goblin.hupu.com
