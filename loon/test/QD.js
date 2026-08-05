@@ -1,5 +1,5 @@
 /*
-📖 起点读书 - 自动任务 (Loon 单文件版)
+📖 起点读书 - 自动任务 (Loon 单文件版1.0)
 
 功能: 签到 / 看广告 / 抽奖 / 兑换章节卡 / 领取礼物 / 消息盒子
 只需 Cookie 即可运行，无需 rewrite 拦截
@@ -110,15 +110,6 @@ class CookieJar {
         return !!name && this._map.has(name);
     }
 
-    delete(name) {
-        if (!name) return false;
-        return this._map.delete(name);
-    }
-
-    clear() { this._map.clear(); return this; }
-
-    get size() { return this._map.size; }
-
     toString() {
         const arr = [];
         for (const [k, v] of this._map) {
@@ -126,19 +117,42 @@ class CookieJar {
         }
         return arr.join('; ');
     }
-
-    toObject() {
-        const obj = {};
-        for (const [k, v] of this._map) obj[k] = v;
-        return obj;
-    }
 }
 
-// ==================== Base64 解码 UID ====================
+// ==================== Base64 解码兼容层 ====================
+function base64Decode(str) {
+    if (!str) return '';
+    if (typeof atob === 'function') {
+        try { return decodeURIComponent(escape(atob(str))); } catch (e) {}
+    }
+    if (typeof Buffer !== 'undefined') {
+        try { return Buffer.from(str, 'base64').toString('utf-8'); } catch (e) {}
+    }
+    // Fallback 手动解码
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    let output = '';
+    for (let block = 0, char1, char2, char3, idx = 0; idx < str.length;) {
+        char1 = chars.indexOf(str.charAt(idx++));
+        char2 = chars.indexOf(str.charAt(idx++));
+        char3 = chars.indexOf(str.charAt(idx++));
+        const b1 = char1 >> 2;
+        const b2 = ((char1 & 3) << 4) | (char2 >> 4);
+        output += String.fromCharCode(b1);
+        if (char2 !== 64) output += String.fromCharCode(b2);
+        if (char3 !== 64) {
+            const b3 = ((char2 & 15) << 2) | (char3 >> 6);
+            const b4 = char3 & 63;
+            output += String.fromCharCode(b3);
+            if (char3 !== 64) output += String.fromCharCode(b4);
+        }
+    }
+    try { return decodeURIComponent(escape(output)); } catch { return output; }
+}
+
 function decodeUidFromQdheader(qdheader) {
     if (!qdheader) return '';
     try {
-        const decoded = decodeURIComponent(escape(atob(qdheader)));
+        const decoded = base64Decode(qdheader);
         const parts = decoded.split('|');
         return safeStr(parts[0]);
     } catch {
@@ -149,18 +163,9 @@ function decodeUidFromQdheader(qdheader) {
 // ==================== 解析 Cookie 数据 ====================
 function parseCookieData(cookieRaw) {
     const jar = new CookieJar(safeStr(cookieRaw, ''));
+    const qdh = safeStr(jar.get('qdh') || jar.get('qdheader_qdh') || jar.get('_qdh'));
+    const qdheader = safeStr(jar.get('qdheader') || jar.get('qd_header'));
 
-    // 获取 qdh（兼容多种字段名）
-    const qdh = safeStr(
-        jar.get('qdh') || jar.get('qdheader_qdh') || jar.get('_qdh')
-    );
-
-    // 获取 qdheader
-    const qdheader = safeStr(
-        jar.get('qdheader') || jar.get('qd_header')
-    );
-
-    // 如果 qdh 存在，同步设置
     if (qdh) jar.set('qdh', qdh);
     if (qdheader) jar.set('qdheader', qdheader);
 
@@ -200,10 +205,8 @@ function httpRequest(options) {
                 reject(new Error(error.message || error));
                 return;
             }
-
             let body = data;
             try { body = JSON.parse(data); } catch {}
-
             resolve({
                 ok: response.status >= 200 && response.status < 300,
                 status: response.status,
@@ -215,7 +218,6 @@ function httpRequest(options) {
     });
 }
 
-// 带重试的请求
 async function httpRequestWithRetry(options, retries = CONFIG.MAX_RETRY) {
     let lastError;
     for (let i = 0; i <= retries; i++) {
@@ -261,7 +263,6 @@ async function getSign(cookieData, targetUrl, method, data) {
                 headers: { 'Content-Type': 'application/json' },
                 body: signBody,
             });
-
             const result = resp.data;
             if (!result || result.Result !== 0 || !result.Data) {
                 throw new Error('签名响应异常: ' + JSON.stringify(result));
@@ -291,23 +292,17 @@ class QidianClient {
     }
 
     async _request(url, method, params) {
-        // 1. 获取签名
         const signHeaders = await getSign(this.cookieData, url, method, params);
-
-        // 2. 构建请求头
         const headers = {
             ...DEFAULT_HEADERS,
             ...signHeaders,
             'Cookie': this.cookieData.cookieString,
         };
 
-        // 3. 发起请求
         const options = { url, method, headers, timeout: CONFIG.TIMEOUT };
-
         if (method === 'GET') {
             options.params = params;
         } else {
-            // POST 用 form 格式
             const body = Object.entries(params || {})
                 .filter(([, v]) => v !== undefined && v !== null)
                 .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -318,12 +313,7 @@ class QidianClient {
 
         const resp = await httpRequestWithRetry(options);
         const biz = this._parseBiz(resp);
-
-        // 4. 鉴权过期检测
-        if (this._isAuthExpired(biz)) {
-            throw new AuthExpiredError();
-        }
-
+        if (this._isAuthExpired(biz)) throw new AuthExpiredError();
         resp.biz = biz;
         return resp;
     }
@@ -336,144 +326,138 @@ class QidianClient {
             ok: resp.ok && (result === undefined || String(result) === '0'),
             status,
             result,
-            message: (result === 403 || result === '403')
-                ? '登录状态已失效，请重新获取Cookie'
-                : safeStr(body?.Message || body?.Msg),
+            message: (result === 403 || result === '403') ? '登录状态已失效，请重新获取Cookie' : safeStr(body?.Message || body?.Msg),
             data: body?.Data ?? body ?? null,
         };
     }
 
     _isAuthExpired(biz) {
         const msg = safeStr(biz.message);
-        return biz.status === 401
-            || biz.status === 403
-            || biz.result === 403
-            || /登录状态已失效|重新登录|未登录|登录过期|cookie|ck/i.test(msg);
+        return biz.status === 401 || biz.status === 403 || biz.result === 403 || /登录状态已失效|重新登录|未登录|登录过期|cookie|ck/i.test(msg);
     }
 
-    // --- API 方法 ---
-    getWeekCheckinInfo(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/getcurrentweekcheckininfo', 'GET', params);
-    }
-
-    doCheckin(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/checkin', 'POST', data);
-    }
-
-    getPackageList(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/packagelist', 'GET', params);
-    }
-
-    getAdvMainPage(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/mainPage', 'GET', params);
-    }
-
-    finishWatchAdv(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/finishWatch', 'POST', data);
-    }
-
-    getCheckinDetail(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/detail', 'GET', params);
-    }
-
-    videoCallback(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/callback', 'POST', data);
-    }
-
-    doLottery(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/lottery', 'POST', data);
-    }
-
-    getExchangePage(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/exchangePage', 'GET', params);
-    }
-
-    exchangeGoods(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/exchange', 'POST', data);
-    }
-
-    receiveGifts(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/receiveGifts', 'POST', data);
-    }
-
-    getChapterCardInfo(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/chapterCardInfo', 'GET', params);
-    }
-
-    pullMessage(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/messageBox/pull', 'GET', params);
-    }
-
-    getRewardDetail(params) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/detail', 'GET', params);
-    }
-
-    rewardCallback(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/callback', 'POST', data);
-    }
-
-    rewardAddShelf(data) {
-        return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/addShelf', 'POST', data);
-    }
+    getWeekCheckinInfo(params) { return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/getcurrentweekcheckininfo', 'GET', params); }
+    doCheckin(data) { return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/checkin', 'POST', data); }
+    getPackageList(params) { return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/packagelist', 'GET', params); }
+    getAdvMainPage(params) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/mainPage', 'GET', params); }
+    finishWatchAdv(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/finishWatch', 'POST', data); }
+    getCheckinDetail(params) { return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/detail', 'GET', params); }
+    videoCallback(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/callback', 'POST', data); }
+    doLottery(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/lottery', 'POST', data); }
+    getExchangePage(params) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/exchangePage', 'GET', params); }
+    exchangeGoods(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/exchange', 'POST', data); }
+    receiveGifts(data) { return this._request('https://h5.if.qidian.com/argus/api/v3/checkin/receiveGifts', 'POST', data); }
+    getChapterCardInfo(params) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/chapterCardInfo', 'GET', params); }
+    pullMessage(params) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/messageBox/pull', 'GET', params); }
+    getRewardDetail(params) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/detail', 'GET', params); }
+    rewardCallback(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/callback', 'POST', data); }
+    rewardAddShelf(data) { return this._request('https://h5.if.qidian.com/argus/api/v2/video/adv/reward/addShelf', 'POST', data); }
 }
 
 class AuthExpiredError extends Error {
-    constructor() {
-        super('登录状态已失效，请重新获取Cookie');
-        this.name = 'AuthExpiredError';
+    constructor() { super('登录状态已失效，请重新获取Cookie'); this.name = 'AuthExpiredError'; }
+}
+
+// ==================== 辅助函数 ====================
+function taskResult(name, ok, detail) {
+    return { name, ok, detail: detail || (ok ? '完成' : '失败') };
+}
+
+// 核心修复：还原起点底层的位运算混淆逻辑
+function generateSignKey(uid) {
+    if (!uid) return '0';
+    try {
+        const val = BigInt(uid);
+        const transformed = (4n * val & 0x7ffffffffffffffcn) ^ 0x113a4fen;
+        if (transformed === 0n) return '0';
+        let result = '';
+        const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let v = transformed;
+        while (v > 0n) {
+            result = CHARS[Number(v % 62n)] + result;
+            v = v / 62n;
+        }
+        return result;
+    } catch (e) {
+        Logger.warn(`生成 SignKey 失败: ${e.message}`);
+        return '0';
     }
 }
 
-// ==================== 任务执行模块 ====================
+function extractOrderId(text) {
+    if (!text) return null;
+    const match = text.match(/orderId=([a-f0-9]+)/i);
+    return match ? match[1] : null;
+}
 
-// 看广告（福利中心视频）
+// 核心修复：去除了原先错误加上 30 天的逻辑
+function isRecentMessage(createTime) {
+    if (!createTime) return false;
+    const now = Date.now(); 
+    const ts = typeof createTime === 'string' ? new Date(createTime).getTime() : Number(createTime);
+    if (!ts || ts <= 0) return false;
+    const diff = now - ts;
+    return diff >= 0 && diff <= 30 * 24 * 3600 * 1000;
+}
+
+function formatDate() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function notify(subtitle, message) {
+    $notification.post(CONFIG.NOTIFY_TITLE, subtitle || '', message || '');
+}
+
+// ==================== 任务执行模块 ====================
+async function taskCheckin(client) {
+    const taskName = '每日签到';
+    try {
+        const resp = await client.getWeekCheckinInfo();
+        const biz = resp.biz;
+        if (!biz.ok) return taskResult(taskName, false, biz.message || '获取签到信息失败');
+        if (Number(biz.data?.TodayStatus) === 1) return taskResult(taskName, false, '今日已签到，无需重复');
+        
+        const checkinResp = await client.doCheckin({});
+        const checkinBiz = checkinResp.biz;
+        const ok = checkinBiz.ok || Number(checkinBiz.result) === 4111;
+        return taskResult(taskName, ok, ok ? '签到成功' : checkinBiz.message || '签到失败');
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
+}
+
 async function taskWatchAdv(client) {
     const taskName = '看广告(福利中心)';
     try {
         const resp = await client.getAdvMainPage();
         const biz = resp.biz;
         if (!biz.ok) return taskResult(taskName, false, biz.message || '获取任务列表失败');
-
         const taskList = biz.data?.DailyBenefitModule?.TaskList;
-        if (!taskList || taskList.length === 0) {
-            return taskResult(taskName, false, '任务列表为空');
-        }
-
-        if (taskList[taskList.length - 1].IsFinished === 1) {
-            return taskResult(taskName, true, '已全部完成');
-        }
+        if (!taskList || taskList.length === 0) return taskResult(taskName, false, '任务列表为空');
+        if (taskList[taskList.length - 1].IsFinished === 1) return taskResult(taskName, true, '已全部完成');
 
         for (let i = 0; i < taskList.length; i++) {
             const task = taskList[i];
             if (task.IsFinished === 1) continue;
-
             Logger.info(`[${taskName}] 执行第 ${i + 1}/${taskList.length} 次`);
             const watchResp = await client.finishWatchAdv({
-                TaskId: task.TaskId,
-                BanId: '0', BanMessage: '', ChannelId: '',
+                TaskId: task.TaskId, BanId: '0', BanMessage: '', ChannelId: '',
                 CaptchaType: '0', CaptchaTicket: '', CaptchaRandstr: '',
-                Gt: '', NewCaptcha: '0', ExtraData: '0',
-                AdId: '', SessionKey: '',
+                Gt: '', NewCaptcha: '0', ExtraData: '0', AdId: '', SessionKey: '',
             });
-
             const watchBiz = watchResp.biz;
             if (!watchBiz.ok && Number(watchBiz.result) !== 4111) {
                 return taskResult(taskName, false, `第 ${i + 1} 次失败: ${watchBiz.message}`);
             }
             await randomDelay();
         }
-
-        // 验证完成状态
         const checkResp = await client.getAdvMainPage();
         const checkList = checkResp.biz?.data?.DailyBenefitModule?.TaskList;
         const allDone = checkList && checkList.every(t => t.IsFinished === 1);
         return taskResult(taskName, allDone, allDone ? '全部完成' : '部分未完成');
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
-// 每日任务
 async function taskDaily(client) {
     const taskName = '每日任务';
     try {
@@ -481,25 +465,19 @@ async function taskDaily(client) {
         const biz = resp.biz;
         if (!biz.ok) return taskResult(taskName, false, biz.message || '获取任务列表失败');
 
-        // 限时彩蛋
         const bonus = biz.data?.Bonus;
         if (bonus && bonus.TaskId !== undefined) {
             Logger.info(`[限时彩蛋] TaskId: ${bonus.TaskId}`);
             await client.finishWatchAdv({
-                TaskId: bonus.TaskId, BanId: '0', BanMessage: '',
-                ChannelId: '', CaptchaType: '0', CaptchaTicket: '',
-                CaptchaRandstr: '', Gt: '', NewCaptcha: '0',
-                ExtraData: '0', AdId: '', SessionKey: '',
+                TaskId: bonus.TaskId, BanId: '0', BanMessage: '', ChannelId: '', 
+                CaptchaType: '0', CaptchaTicket: '', CaptchaRandstr: '', 
+                Gt: '', NewCaptcha: '0', ExtraData: '0', AdId: '', SessionKey: '',
             });
             await randomDelay();
         }
 
-        // 每日任务列表
         const videoTab = biz.data?.VideoRewardTab?.TaskList;
-        if (!videoTab || videoTab.length === 0) {
-            return taskResult(taskName, false, '未找到任务列表');
-        }
-
+        if (!videoTab || videoTab.length === 0) return taskResult(taskName, false, '未找到任务列表');
         const dailyTask = videoTab.find(t => t.Type === 'daily');
         if (!dailyTask) return taskResult(taskName, false, '未找到每日任务');
         if (dailyTask.IsFinished === 1) return taskResult(taskName, true, '已完成');
@@ -507,10 +485,9 @@ async function taskDaily(client) {
         for (let i = 0; i < 3; i++) {
             Logger.info(`[每日任务] 第 ${i + 1}/3 次`);
             const watchResp = await client.finishWatchAdv({
-                TaskId: dailyTask.TaskId, BanId: '0', BanMessage: '',
-                ChannelId: '', CaptchaType: '0', CaptchaTicket: '',
-                CaptchaRandstr: '', Gt: '', NewCaptcha: '0',
-                ExtraData: '0', AdId: '', SessionKey: '',
+                TaskId: dailyTask.TaskId, BanId: '0', BanMessage: '', ChannelId: '', 
+                CaptchaType: '0', CaptchaTicket: '', CaptchaRandstr: '', 
+                Gt: '', NewCaptcha: '0', ExtraData: '0', AdId: '', SessionKey: '',
             });
             const watchBiz = watchResp.biz;
             if (!watchBiz.ok && Number(watchBiz.result) !== 4111) {
@@ -519,34 +496,25 @@ async function taskDaily(client) {
             }
             await randomDelay();
         }
-
-        // 验证
         const checkResp = await client.getAdvMainPage();
         const checkTab = checkResp.biz?.data?.VideoRewardTab?.TaskList;
         const done = checkTab?.find(t => t.Type === 'daily')?.IsFinished === 1;
         return taskResult(taskName, done, done ? '完成' : '未完成');
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
-// 抽奖
 async function taskLottery(client) {
     const taskName = '每日抽奖';
     try {
         const resp = await client.getAdvMainPage();
         const biz = resp.biz;
         if (!biz.ok) return taskResult(taskName, false, biz.message || '获取信息失败');
-
         const lotteryInfo = biz.data?.Lottery;
         if (!lotteryInfo) return taskResult(taskName, false, '无抽奖信息');
 
         let hasUrge = Number(lotteryInfo.HasVideoUrge) || 0;
         let hasCount = Number(lotteryInfo.HasCount) || 0;
-
-        if (hasCount === 0 && hasUrge === 0) {
-            return taskResult(taskName, true, '无抽奖机会');
-        }
+        if (hasCount === 0 && hasUrge === 0) return taskResult(taskName, true, '无抽奖机会');
 
         for (let i = 0; i < hasUrge; i++) {
             Logger.info(`[抽奖] 激励视频 ${i + 1}/${hasUrge}`);
@@ -565,15 +533,10 @@ async function taskLottery(client) {
         const totalCount = hasCount + hasUrge;
         let successCount = 0;
         const prizes = [];
-
         for (let i = 0; i < totalCount; i++) {
             Logger.info(`[抽奖] 第 ${i + 1}/${totalCount} 次抽奖`);
-            const lotResp = await client.doLottery({
-                BanId: '', ChannelId: '0', CaptchaTicket: '',
-                CaptchaRandstr: '', Gt: '',
-            });
+            const lotResp = await client.doLottery({ BanId: '', ChannelId: '0', CaptchaTicket: '', CaptchaRandstr: '', Gt: '' });
             const lotBiz = lotResp.biz;
-
             if (lotBiz.ok || Number(lotBiz.result) === 4111) {
                 successCount++;
                 const prize = lotBiz.data?.PrizeName || lotBiz.data?.PrizeDesc;
@@ -583,77 +546,54 @@ async function taskLottery(client) {
             }
             await randomDelay();
         }
-
         const prizeStr = prizes.length ? ` 获得: ${prizes.join('、')}` : '';
         const ok = successCount === totalCount;
-        return taskResult(taskName, ok,
-            ok ? `完成 ${successCount} 次${prizeStr}` : `成功 ${successCount}/${totalCount}${prizeStr}`);
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
+        return taskResult(taskName, ok, ok ? `完成 ${successCount} 次${prizeStr}` : `成功 ${successCount}/${totalCount}${prizeStr}`);
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
-// 兑换章节卡
 async function taskExchange(client) {
     const taskName = '兑换章节卡';
     try {
         const resp = await client.getExchangePage();
         const biz = resp.biz;
         if (!biz.ok) return taskResult(taskName, false, biz.message || '获取信息失败');
-
         const data = biz.data;
         const balance = Number(data?.Balance) || 0;
         if (balance <= 0) return taskResult(taskName, false, `余额不足(${balance})`);
-
         const goods = data?.Goods || [];
         if (!goods.length) return taskResult(taskName, false, '商品列表为空');
 
-        // 找余额内最贵的
         let target = null;
         for (const item of goods) {
             const price = Number(item.Price) || 0;
-            if (price <= balance && (!target || price > Number(target.Price))) {
-                target = item;
-            }
+            if (price <= balance && (!target || price > Number(target.Price))) target = item;
         }
         if (!target) return taskResult(taskName, false, `余额不足(${balance})`);
-
         Logger.info(`[兑换] 目标: ${target.Name}, 价格: ${target.Price}, 章节卡: ${target.ChapterCardCount}`);
 
         const exResp = await client.exchangeGoods({ GoodsId: target.GoodsId });
         const exBiz = exResp.biz;
-
-        if (Number(exBiz.result) === 4111) {
-            return taskResult(taskName, false, '库存不足');
-        }
+        if (Number(exBiz.result) === 4111) return taskResult(taskName, false, '库存不足');
         if (!exBiz.ok) return taskResult(taskName, false, exBiz.message || '兑换失败');
-
-        return taskResult(taskName, true,
-            `兑换 ${target.Name} 成功，章节卡=${target.ChapterCardCount}张`);
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
+        return taskResult(taskName, true, `兑换 ${target.Name} 成功，章节卡=${target.ChapterCardCount}张`);
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
-// 章节卡信息
 async function taskChapterCard(client) {
     const taskName = '章节卡信息';
     try {
         const resp = await client.getChapterCardInfo();
         const biz = resp.biz;
         if (!biz.ok) return taskResult(taskName, false, biz.message || '获取失败');
-
         const cards = biz.data?.ChapterCardList || [];
         if (!cards.length) return taskResult(taskName, true, '无章节卡');
 
         let totalCards = 0, totalDays = 0;
         for (const card of cards) {
-            const count = Number(card.CardCount) || 0;
-            const days = Number(card.ValidDays) || 0;
-            totalCards += count * days;
-            totalDays += days;
+            totalCards += (Number(card.CardCount) || 0) * (Number(card.ValidDays) || 0);
+            totalDays += Number(card.ValidDays) || 0;
         }
-
         let nearestExpiry = '';
         for (const card of cards) {
             const ts = Number(card.ExpireTime) || 0;
@@ -662,65 +602,30 @@ async function taskChapterCard(client) {
                 nearestExpiry = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
         }
-
-        const detail = `总计${totalCards}张，剩余${totalDays}天` +
-            (nearestExpiry ? `，最近到期: ${nearestExpiry}` : '');
+        const detail = `总计${totalCards}张，剩余${totalDays}天` + (nearestExpiry ? `，最近到期: ${nearestExpiry}` : '');
         return taskResult(taskName, true, detail);
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
-// 签到
-async function taskCheckin(client) {
-    const taskName = '每日签到';
-    try {
-        const resp = await client.getWeekCheckinInfo();
-        const biz = resp.biz;
-        if (!biz.ok) return taskResult(taskName, false, biz.message || '获取签到信息失败');
-
-        const todayDone = Number(biz.data?.TodayStatus) === 1;
-        if (todayDone) {
-            return taskResult(taskName, false, '今日已签到，无需重复');
-        }
-
-        const checkinResp = await client.doCheckin({});
-        const checkinBiz = checkinResp.biz;
-        const ok = checkinBiz.ok || Number(checkinBiz.result) === 4111;
-        return taskResult(taskName, ok, ok ? '签到成功' : checkinBiz.message || '签到失败');
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
-}
-
-// 消息盒子（大咖荐书）
 async function taskMessageBox(client, cookieRaw) {
     const taskName = '大咖荐书';
     try {
-        // 获取 uid
         const jar = new CookieJar(safeStr(cookieRaw, ''));
         const qdh = safeStr(jar.get('qdh') || jar.get('qdheader_qdh'));
         let uid = '';
         if (qdh) {
-            try {
-                const decoded = decodeURIComponent(escape(atob(qdh)));
-                uid = safeStr(decoded.split('|')[0]);
-            } catch {}
+            try { uid = safeStr(base64Decode(qdh).split('|')[0]); } catch {}
         }
         if (!uid) uid = safeStr(jar.get('ywguid'));
-
         if (!uid) return taskResult(taskName, false, '无法获取用户ID');
 
         const signKey = generateSignKey(uid);
-        const msgResp = await client.pullMessage({
-            sessionKey: signKey, BanId: '0', pg: '1', pz: '10',
-        });
+        const msgResp = await client.pullMessage({ sessionKey: signKey, BanId: '0', pg: '1', pz: '10' });
         const msgBiz = msgResp.biz;
         if (!msgBiz.ok) return taskResult(taskName, false, msgBiz.message || '获取消息失败');
 
         const senders = msgBiz.data?.SenderList;
         if (!senders || !senders.length) return taskResult(taskName, true, '无消息');
-
         const unread = senders.filter(s => s.RedPoint === 0 && s.SessionKey);
         if (!unread.length) return taskResult(taskName, true, '无未读消息');
 
@@ -728,83 +633,54 @@ async function taskMessageBox(client, cookieRaw) {
         const rewards = [];
 
         for (const sender of unread) {
-            const pullResp = await client.pullMessage({
-                sessionKey: signKey, BanId: '0',
-                SessionKey: sender.SessionKey, pg: '1', pz: '10',
-            });
+            const pullResp = await client.pullMessage({ sessionKey: signKey, BanId: '0', SessionKey: sender.SessionKey, pg: '1', pz: '10' });
             const pullBiz = pullResp.biz;
-            if (!pullBiz.ok) {
-                Logger.warn(`[消息盒子] 拉取失败: ${pullBiz.message}`);
-                continue;
-            }
+            if (!pullBiz.ok) continue;
 
-            const msgs = (pullBiz.data?.MessageList || [])
-                .filter(m => isRecentMessage(m.CreateTime));
-
+            const msgs = (pullBiz.data?.MessageList || []).filter(m => isRecentMessage(m.CreateTime));
             for (const msg of msgs) {
                 const orderId = extractOrderId(msg.Content || msg.ExtJson);
                 if (!orderId) continue;
-
                 Logger.info(`[消息盒子] 发现订单: ${orderId}`);
 
-                const detailResp = await client.getRewardDetail({
-                    orderId, BanId: '0',
-                });
+                const detailResp = await client.getRewardDetail({ orderId, BanId: '0' });
                 const detailBiz = detailResp.biz;
-                if (!detailBiz.ok) {
-                    Logger.warn(`[消息盒子] 获取奖励详情失败: ${detailBiz.message}`);
-                    continue;
-                }
+                if (!detailBiz.ok) continue;
 
                 const rewardData = detailBiz.data || {};
                 const chanceCount = Number(rewardData.ChanceCount) || 0;
                 const rewardStatus = Number(rewardData.Status) || 0;
                 const bookId = rewardData.BookId || '';
 
-                if (rewardData.Status !== undefined && Number(rewardData.Status) !== 0) {
-                    continue; // 已处理
-                }
+                if (rewardData.Status !== undefined && Number(rewardData.Status) !== 0) continue;
 
                 if (chanceCount > 0) {
                     await randomDelay();
-                    const cbResp = await client.rewardCallback({
-                        orderId, checkRisk: '1',
-                    });
+                    const cbResp = await client.rewardCallback({ orderId, checkRisk: '1' });
                     const cbBiz = cbResp.biz;
                     if (cbBiz.ok || String(cbBiz.result) === '0') {
                         rewardCount++;
-                        const name = rewardData.BookName || '';
-                        const coin = rewardData.CoinCount || '';
-                        rewards.push(name || orderId);
-                        Logger.success(`[消息盒子] 领取: ${name}${coin ? coin + '点' : ''}`);
+                        rewards.push(rewardData.BookName || orderId);
                     }
                     continue;
                 }
-
                 if (rewardStatus === 1 || rewardStatus === 2) {
                     if (!bookId) continue;
                     await randomDelay();
                     try {
-                        const shelfResp = await client.rewardAddShelf({
-                            orderId, bookId,
-                        });
-                        const shelfBiz = shelfResp.biz;
-                        if (shelfBiz.ok || String(shelfBiz.result) === '0') {
+                        const shelfResp = await client.rewardAddShelf({ orderId, bookId });
+                        if (shelfResp.biz.ok || String(shelfResp.biz.result) === '0') {
                             rewardCount++;
                             rewards.push(rewardData.BookName || orderId);
                         }
                     } catch {}
                     continue;
                 }
-
                 if (rewardStatus === 3) {
                     await randomDelay();
                     try {
-                        const cbResp = await client.rewardCallback({
-                            orderId, checkRisk: '0',
-                        });
-                        const cbBiz = cbResp.biz;
-                        if (cbBiz.ok || String(cbBiz.result) === '0') {
+                        const cbResp = await client.rewardCallback({ orderId, checkRisk: '0' });
+                        if (cbResp.biz.ok || String(cbResp.biz.result) === '0') {
                             rewardCount++;
                             rewards.push(rewardData.BookName || orderId);
                         }
@@ -813,57 +689,13 @@ async function taskMessageBox(client, cookieRaw) {
             }
             await randomDelay();
         }
-
-        if (rewardCount > 0) {
-            return taskResult(taskName, true,
-                `领取 ${rewardCount} 个奖励` + (rewards.length ? `: ${rewards.join(', ')}` : ''));
-        }
+        if (rewardCount > 0) return taskResult(taskName, true, `领取 ${rewardCount} 个奖励` + (rewards.length ? `: ${rewards.join(', ')}` : ''));
         return taskResult(taskName, true, '无可领取奖励');
-    } catch (e) {
-        return taskResult(taskName, false, e?.message || String(e));
-    }
-}
-
-// ==================== 辅助函数 ====================
-function taskResult(name, ok, detail) {
-    return { name, ok, detail: detail || (ok ? '完成' : '失败') };
-}
-
-function generateSignKey(uid) {
-    if (uid === 0) return '0';
-    let val = BigInt(uid);
-    let result = '';
-    const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    while (val > 0n) {
-        result = CHARS[Number(val % 38n)] + result;
-        val = val / 38n;
-    }
-    return result;
-}
-
-function extractOrderId(text) {
-    if (!text) return null;
-    const match = text.match(/orderId=([a-f0-9]+)/i);
-    return match ? match[1] : null;
-}
-
-function isRecentMessage(createTime) {
-    if (!createTime) return false;
-    const now = Date.now() + 30 * 24 * 3600 * 1000;
-    const ts = typeof createTime === 'string' ? new Date(createTime).getTime() : Number(createTime);
-    if (!ts || ts <= 0) return false;
-    const diff = now - ts;
-    return diff >= 0 && diff <= 30 * 24 * 3600 * 1000;
-}
-
-// ==================== 通知 ====================
-function notify(subtitle, message) {
-    $notification.post(CONFIG.NOTIFY_TITLE, subtitle || '', message || '');
+    } catch (e) { return taskResult(taskName, false, e?.message || String(e)); }
 }
 
 // ==================== 主流程 ====================
 (async () => {
-    // 1. 读取 Cookie
     const cookieRaw = $persistentStore.read(CONFIG.COOKIE_KEY);
     if (!cookieRaw) {
         Logger.error('未找到 Cookie，请先设置');
@@ -871,7 +703,6 @@ function notify(subtitle, message) {
         return;
     }
 
-    // 2. 解析 Cookie
     const cookieData = parseCookieData(cookieRaw);
     if (!cookieData.qdh && !cookieData.qdheader) {
         Logger.error('Cookie 中未找到 qdh 或 qdheader 字段');
@@ -881,11 +712,8 @@ function notify(subtitle, message) {
 
     Logger.info('📖 起点读书任务开始执行');
     Logger.info(`👤 UID: ${cookieData.uid}`);
-
-    // 3. 创建客户端
     const client = new QidianClient(cookieData);
 
-    // 4. 获取用户信息
     let nickName = '';
     try {
         const userResp = await client.getCheckinDetail({ checkinType: '0' });
@@ -893,64 +721,21 @@ function notify(subtitle, message) {
         Logger.info(`👤 昵称: ${nickName || '未知'}`);
     } catch {}
 
-    // 5. 执行任务
     const results = [];
-
     try {
-        // 签到
-        if (CONFIG.TASKS.checkin) {
-            results.push(await taskCheckin(client));
-        }
+        if (CONFIG.TASKS.checkin) results.push(await taskCheckin(client));
+        if (CONFIG.TASKS.watchAdv) results.push(await taskWatchAdv(client));
+        if (CONFIG.TASKS.dailyTask) results.push(await taskDaily(client));
+        if (CONFIG.TASKS.lottery) results.push(await taskLottery(client));
+        if (CONFIG.TASKS.exchange) results.push(await taskExchange(client));
+        if (CONFIG.TASKS.chapterCard) results.push(await taskChapterCard(client));
+        if (CONFIG.TASKS.messageBox) results.push(await taskMessageBox(client, cookieRaw));
 
-        // 看广告
-        if (CONFIG.TASKS.watchAdv) {
-            results.push(await taskWatchAdv(client));
-        } else {
-            Logger.warn('看广告任务已关闭');
-        }
-
-        // 每日任务
-        if (CONFIG.TASKS.dailyTask) {
-            results.push(await taskDaily(client));
-        } else {
-            Logger.warn('每日任务已关闭');
-        }
-
-        // 抽奖
-        if (CONFIG.TASKS.lottery) {
-            results.push(await taskLottery(client));
-        } else {
-            Logger.warn('抽奖任务已关闭');
-        }
-
-        // 兑换章节卡
-        if (CONFIG.TASKS.exchange) {
-            results.push(await taskExchange(client));
-        } else {
-            Logger.warn('兑换任务已关闭');
-        }
-
-        // 章节卡信息
-        if (CONFIG.TASKS.chapterCard) {
-            results.push(await taskChapterCard(client));
-        } else {
-            Logger.warn('章节卡任务已关闭');
-        }
-
-        // 消息盒子
-        if (CONFIG.TASKS.messageBox) {
-            results.push(await taskMessageBox(client, cookieRaw));
-        } else {
-            Logger.warn('消息盒子任务已关闭');
-        }
-
-        // 领取礼物
         try {
             const giftResp = await client.receiveGifts({ checkinType: 0 });
             const giftBiz = giftResp.biz;
             const giftOk = giftBiz.ok || Number(giftBiz.result) === 4111;
-            results.push(taskResult('领取礼物', giftOk,
-                giftOk ? '领取成功' : giftBiz.message || '领取失败'));
+            results.push(taskResult('领取礼物', giftOk, giftOk ? '领取成功' : giftBiz.message || '领取失败'));
         } catch {}
 
     } catch (e) {
@@ -962,17 +747,9 @@ function notify(subtitle, message) {
         }
     }
 
-    // 6. 汇总结果
     const successCount = results.filter(r => r.ok).length;
-    const lines = [
-        `👤 ${nickName || '未知'}`,
-        `📅 ${formatDate()}`,
-        `📊 成功 ${successCount}/${results.length}`,
-        '',
-    ];
-    for (const r of results) {
-        lines.push(`${r.ok ? '✅' : '❌'} ${r.name}: ${r.detail}`);
-    }
+    const lines = [ `👤 ${nickName || '未知'}`, `📅 ${formatDate()}`, `📊 成功 ${successCount}/${results.length}`, '' ];
+    for (const r of results) lines.push(`${r.ok ? '✅' : '❌'} ${r.name}: ${r.detail}`);
 
     const summary = lines.join('\n');
     console.log(summary);
@@ -984,9 +761,3 @@ function notify(subtitle, message) {
 }).finally(() => {
     $done();
 });
-
-function formatDate() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
-        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
