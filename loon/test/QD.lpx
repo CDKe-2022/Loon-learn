@@ -16,9 +16,9 @@ QDREADER_CHAPTER_CARD_ENABLE=switch,"false","true",tag=章节卡片, desc=开启
 QDREADER_MESSAGE_BOX_ENABLE=switch,"false","true",tag=大咖荐书, desc=开启后处理大咖荐书消息
 
 [Script]
-http-response ^https?:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/user\/getlogininfo script-path=https://raw.githubusercontent.com/Yuheng0101/X/main/Tasks/QDReader/qdreader.js, requires-body=1, tag=起点读书获取Cookie, enable={CAPTURE_ENABLE}, argument=[{QDREADER_DEBUG}]
+http-response ^https?:\/\/h5\.if\.qidian\.com\/argus\/api\/v1\/user\/getlogininfo script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/QD.js, requires-body=1, tag=起点读书获取Cookie, enable={CAPTURE_ENABLE}, argument=[{QDREADER_DEBUG}]
 
-cron {CRONEXP} script-path=https://raw.githubusercontent.com/Yuheng0101/X/main/Tasks/QDReader/qdreader.js, timeout={TIMEOUT}, tag=起点读书自动签到, argument=[{QDREADER_DEBUG},{QDREADER_ADV_JOB_ENABLE},{QDREADER_EXTRA_ADV_JOB_ENABLE},{QDREADER_LOTTERY_ENABLE},{QDREADER_WEEKLY_EXCHANGE_ENABLE},{QDREADER_CHAPTER_CARD_ENABLE},{QDREADER_MESSAGE_BOX_ENABLE}]
+cron {CRONEXP} script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/QD.js, timeout={TIMEOUT}, tag=起点读书自动签到, argument=[{QDREADER_DEBUG},{QDREADER_ADV_JOB_ENABLE},{QDREADER_EXTRA_ADV_JOB_ENABLE},{QDREADER_LOTTERY_ENABLE},{QDREADER_WEEKLY_EXCHANGE_ENABLE},{QDREADER_CHAPTER_CARD_ENABLE},{QDREADER_MESSAGE_BOX_ENABLE}]
 
 [MITM]
 hostname = h5.if.qidian.com
