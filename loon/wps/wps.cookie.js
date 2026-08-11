@@ -52,7 +52,8 @@ function extractSid(headers) {
     if (fromCookie) return fromCookie;
 
     const headersStr = JSON.stringify(headers);
-    const m = headersStr.match(/wps_sid[s]?[=:]\s*"?([^";,\s}]+)/i);
+    // 修复 1：移除了 [s]?，并增加 \b 边界限制，确保只精准匹配 wps_sid
+    const m = headersStr.match(/\bwps_sid[=:]\s*"?([^";,\s}]+)/i);
     return m ? m[1] : "";
 }
 
@@ -76,7 +77,8 @@ function parseCookieHeader(cookieHeader) {
         if (idx < 0) continue;
         const key = pair.slice(0, idx).trim();
         const value = pair.slice(idx + 1).trim();
-        if (/^wps_sids?$/i.test(key) && value) {
+        // 修复 2：移除了 s?，确保只匹配 wps_sid，不再误抓 wps_sids
+        if (/^wps_sid$/i.test(key) && value) {
             return value;
         }
     }
