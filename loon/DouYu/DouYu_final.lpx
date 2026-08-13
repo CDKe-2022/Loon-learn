@@ -25,25 +25,25 @@ DOMAIN, stun1.qvb.qcloud.com, REJECT
 
 [Rewrite]
 # 开屏广告
-^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/getinfo reject-dict
+request if ${url} ~= /^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/getinfo/i then reject_dict(200)
 
 # 首页直播间悬浮窗 - 直播间悬浮窗data.pendant_a / 直播间宝箱data.entrance_d
-^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list response-body-json-del data.pendant_a data.entrance_d data.fix_entrance
+response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list/i then response.json.delete(["data.pendant_a", "data.entrance_d", "data.fix_entrance"])
 
 # 修改应用配置 - 大神游戏陪玩greatGodGameSitterSwitch / 关注更多主播入口followMoreAnchorEntrance / 直播横幅sdklivebanner / 首页活动悬浮窗homeActFloatSwitch / 带货开关bringGoodsSwitch / QQ游戏qqGameSwitch
-^https:\/\/venus\.douyucdn\.cn\/venus\/config\/static\/update.+keyCodeSet=flow_config response-body-json-replace greatGodGameSitterSwitch 0 followMoreAnchorEntrance 0 sdklivebanner 0 homeActFloatSwitch 0 bringGoodsSwitch 0 qqGameSwitch 0
+response if ${url} ~= /^https:\/\/venus\.douyucdn\.cn\/venus\/config\/static\/update.+keyCodeSet=flow_config/i then response.json.replace(["greatGodGameSitterSwitch", "followMoreAnchorEntrance", "sdklivebanner", "homeActFloatSwitch", "bringGoodsSwitch", "qqGameSwitch"], [0, 0, 0, 0, 0, 0])
 
 # 去除直播页面下方广告
-^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list response-body-json-del data.fix_entrance data.pendant_top data.sub_act_entrance data.pendant_mobile_b
-^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\? reject-dict
-^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\? response-body-json-del data.ad
-^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\? response-body-json-del data.list[2].ad
-^https:\/\/apiv3\.douyucdn\.cn\/japi\/ecl\/api\/query\/user\/goods\/list\? response-body-json-jq 'del(.data.details)'
+response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list/i then response.json.delete(["data.fix_entrance", "data.pendant_top", "data.sub_act_entrance", "data.pendant_mobile_b"])
+request if ${url} ~= /^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\?/i then reject_dict(200)
+response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\?/i then response.json.delete("data.ad")
+response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\?/i then response.json.delete("data.list[2].ad")
+response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/japi\/ecl\/api\/query\/user\/goods\/list\?/i then response.json.jq("del(.data.details)")
 #去除直播间页面的淘宝广告
-^https://vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com/live-tag/.*\.json$ response-body-json-jq 'map(del(.ads))'
+response if ${url} ~= /^https:\//vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com\/live-tag\/.*\.json$/i then response.json.jq("map(del(.ads))")
 
 # 首页轮播图和视频流广告
-^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3 response-body-json-jq '.data.rec_card |= (.[]? |= (.card_banner |= map(select(has("ad") | not)))) | .data.rec_cont |= map(select(has("ad") | not))'
+response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3/i then response.json.jq(".data.rec_card |= (.[]? |= (.card_banner |= map(select(has(\"ad\") | not)))) | .data.rec_cont |= map(select(has(\"ad\") | not))")
 
 [Argument]
 DYSign = switch, true, false, tag = 斗鱼签到, desc = 控制是否执行斗鱼签到任务
