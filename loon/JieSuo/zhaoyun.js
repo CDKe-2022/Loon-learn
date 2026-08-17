@@ -2,6 +2,9 @@
 
 赵云与阿斗 · Loon 专用版
 
+作者：@ddm1023
+Loon 重构版
+
 功能：
 - 金币
 - 等级
@@ -10,9 +13,6 @@
 - 技能
 - 头像
 - 分享次数
-
-Loon Plugin 参数：
-$argument.xxx
 
 *************************************/
 
@@ -25,10 +25,11 @@ const ARG = $argument || {};
 
 
 // ============================================================
-// 2. 参数工具
+// 2. 参数读取
 // ============================================================
 
 function getArg(key, def) {
+
     const value = ARG[key];
 
     if (
@@ -43,9 +44,10 @@ function getArg(key, def) {
 }
 
 
-function getBool(key, def = false) {
+function getBool(key, def) {
 
-    const value = getArg(key, def);
+    const value =
+        getArg(key, def);
 
     return (
         value === true ||
@@ -55,11 +57,12 @@ function getBool(key, def = false) {
 }
 
 
-function getNumber(key, def = 0) {
+function getNumber(key, def) {
 
-    const value = Number(
-        getArg(key, def)
-    );
+    const value =
+        Number(
+            getArg(key, def)
+        );
 
     return Number.isFinite(value)
         ? value
@@ -78,15 +81,12 @@ const ForceValue =
     );
 
 
-// ============================================================
-// 4. 功能开关
-// ============================================================
-
 const EnableGold =
     getBool(
         "ddm_zyyad_enablegold",
         true
     );
+
 
 const EnableLevel =
     getBool(
@@ -94,11 +94,13 @@ const EnableLevel =
         true
     );
 
+
 const EnableRegister =
     getBool(
         "ddm_zyyad_enableregister",
         true
     );
+
 
 const EnableWeapon =
     getBool(
@@ -106,11 +108,13 @@ const EnableWeapon =
         true
     );
 
+
 const EnableSkill =
     getBool(
         "ddm_zyyad_enableskill",
         true
     );
+
 
 const EnableAvatar =
     getBool(
@@ -120,7 +124,7 @@ const EnableAvatar =
 
 
 // ============================================================
-// 5. 数值配置
+// 4. 数值配置
 // ============================================================
 
 const Gold =
@@ -145,9 +149,11 @@ const RegisterDay =
 
 
 const WeaponMode =
-    getNumber(
-        "ddm_zyyad_weaponmode",
-        2
+    parseWeaponMode(
+        getArg(
+            "ddm_zyyad_weaponmode",
+            "导入全部武器"
+        )
     );
 
 
@@ -159,12 +165,45 @@ const WeaponCount =
 
 
 // ============================================================
-// 6. 技能名称 → 游戏 ID
+// 5. 武器模式解析
+// ============================================================
+
+function parseWeaponMode(value) {
+
+    if (value === undefined || value === null) {
+        return 2;
+    }
+
+    const str = String(value).trim();
+
+    if (str === "关闭" || str === "0") {
+        return 0;
+    }
+
+    if (
+        str === "补充已有武器" ||
+        str === "1"
+    ) {
+        return 1;
+    }
+
+    if (
+        str === "导入全部武器" ||
+        str === "2"
+    ) {
+        return 2;
+    }
+
+    return 2;
+}
+
+
+// ============================================================
+// 6. 技能 ID 表
 // ============================================================
 
 const SkillID = {
 
-    // 主动 / 通用
     "毛笔": 2,
     "练兵符": 3,
     "神兵符": 4,
@@ -175,11 +214,11 @@ const SkillID = {
     "地雷": 9,
     "速攻符": 10,
 
-    // 被动
     "降妖符": 11,
     "农民": 12,
     "招贤榜": 13,
     "攻速符（全体）": 14,
+    "攻速符(全体)": 14,
     "齐头并进": 15,
     "续命丹": 16,
     "大补丸": 17,
@@ -187,130 +226,218 @@ const SkillID = {
     "洛阳铲": 19,
     "召唤陨石": 20,
 
-    // 21 = 垃圾桶
     "垃圾桶": 21,
-
     "升职令": 22,
-
-    // 23 = 行军丹
-
     "摸金校尉": 24
 };
 
 
 // ============================================================
-// 7. 获取主动技能
+// 7. 技能参数转换
 // ============================================================
 
-const ActiveSkillNames = [
-    getArg(
-        "ddm_zyyad_active1",
-        "神兵符"
+function parseSkill(value) {
+
+    if (
+        value === undefined ||
+        value === null ||
+        value === ""
+    ) {
+        return 0;
+    }
+
+
+    // 数字
+    if (
+        typeof value === "number"
+    ) {
+
+        return Number(value) || 0;
+    }
+
+
+    let name =
+        String(value).trim();
+
+
+    // 去掉引号
+    name =
+        name.replace(
+            /^["']|["']$/g,
+            ""
+        );
+
+
+    // 直接传数字
+    if (
+        /^\d+$/.test(name)
+    ) {
+
+        return Number(name);
+    }
+
+
+    // 统一括号
+    name =
+        name
+        .replace(
+            /（/g,
+            "("
+        )
+        .replace(
+            /）/g,
+            ")"
+        );
+
+
+    if (
+        name === "攻速符(全体)"
+    ) {
+
+        return 14;
+    }
+
+
+    return SkillID[name] || 0;
+}
+
+
+// ============================================================
+// 8. 读取主动技能
+// ============================================================
+
+const ActiveSkill = [
+
+    parseSkill(
+        getArg(
+            "ddm_zyyad_active1",
+            "神兵符"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_active2",
-        "速攻符"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_active2",
+            "速攻符"
+        )
     )
-];
 
+].filter(function(id) {
 
-const ActiveSkill = ActiveSkillNames
-    .map(function(name) {
-        return SkillID[name] || 0;
-    })
-    .filter(Boolean);
+    return id > 0;
+});
 
 
 // ============================================================
-// 8. 获取被动技能
+// 9. 读取被动技能
 // ============================================================
 
-const PassiveSkillNames = [
+const PassiveSkill = [
 
-    getArg(
-        "ddm_zyyad_passive1",
-        "降妖符"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive1",
+            "降妖符"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_passive2",
-        "农民"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive2",
+            "农民"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_passive3",
-        "招贤榜"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive3",
+            "招贤榜"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_passive4",
-        "齐头并进"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive4",
+            "齐头并进"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_passive5",
-        "洛阳铲"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive5",
+            "洛阳铲"
+        )
     ),
 
-    getArg(
-        "ddm_zyyad_passive6",
-        "摸金校尉"
+    parseSkill(
+        getArg(
+            "ddm_zyyad_passive6",
+            "摸金校尉"
+        )
     )
-];
 
+].filter(function(id) {
 
-const PassiveSkill = PassiveSkillNames
-    .map(function(name) {
-        return SkillID[name] || 0;
-    })
-    .filter(Boolean);
+    return id > 0;
+});
 
 
 // ============================================================
-// 9. 技能黑名单
+// 10. 禁止技能
 // ============================================================
 
 const BanSkill = [
-    1,  // 推土车
-    23  // 行军丹
+    1,
+    23
 ];
 
 
 // ============================================================
-// 10. 生成技能列表
+// 11. 构造技能列表
 // ============================================================
 
 const SkillList = [];
 
-const SkillUsed = Object.create(null);
+const SkillUsed =
+    Object.create(null);
 
 
 function AddSkill(id) {
 
     id = Number(id);
 
-    // 无效
+
     if (!id) {
         return;
     }
 
-    // 最多8个
-    if (SkillList.length >= 8) {
+
+    // 最多 8 个
+    if (
+        SkillList.length >= 8
+    ) {
         return;
     }
 
-    // 黑名单
-    if (BanSkill.includes(id)) {
+
+    // 禁止技能
+    if (
+        BanSkill.includes(id)
+    ) {
         return;
     }
+
 
     // 去重
-    if (SkillUsed[id]) {
+    if (
+        SkillUsed[id]
+    ) {
         return;
     }
 
+
     SkillUsed[id] = true;
+
 
     SkillList.push([
         id
@@ -318,23 +445,30 @@ function AddSkill(id) {
 }
 
 
-// 主动技能最多2个
+// 主动技能
 ActiveSkill
     .slice(0, 2)
-    .forEach(AddSkill);
+    .forEach(function(id) {
+
+        AddSkill(id);
+    });
 
 
-// 被动技能最多6个
+// 被动技能
 PassiveSkill
     .slice(0, 6)
-    .forEach(AddSkill);
+    .forEach(function(id) {
+
+        AddSkill(id);
+    });
 
 
 // ============================================================
-// 11. 默认用户数据
+// 12. 默认用户数据
 // ============================================================
 
-const current = Date.now();
+const current =
+    Date.now();
 
 
 const UserTemplate = {
@@ -434,7 +568,7 @@ const UserTemplate = {
 
 
 // ============================================================
-// 12. 初始化用户数据
+// 13. 初始化数据
 // ============================================================
 
 function InitUserData(data) {
@@ -443,45 +577,49 @@ function InitUserData(data) {
         !data ||
         typeof data !== "object"
     ) {
+
         data = {};
     }
 
 
-    Object.keys(UserTemplate)
-        .forEach(function(key) {
+    Object.keys(
+        UserTemplate
+    ).forEach(function(key) {
+
+        if (
+            data[key] === undefined ||
+            data[key] === null
+        ) {
+
+            const value =
+                UserTemplate[key];
+
 
             if (
-                data[key] === undefined ||
-                data[key] === null
+                Array.isArray(value)
             ) {
 
-                const value =
-                    UserTemplate[key];
+                data[key] =
+                    JSON.parse(
+                        JSON.stringify(value)
+                    );
 
+            } else if (
+                value &&
+                typeof value === "object"
+            ) {
 
-                if (Array.isArray(value)) {
+                data[key] =
+                    JSON.parse(
+                        JSON.stringify(value)
+                    );
 
-                    data[key] =
-                        JSON.parse(
-                            JSON.stringify(value)
-                        );
+            } else {
 
-                } else if (
-                    value &&
-                    typeof value === "object"
-                ) {
-
-                    data[key] =
-                        JSON.parse(
-                            JSON.stringify(value)
-                        );
-
-                } else {
-
-                    data[key] = value;
-                }
+                data[key] = value;
             }
-        });
+        }
+    });
 
 
     return data;
@@ -489,7 +627,7 @@ function InitUserData(data) {
 
 
 // ============================================================
-// 13. 安全设置数值
+// 14. 安全修改数值
 // ============================================================
 
 function setValue(
@@ -510,8 +648,9 @@ function setValue(
         Number(data[key]) || 0;
 
 
-    // 安全模式：只增加
-    if (old < value) {
+    if (
+        old < value
+    ) {
 
         data[key] = value;
     }
@@ -519,7 +658,7 @@ function setValue(
 
 
 // ============================================================
-// 14. 注册时间
+// 15. 注册时间
 // ============================================================
 
 function ModuleRegister(
@@ -529,7 +668,8 @@ function ModuleRegister(
 
     const target =
         current -
-        RegisterDay * 86400000 -
+        RegisterDay *
+        86400000 -
         300000;
 
 
@@ -561,135 +701,128 @@ function ModuleRegister(
 
 
 // ============================================================
-// 15. 等级
+// 16. 等级
 // ============================================================
 
 function ModuleLevel(data) {
 
-    // 等级
     setValue(
         data,
         "cs",
         Level
     );
 
-
-    // 昨日等级
     setValue(
         data,
         "ga",
         Level
     );
 
-
-    // 胜利次数
     setValue(
         data,
         "wn",
         Level
     );
 
-
-    // 连胜
     setValue(
         data,
         "ws",
         Level
     );
 
-
-    // 历史最高
     setValue(
         data,
         "ls",
         Level
     );
 
-
-    // 章节
     setValue(
         data,
         "cld",
         Math.max(
             99,
-            Math.ceil(Level / 10)
+            Math.ceil(
+                Level / 10
+            )
         )
     );
 }
 
 
 // ============================================================
-// 16. 武器列表
+// 17. 武器列表
 // ============================================================
 
 const WeaponList = [
 
-    [1, 50],
-    [2, 50],
-    [3, 50],
-    [4, 50],
-    [5, 50],
-    [6, 50],
-    [7, 50],
-    [8, 50],
-    [9, 50],
-    [11, 50],
-    [12, 50],
-    [13, 50],
-    [14, 50],
-    [15, 50],
-    [16, 50],
-    [17, 50],
-    [18, 50],
-    [19, 50],
-    [20, 50],
-    [22, 50],
-    [23, 50],
-    [24, 50],
-    [25, 50],
-    [26, 50],
-    [27, 50],
-    [28, 50],
-    [29, 50],
-    [30, 50],
-    [32, 50],
-    [33, 50],
-    [34, 50],
-    [35, 50],
-    [36, 50],
-    [37, 50],
-    [38, 50],
-    [39, 50],
-    [40, 50],
-    [41, 50],
-    [42, 50],
-    [43, 50]
+    [1,50],
+    [2,50],
+    [3,50],
+    [4,50],
+    [5,50],
+    [6,50],
+    [7,50],
+    [8,50],
+    [9,50],
+    [11,50],
+    [12,50],
+    [13,50],
+    [14,50],
+    [15,50],
+    [16,50],
+    [17,50],
+    [18,50],
+    [19,50],
+    [20,50],
+    [22,50],
+    [23,50],
+    [24,50],
+    [25,50],
+    [26,50],
+    [27,50],
+    [28,50],
+    [29,50],
+    [30,50],
+    [32,50],
+    [33,50],
+    [34,50],
+    [35,50],
+    [36,50],
+    [37,50],
+    [38,50],
+    [39,50],
+    [40,50],
+    [41,50],
+    [42,50],
+    [43,50]
 ];
 
 
 // ============================================================
-// 17. 武器模块
+// 18. 武器模块
 // ============================================================
 
 function ModuleWeapon(data) {
 
-    // 0 = 关闭
-    if (WeaponMode === 0) {
+    if (
+        WeaponMode === 0
+    ) {
         return;
     }
 
 
-    if (!Array.isArray(data.wf)) {
+    if (
+        !Array.isArray(data.wf)
+    ) {
 
         data.wf = [];
     }
 
 
-    // --------------------------------
-    // 模式1：补充已有武器
-    // --------------------------------
-
-    if (WeaponMode === 1) {
+    // 模式 1
+    if (
+        WeaponMode === 1
+    ) {
 
         data.wf.forEach(
             function(item) {
@@ -699,13 +832,11 @@ function ModuleWeapon(data) {
                     item.length > 1
                 ) {
 
-                    const old =
-                        Number(item[1]) || 0;
-
-
                     item[1] =
                         Math.max(
-                            old,
+                            Number(
+                                item[1]
+                            ) || 0,
                             WeaponCount
                         );
                 }
@@ -716,10 +847,7 @@ function ModuleWeapon(data) {
     }
 
 
-    // --------------------------------
-    // 模式2：导入全部武器
-    // --------------------------------
-
+    // 模式 2
     const WeaponMap = {};
 
 
@@ -741,12 +869,16 @@ function ModuleWeapon(data) {
     WeaponList.forEach(
         function(item) {
 
-            const id = item[0];
-            const count = item[1];
+            const id =
+                item[0];
+
+            const count =
+                item[1];
 
 
-            // 已存在
-            if (WeaponMap[id]) {
+            if (
+                WeaponMap[id]
+            ) {
 
                 WeaponMap[id][1] =
                     ForceValue
@@ -758,10 +890,7 @@ function ModuleWeapon(data) {
                             count
                         );
 
-            }
-
-            // 不存在
-            else {
+            } else {
 
                 data.wf.push([
                     id,
@@ -774,41 +903,82 @@ function ModuleWeapon(data) {
 
 
 // ============================================================
-// 18. 技能模块
+// 19. 技能模块
 // ============================================================
 
 function ModuleSkill(data) {
 
-    if (!Array.isArray(data.ps)) {
+    if (
+        !data ||
+        typeof data !== "object"
+    ) {
 
-        data.ps = [];
+        return;
     }
 
 
-    data.ps =
+    if (
+        !Array.isArray(
+            SkillList
+        )
+    ) {
+
+        return;
+    }
+
+
+    // 没有技能选择
+    if (
+        SkillList.length === 0
+    ) {
+
+        console.log(
+            "赵云与阿斗：没有有效技能"
+        );
+
+        return;
+    }
+
+
+    const now =
+        Date.now();
+
+
+    const result =
         SkillList.map(
             function(item, index) {
 
                 return [
-                    item[0],
+                    Number(item[0]),
                     1,
-                    current -
+                    now -
                     (index + 1) *
                     300000
                 ];
             }
         );
+
+
+    data.ps = result;
+
+
+    console.log(
+        "赵云与阿斗：技能配置 = " +
+        JSON.stringify(result)
+    );
 }
 
 
 // ============================================================
-// 19. 头像模块
+// 20. 头像
 // ============================================================
 
 function ModuleAvatar(data) {
 
     if (
-        !Array.isArray(data.aul)
+        !Array.isArray(
+            data.aul
+        )
     ) {
 
         data.aul =
@@ -828,7 +998,7 @@ function ModuleAvatar(data) {
 
 
 // ============================================================
-// 20. 核心模块
+// 21. 核心模块
 // ============================================================
 
 function Module(
@@ -840,22 +1010,22 @@ function Module(
         !data ||
         typeof data !== "object"
     ) {
+
         return;
     }
 
 
-    // 基础功能
+    // 原脚本固定项目
     data.hfb = true;
     data.pap = true;
     data.wfr = true;
     data.sm = 30;
 
 
-    // ----------------------------
     // 金币
-    // ----------------------------
-
-    if (EnableGold) {
+    if (
+        EnableGold
+    ) {
 
         setValue(
             data,
@@ -865,11 +1035,10 @@ function Module(
     }
 
 
-    // ----------------------------
     // 注册
-    // ----------------------------
-
-    if (EnableRegister) {
+    if (
+        EnableRegister
+    ) {
 
         setValue(
             data,
@@ -884,41 +1053,62 @@ function Module(
     }
 
 
-    // ----------------------------
     // 等级
-    // ----------------------------
-
-    if (EnableLevel) {
+    if (
+        EnableLevel
+    ) {
 
         ModuleLevel(data);
     }
 
 
-    // ----------------------------
     // 武器
-    // ----------------------------
-
-    if (EnableWeapon) {
+    if (
+        EnableWeapon
+    ) {
 
         ModuleWeapon(data);
     }
 
 
-    // ----------------------------
     // 技能
-    // ----------------------------
+    if (
+        EnableSkill
+    ) {
 
-    if (EnableSkill) {
+        console.log(
+            "赵云与阿斗：技能模块开启"
+        );
+
+        console.log(
+            "主动技能 ID：" +
+            JSON.stringify(
+                ActiveSkill
+            )
+        );
+
+        console.log(
+            "被动技能 ID：" +
+            JSON.stringify(
+                PassiveSkill
+            )
+        );
+
+        console.log(
+            "最终技能：" +
+            JSON.stringify(
+                SkillList
+            )
+        );
 
         ModuleSkill(data);
     }
 
 
-    // ----------------------------
     // 头像
-    // ----------------------------
-
-    if (EnableAvatar) {
+    if (
+        EnableAvatar
+    ) {
 
         ModuleAvatar(data);
     }
@@ -926,7 +1116,7 @@ function Module(
 
 
 // ============================================================
-// 21. JSON 工具
+// 22. JSON
 // ============================================================
 
 function safeJson(body) {
@@ -939,13 +1129,17 @@ function safeJson(body) {
 
     } catch (e) {
 
+        console.log(
+            "赵云与阿斗：JSON解析失败"
+        );
+
         return {};
     }
 }
 
 
 // ============================================================
-// 22. 判断请求地址
+// 23. 当前 URL
 // ============================================================
 
 const URL =
@@ -956,13 +1150,7 @@ const URL =
 
 
 // ============================================================
-// 23. 请求体处理
-// ============================================================
-//
-// 对应：
-// /api/v*/sys/user/data
-//
-// 原脚本在请求阶段直接修改 body
+// 24. 请求体处理
 // ============================================================
 
 if (
@@ -975,6 +1163,12 @@ if (
         );
 
 
+    console.log(
+        "赵云与阿斗：请求体处理：" +
+        URL
+    );
+
+
     Module(
         requestData,
         null
@@ -982,9 +1176,10 @@ if (
 
 
     $done({
-        body: JSON.stringify(
-            requestData
-        )
+        body:
+            JSON.stringify(
+                requestData
+            )
     });
 
 
@@ -993,7 +1188,7 @@ if (
 
 
 // ============================================================
-// 24. 响应体处理
+// 25. 响应体
 // ============================================================
 
 let responseData =
@@ -1003,7 +1198,7 @@ let responseData =
 
 
 // ============================================================
-// 25. 登录接口
+// 26. 登录
 // ============================================================
 
 if (
@@ -1013,10 +1208,6 @@ if (
     responseData.data =
         responseData.data || {};
 
-
-    // ----------------------------
-    // userData
-    // ----------------------------
 
     if (
         !responseData.data.userData ||
@@ -1033,10 +1224,6 @@ if (
         );
 
 
-    // ----------------------------
-    // attach
-    // ----------------------------
-
     if (
         !responseData.data.attach ||
         typeof responseData.data.attach !== "object"
@@ -1045,10 +1232,6 @@ if (
         responseData.data.attach = {};
     }
 
-
-    // ----------------------------
-    // info
-    // ----------------------------
 
     if (
         !responseData.data.info ||
@@ -1065,19 +1248,21 @@ if (
     );
 
 
-    // 用户类型
-    responseData.data.userType = 1;
+    responseData.data.userType =
+        1;
 
 
-    // 返回成功
-    responseData.code = 0;
+    responseData.code =
+        0;
 
-    responseData.msg = "Success";
+
+    responseData.msg =
+        "Success";
 }
 
 
 // ============================================================
-// 26. 用户数据接口
+// 27. 用户数据
 // ============================================================
 
 if (
@@ -1099,7 +1284,7 @@ if (
 
 
 // ============================================================
-// 27. 分享接口
+// 28. 分享
 // ============================================================
 
 if (
@@ -1117,12 +1302,15 @@ if (
 
 
 // ============================================================
-// 28. 返回
+// 29. 返回响应
 // ============================================================
 
 $done({
+
     status: 200,
-    body: JSON.stringify(
-        responseData
-    )
+
+    body:
+        JSON.stringify(
+            responseData
+        )
 });
