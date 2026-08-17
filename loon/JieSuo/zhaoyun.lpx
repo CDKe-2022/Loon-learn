@@ -1,4 +1,4 @@
-#!name = 赵云与阿斗小游戏
+#!name = 赵云与阿斗
 #!desc = 本频道脚本免费使用，请勿私自售卖！未在任何平台开设商铺出售脚本，请勿轻信他人。所有脚本仅供测试与体验使用，测试结束后请及时删除。频道：叮当猫脚本分享频道 @ddm1023
 #!author = @ddm1023
 #!homepage = https://t.me/ddm1023
@@ -7,35 +7,42 @@
 #!loon_version = 3.5.0
 
 [Argument]
-# 脚本总开关
+# --- 脚本总开关 ---
 ddm_app_switch = switch, false, tag=⚡ 脚本总开关, desc=关闭：所有脚本停止运行\n开启：允许脚本执行
 
-# 赵云与阿斗 - 辅助工具 v2.1 参数
+# --- 赵云与阿斗 - 辅助工具 v2.1 参数 ---
+
+# 模式开关
 ddm_zyyad_forcevalue = switch, false, tag=强制覆盖模式, desc=关闭：只补不降；开启：完全按配置覆盖
 ddm_zyyad_enablegold = switch, true, tag=金币模块, desc=启用金币修改
-ddm_zyyad_gold = input, "99999999", tag=金币数量, desc=修改后的金币数量
 ddm_zyyad_enablelevel = switch, true, tag=等级模块, desc=启用等级、章节、胜利次数修改
-ddm_zyyad_level = input, "999", tag=等级, desc=角色等级
 ddm_zyyad_enableregister = switch, true, tag=注册时间模块, desc=修改账号注册时间
-ddm_zyyad_registerday = input, "30", tag=注册天数, desc=距离今天多少天以前注册
 ddm_zyyad_enableweapon = switch, true, tag=武器模块, desc=启用武器修改
-ddm_zyyad_weaponmode = select, "2", tag=武器模式, desc=请选择武器处理方式。, items=关闭|补充已有武器|导入全部武器
-ddm_zyyad_weaponcount = input, "50", tag=武器碎片数量, desc=所有武器碎片数量
 ddm_zyyad_enableavatar = switch, true, tag=头像模块, desc=解锁全部头像
 ddm_zyyad_enableskill = switch, true, tag=技能模块, desc=启用技能修改
 
-# 主动技能（多选框，最多2个）
-# 注意：Loon的参数界面不支持checkboxes，这里用多个select或input模拟，实际脚本需处理逻辑
-ddm_zyyad_active1 = select, "神兵符", tag=主动技能1, desc=第一个主动技能, items=毛笔|练兵符|神兵符|包子|御敌千里|砚台|陷阱|地雷|速攻符|垃圾桶
-ddm_zyyad_active2 = select, "速攻符", tag=主动技能2, desc=第二个主动技能, items=毛笔|练兵符|神兵符|包子|御敌千里|砚台|陷阱|地雷|速攻符|垃圾桶
+# 数值输入
+ddm_zyyad_gold = input, "99999999", tag=金币数量, desc=修改后的金币数量
+ddm_zyyad_level = input, "999", tag=等级, desc=角色等级
+ddm_zyyad_registerday = input, "30", tag=注册天数, desc=距离今天多少天以前注册
+ddm_zyyad_weaponcount = input, "50", tag=武器碎片数量, desc=所有武器碎片数量
 
-# 被动技能（多选框，最多6个）
-ddm_zyyad_passive1 = select, "降妖符", tag=被动技能1, desc=第一个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
-ddm_zyyad_passive2 = select, "农民", tag=被动技能2, desc=第二个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
-ddm_zyyad_passive3 = select, "招贤榜", tag=被动技能3, desc=第三个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
-ddm_zyyad_passive4 = select, "齐头并进", tag=被动技能4, desc=第四个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
-ddm_zyyad_passive5 = select, "洛阳铲", tag=被动技能5, desc=第五个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
-ddm_zyyad_passive6 = select, "摸金校尉", tag=被动技能6, desc=第六个被动技能, items=降妖符|农民|招贤榜|攻速符（全体）|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+# --- 选择型参数（已修复） ---
+
+# 武器模式（下拉选择）
+ddm_zyyad_weaponmode = select, "2", tag=武器模式, desc=请选择武器处理方式, items=关闭|补充已有武器|导入全部武器
+
+# 主动技能（下拉选择，模拟多选）
+ddm_zyyad_active1 = select, "4", tag=主动技能1, desc=第一个主动技能, items=关闭|毛笔|练兵符|神兵符|包子|御敌千里|砚台|陷阱|地雷|速攻符|垃圾桶
+ddm_zyyad_active2 = select, "10", tag=主动技能2, desc=第二个主动技能, items=关闭|毛笔|练兵符|神兵符|包子|御敌千里|砚台|陷阱|地雷|速攻符|垃圾桶
+
+# 被动技能（下拉选择，模拟多选）
+ddm_zyyad_passive1 = select, "11", tag=被动技能1, desc=第一个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+ddm_zyyad_passive2 = select, "12", tag=被动技能2, desc=第二个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+ddm_zyyad_passive3 = select, "13", tag=被动技能3, desc=第三个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+ddm_zyyad_passive4 = select, "15", tag=被动技能4, desc=第四个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+ddm_zyyad_passive5 = select, "19", tag=被动技能5, desc=第五个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
+ddm_zyyad_passive6 = select, "24", tag=被动技能6, desc=第六个被动技能, items=关闭|降妖符|农民|招贤榜|攻速符(全体)|齐头并进|续命丹|大补丸|泥潭|洛阳铲|召唤陨石|升职令|摸金校尉
 
 [Script]
 # 登录接口响应脚本
