@@ -8,64 +8,64 @@
 
 [Argument]
 
-# ==============================
+# ============================================================
 # 全局开关
-# ==============================
+# ============================================================
 
 ddm_app_switch = switch,false,tag=⚡ 脚本总开关,desc=关闭：停止赵云与阿斗脚本\n开启：允许脚本运行
 
 
-# ==============================
-# 基础功能
-# ==============================
+# ============================================================
+# 基础模块
+# ============================================================
 
 ddm_zyyad_forcevalue = switch,false,tag=强制覆盖模式,desc=关闭：只补不降；开启：完全按照配置覆盖
 
 ddm_zyyad_enablegold = switch,true,tag=💰 金币模块,desc=开启金币修改
 
-ddm_zyyad_enablelevel = switch,true,tag=⭐ 等级模块,desc=开启等级、章节、胜利次数等数据修改
+ddm_zyyad_enablelevel = switch,true,tag=⭐ 等级模块,desc=开启等级、章节、胜利次数修改
 
 ddm_zyyad_enableregister = switch,true,tag=📅 注册时间模块,desc=开启账号注册时间修改
 
-ddm_zyyad_enableweapon = switch,true,tag=⚔️ 武器模块,desc=开启武器及武器碎片修改
+ddm_zyyad_enableweapon = switch,true,tag=⚔️ 武器模块,desc=开启武器修改
 
 ddm_zyyad_enableskill = switch,true,tag=📜 技能模块,desc=开启技能修改
 
 ddm_zyyad_enableavatar = switch,true,tag=🖼️ 头像模块,desc=解锁全部头像
 
 
-# ==============================
+# ============================================================
 # 数值设置
-# ==============================
+# ============================================================
 
 ddm_zyyad_gold = input,"9999999",tag=金币数量,desc=目标金币数量
 
 ddm_zyyad_level = input,"999",tag=等级,desc=目标角色等级
 
-ddm_zyyad_registerday = input,"7",tag=注册天数,desc=将注册时间设置为距今天指定天数以前
+ddm_zyyad_registerday = input,"7",tag=注册天数,desc=设置为距今天指定天数以前注册
 
 ddm_zyyad_weaponcount = input,"50",tag=武器碎片数量,desc=武器碎片目标数量
 
 
-# ==============================
-# 武器设置
-# ==============================
+# ============================================================
+# 武器
+# ============================================================
 
 ddm_zyyad_weaponmode = select,"导入全部武器","关闭","补充已有武器",tag=⚔️ 武器模式,desc=选择武器处理方式
 
 
-# ==============================
+# ============================================================
 # 主动技能
-# ==============================
+# ============================================================
 
 ddm_zyyad_active1 = select,"神兵符","关闭","毛笔","练兵符","神兵符","包子","御敌千里","砚台","陷阱","地雷","速攻符","垃圾桶",tag=主动技能 1,desc=选择第一个主动技能
 
 ddm_zyyad_active2 = select,"速攻符","关闭","毛笔","练兵符","神兵符","包子","御敌千里","砚台","陷阱","地雷","速攻符","垃圾桶",tag=主动技能 2,desc=选择第二个主动技能
 
 
-# ==============================
+# ============================================================
 # 被动技能
-# ==============================
+# ============================================================
 
 ddm_zyyad_passive1 = select,"降妖符","关闭","降妖符","农民","招贤榜","攻速符（全体）","齐头并进","续命丹","大补丸","泥潭","洛阳铲","召唤陨石","升职令","摸金校尉",tag=被动技能 1,desc=选择第一个被动技能
 
@@ -82,32 +82,32 @@ ddm_zyyad_passive6 = select,"摸金校尉","关闭","降妖符","农民","招贤
 
 [Script]
 
-# ==============================
+# ============================================================
 # 登录响应
-# ==============================
+# ============================================================
 
-http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/login script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6},{ddm_zyyad_enableavatar}],tag=赵云与阿斗-登录,enable={ddm_app_switch}
-
-
-# ==============================
-# 用户数据请求
-# ==============================
-
-http-request ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6},{ddm_zyyad_enableavatar}],tag=赵云与阿斗-数据请求,enable={ddm_app_switch}
+http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/login script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_app_switch},{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-登录,enable={ddm_app_switch}
 
 
-# ==============================
-# 用户数据响应
-# ==============================
+# ============================================================
+# 用户数据请求体
+# ============================================================
 
-http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6},{ddm_zyyad_enableavatar}],tag=赵云与阿斗-数据响应,enable={ddm_app_switch}
+http-request ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_app_switch},{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-数据请求,enable={ddm_app_switch}
 
 
-# ==============================
-# 分享接口响应
-# ==============================
+# ============================================================
+# 用户数据响应体
+# ============================================================
 
-http-response ^https?:\/\/.*\.mihuangame\.com\/toutiaoGame\/ZhaoYunAndADou script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6},{ddm_zyyad_enableavatar}],tag=赵云与阿斗-分享,enable={ddm_app_switch}
+http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_app_switch},{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-数据响应,enable={ddm_app_switch}
+
+
+# ============================================================
+# 分享接口
+# ============================================================
+
+http-response ^https?:\/\/.*\.mihuangame\.com\/toutiaoGame\/ZhaoYunAndADou script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_app_switch},{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-分享,enable={ddm_app_switch}
 
 
 [Mitm]
