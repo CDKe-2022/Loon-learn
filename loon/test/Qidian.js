@@ -14,19 +14,21 @@
  *   [Script]
  *   qidian_welfare = cron,30 8 * * *,tag=起点福利中心,script-path=https://你的地址/qidian_welfare.js
  *
- * 依赖：持久化存储里要有 qdreader_cookie（完整 Cookie）。可配合 qidian_welfare_cookie.js 自动刷新。
+ * 依赖：持久化存储里要有 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
+ *      （兼容裸 Cookie 字符串）。可配合 qidian_welfare_cookie.js 自动刷新。
  *   注意：本脚本直接复用原脚本的签名网关，效果与原脚本一致；网关若失效需另寻签名方案。
  *
- * ── 迭代记录（基于 2026-08-21 抓包验证）───────────────────
- * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type），
- *         旧参数 banId/gradientLevel 注释保留可恢复
+ * ── 迭代记录 ─────────────────────────────────────────────
+ * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type），旧参数注释保留
  * [修正2] type 参数按任务来源动态化（激励/多步=0，阅读页=1）
  * [修正3] 新增 doSurpriseBenefit 模块（每小时惊喜福利广告任务）
+ * [键名修正] 存储键为 QDREADER_COOKIE（大写），值格式 {"uid":"cookie串"}，
+ *           ctx.uid 正确传入签名网关（修复上一版漏传 uid 的 bug）
  */
 
 // ===== 配置区 =====
-const STORE_COOKIE = 'qdreader_cookie';
-const STORE_UID = 'qdreader_uid';
+const STORE_COOKIE = 'QDREADER_COOKIE';  // [键名修正] 大写键名，值为 JSON {"uid":"cookie串"}
+const STORE_UID = 'qdreader_uid';        // 已废弃，仅为兼容保留，可删
 const SIGN_GATEWAY = 'https://api.120399.xyz/qdreader/sign';
 
 // 接口地址（host 均为 h5.if.qidian.com，与原脚本 API 对象一致）
@@ -49,6 +51,23 @@ function parseCookie(cookie) {
     if (i > 0) map[p.slice(0, i).trim()] = p.slice(i + 1).trim();
   });
   return map;
+}
+
+// [键名修正] 读取 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
+//   JSON 的 key 就是 uid（如 {"969032829":"cmfuToken=...;ywguid=..."}）
+//   兼容旧格式：裸 Cookie 字符串（此时 uid 为空，签名网关收空 uid）
+function readStoredCookie() {
+  const stored = $persistentStore.read(STORE_COOKIE);
+  if (!stored) return { uid: '', cookie: '' };
+  const s = String(stored).trim();
+  if (s.charAt(0) === '{') {
+    try {
+      const obj = JSON.parse(s);
+      const uid = Object.keys(obj)[0] || '';
+      return { uid: uid, cookie: uid ? String(obj[uid]) : '' };
+    } catch (e) { /* 格式异常，按裸字符串处理 */ }
+  }
+  return { uid: '', cookie: s };
 }
 
 function httpReq(method, url, headers, body) {
@@ -133,7 +152,7 @@ function getTasks(mpBody) {
           raw: t.TaskRawId || '',
           total: Number(t.Total) || 1,
           process: Number(t.Process) || 0,
-          type: m.type,   // 新增：按来源模块标记 type
+          type: m.type,   // 按来源模块标记 type
         });
       }
     });
@@ -223,8 +242,8 @@ async function doAdvJobs(cookie, ctx) {
 
 // ===== [修正3] 惊喜福利（doSurpriseBenefit）=====
 // mainPage 里的 SurpriseBenefit 节点（每小时广告任务）。
-//   IsFinished === 1      → 已完成，跳过
-//   IntervalTime < 0      → 冷却剩余毫秒（换算分钟；若日志数值离谱，可能单位是秒，届时除以1000）
+//   IsFinished === 1  → 已完成，跳过
+//   IntervalTime < 0  → 冷却剩余毫秒（换算分钟；若日志数值离谱，可能单位是秒，届时除以1000）
 //   type = '0'（与其他非阅读页任务一致）
 async function doSurpriseBenefit(cookie, ctx, mpBody) {
   let obj;
@@ -316,10 +335,19 @@ async function doLottery(cookie, ctx) {
 
 // ===== 主流程 =====
 (async function () {
-  const cookie = $persistentStore.read(STORE_COOKIE);
-  if (!cookie) { $notification.post('起点读书', '未配置 Cookie', '请在持久化存储写入 qdreader_cookie'); console.log('no cookie'); $done(); return; }
+  // [键名修正] 从 QDREADER_COOKIE 读取（JSON 格式 {"uid":"cookie串"}），uid 一并取出
+  const stored = readStoredCookie();
+  const cookie = stored.cookie;
+  if (!cookie) {
+    $notification.post('起点读书', '未配置 Cookie', '请在持久化存储写入 QDREADER_COOKIE（格式 {"uid":"cookie串"}）');
+    console.log('no cookie');
+    $done();
+    return;
+  }
   const cm = parseCookie(cookie);
-  const ctx = { qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
+  // [键名修正] ctx.uid 来自存储 JSON 的 key，签名网关 payload 用到
+  const ctx = { uid: stored.uid, qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
+  console.log('cookie loaded uid=' + ctx.uid + ' QDH length=' + ctx.qdh.length);
 
   const results = [];
   const parts = [];
