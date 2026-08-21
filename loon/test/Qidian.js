@@ -15,33 +15,30 @@
  *   qidian_welfare = cron,30 8 * * *,tag=起点福利中心,script-path=https://你的地址/qidian_welfare.js
  *
  * 依赖：持久化存储里要有 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
- *      （兼容裸 Cookie 字符串）。可配合 qidian_welfare_cookie.js 自动刷新。
  *
  * ── 迭代记录 ─────────────────────────────────────────────
- * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type），旧参数注释保留
+ * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type）
  * [修正2] type 参数按任务来源动态化（激励/多步=0，阅读页=1）
- * [修正3] 新增 doSurpriseBenefit 模块（每小时惊喜福利广告任务）
- * [键名修正] 存储键 QDREADER_COOKIE（大写），值 {"uid":"cookie串"}，ctx.uid 传入签名网关
- * [Loon修正] $httpClient 调用全部改为 options 对象形式。Loon 不支持 Surge 的
- *           多参数签名 $httpClient.post(url, headers, body, cb)——会把第2个参数
- *           headers 对象误当回调，导致 TypeError: o is not a function
+ * [修正3] doSurpriseBenefit 模块（每小时惊喜福利广告任务）
+ * [Loon修正] $httpClient 全部用 options 对象形式
+ * [日志美化] 按任务名分组输出；随机等待1-3秒；失败即停
+ * [本轮修正1] 已完成任务不再静默过滤：日志逐条显示"✓ 已完成（跳过）"，
+ *             通知汇总一行"已跳过N项已完成"
+ * [本轮修正2] doSurpriseBenefit 已完成/冷却分支补上 console.log（原来静默）
+ * [本轮修正3] mainPage 日志同时显示"待执行/已完成"两份数量
  */
 
 // ===== 配置区 =====
 const STORE_COOKIE = 'QDREADER_COOKIE';  // 值为 JSON {"uid":"cookie串"}
-const STORE_UID = 'qdreader_uid';        // 已废弃，仅为兼容保留，可删
 const SIGN_GATEWAY = 'https://api.120399.xyz/qdreader/sign';
 
-// 接口地址（host 均为 h5.if.qidian.com，与原脚本 API 对象一致）
+// 接口地址
 const MP_URL = 'https://h5.if.qidian.com/argus/api/v2/video/adv/mainPage';
 const FW_URL = 'https://magev6.if.qidian.com/argus/api/v1/video/adv/finishWatch';
 const WEEK_CHECKIN_URL = 'https://h5.if.qidian.com/argus/api/v3/checkin/getcurrentweekcheckininfo';
 const CHECKIN_URL = 'https://h5.if.qidian.com/argus/api/v3/checkin/checkin';
 const LOTTERY_URL = 'https://h5.if.qidian.com/argus/api/v2/checkin/lottery';
 
-// 固定头（来自真实抓包，可保持静态；如某天报错可删除 abtest-gzip 这一行）
-// 注：原脚本的 abtest-gzip 为 gzip(JSON) 的 base64；此处为合法 gzip("{}") 占位，
-//     若 mainPage 异常可整行删除（原脚本亦注明此行为可选）。
 const ABTEST_GZIP = 'H4sIAAAAAAAAA6uuBQBDv6ajAgAAAA==';
 
 // ===== 工具函数 =====
@@ -54,8 +51,6 @@ function parseCookie(cookie) {
   return map;
 }
 
-// 读取 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
-//   JSON 的 key 就是 uid；兼容旧格式裸 Cookie 字符串（此时 uid 为空）
 function readStoredCookie() {
   const stored = $persistentStore.read(STORE_COOKIE);
   if (!stored) return { uid: '', cookie: '' };
@@ -70,10 +65,7 @@ function readStoredCookie() {
   return { uid: '', cookie: s };
 }
 
-// [Loon修正] 统一使用 options 对象形式发起请求：
-//   GET:  $httpClient.get({url, headers}, callback)
-//   POST: $httpClient.post({url, headers, body}, callback)
-// 这是 Loon 的标准签名。 Surge 的多参数形式（url, headers, body, cb）Loon 不认。
+// [Loon修正] 统一 options 对象形式
 function httpReq(method, url, headers, body) {
   return new Promise(function (resolve) {
     const cb = function (e, resp, data) {
@@ -87,8 +79,6 @@ function httpReq(method, url, headers, body) {
   });
 }
 
-// 调用签名网关，返回签名头对象（如 {SDKSign,borgus,tstamp,helios,ibex} 或 {QDSign,borgus,tstamp,ibex,cecelia,sora}）
-// [Loon修正] options 对象形式发起 POST（原 4 参数形式在 Loon 下崩溃，即本次报错根因）
 function getSign(url, method, dataObj, ctx) {
   return new Promise(function (resolve) {
     const payload = {
@@ -109,7 +99,6 @@ function getSign(url, method, dataObj, ctx) {
   });
 }
 
-// 把网关返回的签名字段(大写键)小写化挂到请求头
 function attachSigns(headers, signData) {
   if (!signData) return headers;
   for (const k in signData) {
@@ -139,39 +128,47 @@ function baseHeaders(cookie, signData, isPost) {
   return h;
 }
 
-// ===== 从 mainPage 响应里抽取未完成任务（按模块标记 type）=====
+// 随机等待 minSec~maxSec 秒
+function randomWait(minSec, maxSec) {
+  const s = Number((minSec + Math.random() * (maxSec - minSec)).toFixed(1));
+  return new Promise(function (r) { setTimeout(function () { r(); }, s * 1000); });
+}
+
+// ===== 从 mainPage 响应里抽取任务 =====
+// [本轮修正1] 不再过滤已完成任务：全部收集，用 finished 字段区分，
+//   已完成的在日志中显示"✓ 已完成（跳过）"，不再静默消失
 // type 映射（抓包验证）：
-//   DailyBenefitModule（激励任务）→ '0'   2026-08-21 已验证
-//   VideoRewardTab（多步视频任务）→ '0'   已验证（完成3个广告得奖励，3次均 type=0）
-//   ReadingPageTaskModule（阅读页）→ '1'  待任务重置后验证，若失败改为 '0'
+//   DailyBenefitModule（激励任务）→ '0'   VideoRewardTab（额外任务）→ '0'
+//   ReadingPageTaskModule（加点·广告）→ '1'
 function getTasks(mpBody) {
   const tasks = [];
   let obj;
   try { obj = JSON.parse(mpBody); } catch (e) { return tasks; }
   const d = obj.Data || {};
   const modules = [
-    { mod: d.DailyBenefitModule, type: '0' },
-    { mod: d.ReadingPageTaskModule, type: '1' },
-    { mod: d.VideoRewardTab, type: '0' },
+    { mod: d.DailyBenefitModule,    type: '0', label: '激励任务' },
+    { mod: d.ReadingPageTaskModule, type: '1', label: '加点·广告' },
+    { mod: d.VideoRewardTab,        type: '0', label: '额外任务' },
   ];
   modules.forEach(function (m) {
     if (!m.mod || !Array.isArray(m.mod.TaskList)) return;
     m.mod.TaskList.forEach(function (t) {
-      if (t && t.TaskId && t.IsFinished === 0) {
-        tasks.push({
-          id: String(t.TaskId),
-          raw: t.TaskRawId || '',
-          total: Number(t.Total) || 1,
-          process: Number(t.Process) || 0,
-          type: m.type,   // 按来源模块标记 type
-        });
-      }
+      if (!t || !t.TaskId) return;
+      tasks.push({
+        id: String(t.TaskId),
+        name: t.Title || t.Desc || t.Subtitle || ('任务' + String(t.TaskId).slice(-4)),
+        label: m.label,
+        raw: t.TaskRawId || '',
+        total: Number(t.Total) || 1,
+        process: Number(t.Process) || 0,
+        type: m.type,
+        finished: t.IsFinished === 1,   // [本轮修正1] 保留已完成状态
+      });
     });
   });
   return tasks;
 }
 
-// 在对象中任意层级查找某 key（忽略大小写子串）的值
 function findValueByKey(obj, keySubstr) {
   const lower = keySubstr.toLowerCase();
   let found;
@@ -187,8 +184,6 @@ function findValueByKey(obj, keySubstr) {
   return found;
 }
 
-// 在签到周信息里判定「今日是否已签到」。
-// 常见字段为 IsCheckedIn / CheckedIn / isCheckIn 等；排除 count/info/module 等干扰字段。
 function isAlreadyCheckedIn(obj) {
   let hit;
   (function walk(o) {
@@ -197,10 +192,8 @@ function isAlreadyCheckedIn(obj) {
     for (const k in o) {
       if (hit !== undefined) return;
       const kl = k.toLowerCase();
-      // 仅匹配「已签到」语义字段
       const isFlag = /ischeckin|checkedin|checkinstatus|todaycheckin|hassignin/i.test(kl) && !/count|info|module|task|list|detail|reward|gift|config|total/i.test(kl);
       if (isFlag && (o[k] === 1 || o[k] === true || o[k] === '1')) { hit = true; return; }
-      if (kl === 'ischeckedin' && (o[k] === 1 || o[k] === true || o[k] === '1')) { hit = true; return; }
       if (typeof o[k] === 'object') walk(o[k]);
     }
   })(obj);
@@ -208,24 +201,47 @@ function isAlreadyCheckedIn(obj) {
 }
 
 // ===== 看广告=====
-// [修正1] 请求体按 2026-08-21 真实抓包改为 3 参数：h5=0&taskId=xxx&type=x
-//   抓包证据：激励任务 content-length=38，多步任务 content-length=37，均不含 banId/gradientLevel
-//   ⚠️ 旧版参数保留注释，若某类任务失败可恢复（fwData 与 fwBody 必须同步改，否则签名不一致）：
-//     const fwData = { banId: '0', gradientLevel: '1', h5: '0', taskId: t.id, type: (t.type || '1') };
-//     const fwBody = 'banId=0&gradientLevel=1&h5=0&taskId=' + t.id + '&type=' + (t.type || '1');
+// 请求体按抓包为 3 参数；旧参数注释保留（fwData 与 fwBody 必须同步改）：
+//   const fwData = { banId: '0', gradientLevel: '1', h5: '0', taskId: t.id, type: t.type };
+//   const fwBody = 'banId=0&gradientLevel=1&h5=0&taskId=' + t.id + '&type=' + t.type;
 async function doAdvJobs(cookie, ctx) {
   const out = [];
   const mpSign = await getSign(MP_URL, 'get', {}, ctx);
   const mpHeaders = baseHeaders(cookie, mpSign, false);
   const mpRes = await httpReq('GET', MP_URL, mpHeaders, null);
-  const mpBody = mpRes.body; // 保存给惊喜福利用，避免二次请求 mainPage
+  const mpBody = mpRes.body;
   const tasks = getTasks(mpBody);
-  console.log('mainPage status=' + mpRes.status + ' tasks=' + tasks.length);
 
-  for (const t of tasks) {
+  // [本轮修正3] 拆分：待执行 / 已完成
+  const pending = tasks.filter(function (t) { return !t.finished; });
+  const done = tasks.filter(function (t) { return t.finished; });
+
+  let nick = '';
+  try { nick = ((JSON.parse(mpBody).Data) || {}).NickName || ''; } catch (e) {}
+  console.log('mainPage status=' + mpRes.status + ' 账号=' + (nick || ctx.uid || '-')
+    + ' | 待执行 ' + pending.length + ' 项 / 已完成 ' + done.length + ' 项');
+
+  // [本轮修正1] 已完成任务逐条体现（不请求，只报状态）
+  if (done.length) {
+    console.log('── 已完成任务（跳过）──');
+    done.forEach(function (t) {
+      console.log('   ✓ [' + t.label + '] ' + t.name + '（' + t.process + '/' + t.total + '）');
+    });
+    // 通知里汇总一行，避免太长
+    out.push('已跳过已完成任务 ' + done.length + ' 项：' + done.map(function (t) { return t.name; }).join('、'));
+  }
+
+  let firstCall = true; // 全局第一次请求前不等待
+
+  for (const t of pending) {
     const times = Math.min(3, Math.max(1, (t.total - t.process)));
+    console.log('── [' + t.label + '] ' + t.name + '（进度 ' + t.process + '/' + t.total + '，本次执行 ' + times + ' 次）');
+
+    let okCount = 0, rewardCount = 0, lastMsg = '';
     for (let i = 0; i < times; i++) {
-      // 请求体（仅 3 参数，按抓包）
+      if (!firstCall) await randomWait(1, 3);
+      firstCall = false;
+
       const fwData = { h5: '0', taskId: t.id, type: (t.type || '0') };
       const fwSign = await getSign(FW_URL, 'post', fwData, ctx);
       const fwHeaders = baseHeaders(cookie, fwSign, true);
@@ -235,43 +251,62 @@ async function doAdvJobs(cookie, ctx) {
       const r = await httpReq('POST', FW_URL, fwHeaders, fwBody);
       let ok = false, msg = '', j = null;
       try { j = JSON.parse(r.body); ok = j && j.Result === 0; msg = (j && j.Message) || ('HTTP ' + r.status); } catch (e) { msg = 'HTTP ' + r.status; }
-      // 多步任务中间步骤 RewardList 为空（进度+1），最后一步才有奖励——两者都算成功
-      const reward = (j && j.Data && j.Data.RewardList && j.Data.RewardList.length) ? '(奖励×' + j.Data.RewardList.length + ')' : '';
-      out.push((i + 1) + '/' + times + ' 任务' + t.id + ': ' + (ok ? '成功' + reward : '失败(' + msg + ')'));
-      console.log('finishWatch task=' + t.id + ' type=' + t.type + ' ' + (ok ? 'OK' : msg));
+      const hasReward = !!(j && j.Data && j.Data.RewardList && j.Data.RewardList.length);
+
+      if (ok) {
+        okCount++;
+        if (hasReward) rewardCount += j.Data.RewardList.length;
+        console.log('   第' + (i + 1) + '/' + times + '次 ✓ ' + (hasReward ? '完成（奖励×' + j.Data.RewardList.length + '）' : '进度+1'));
+      } else {
+        lastMsg = msg;
+        console.log('   第' + (i + 1) + '/' + times + '次 ✗ 失败（' + msg + '）');
+        break; // 失败即停该任务
+      }
+    }
+
+    if (okCount === times) {
+      out.push('[' + t.label + '] ' + t.name + ' ' + times + '/' + times + ' 完成' + (rewardCount ? '（奖励×' + rewardCount + '）' : ''));
+    } else {
+      out.push('[' + t.label + '] ' + t.name + ' ' + okCount + '/' + times + '（' + lastMsg + '）');
     }
   }
 
-  // [修正3] 惊喜福利（复用同一个 mpBody）
+  // 惊喜福利（复用同一个 mpBody）
   try {
     const sbResult = await doSurpriseBenefit(cookie, ctx, mpBody);
     if (sbResult) out.push(sbResult);
   } catch (e) { console.log('surprise benefit error: ' + e); }
 
-  return { lines: out, count: tasks.length };
+  return { lines: out, count: pending.length };
 }
 
-// ===== [修正3] 惊喜福利=====
-// mainPage 里的 SurpriseBenefit 节点（每小时广告任务）。
-//   IsFinished === 1  → 已完成，跳过
-//   IntervalTime < 0  → 冷却剩余毫秒（换算分钟；若日志数值离谱，可能单位是秒，届时除以1000）
-//   type = '0'（与其他非阅读页任务一致）
+// ===== 惊喜福利=====
+// [本轮修正2] 已完成/冷却中分支补上 console.log（原来静默返回，日志完全看不到）
 async function doSurpriseBenefit(cookie, ctx, mpBody) {
   let obj;
   try { obj = JSON.parse(mpBody); } catch (e) { return null; }
   const sb = obj.Data && obj.Data.SurpriseBenefit;
-  if (!sb || !sb.TaskId) return null;
+  if (!sb || !sb.TaskId) {
+    console.log('── [惊喜福利] 无任务');
+    return null;
+  }
+  const name = sb.Title || '惊喜福利';
 
   // 已完成
-  if (sb.IsFinished === 1) return '惊喜福利: 已完成';
+  if (sb.IsFinished === 1) {
+    console.log('── [惊喜福利] ' + name + ' ✓ 已完成（跳过）');
+    return '[惊喜福利] ' + name + ' 已完成';
+  }
 
   // 冷却中
   if (Number(sb.IntervalTime) < 0) {
     const mins = Math.round(Math.abs(Number(sb.IntervalTime)) / 60000);
-    return '惊喜福利: 冷却中(约' + mins + '分钟)';
+    console.log('── [惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）');
+    return '[惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）';
   }
 
   // 执行（type=0）
+  await randomWait(1, 3);
   const fwData = { h5: '0', taskId: String(sb.TaskId), type: '0' };
   const fwSign = await getSign(FW_URL, 'post', fwData, ctx);
   const fwHeaders = baseHeaders(cookie, fwSign, true);
@@ -281,16 +316,13 @@ async function doSurpriseBenefit(cookie, ctx, mpBody) {
   const r = await httpReq('POST', FW_URL, fwHeaders, fwBody);
   let ok = false, j = null;
   try { j = JSON.parse(r.body); ok = j && j.Result === 0; } catch (e) {}
-  const reward = (j && j.Data && j.Data.RewardList && j.Data.RewardList.length) ? '(奖励×' + j.Data.RewardList.length + ')' : '';
-  return ok ? ('惊喜福利: 成功' + reward) : '惊喜福利: 失败';
+  const hasReward = !!(j && j.Data && j.Data.RewardList && j.Data.RewardList.length);
+  console.log('── [惊喜福利] ' + name + ' ' + (ok ? '✓ 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '') : '✗ 失败'));
+  return '[惊喜福利] ' + name + (ok ? (' 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '')) : ' 失败');
 }
 
-// ===== 签到（doCheckin）=====
-// POST /argus/api/v3/checkin/checkin，SDKSign 组，空 body（服务端按账号状态判断）。
-// 先查本周签到信息判断是否已签，避免重复请求。
-// 2026-08-21 抓包已验证：POST 空请求体，成功响应 {"Message":"","Result":0,"Data":{}}
+// ===== 签到=====
 async function doCheckin(cookie, ctx) {
-  // 1) 查本周签到信息
   const wcSign = await getSign(WEEK_CHECKIN_URL, 'get', {}, ctx);
   const wcHeaders = baseHeaders(cookie, wcSign, false);
   const wcRes = await httpReq('GET', WEEK_CHECKIN_URL, wcHeaders, null);
@@ -299,9 +331,8 @@ async function doCheckin(cookie, ctx) {
     const obj = JSON.parse(wcRes.body);
     already = isAlreadyCheckedIn(obj);
   } catch (e) { /* 解析失败则继续尝试签到 */ }
-  if (already) return '今日已签到';
+  if (already) { console.log('[签到] 今日已签到，跳过'); return '今日已签到'; }
 
-  // 2) 执行签到（空 body）
   const ckSign = await getSign(CHECKIN_URL, 'post', {}, ctx);
   const ckHeaders = baseHeaders(cookie, ckSign, true);
   if (ctx.qdh) ckHeaders['qdh'] = ctx.qdh;
@@ -312,15 +343,13 @@ async function doCheckin(cookie, ctx) {
     ok = (j && (j.Result === 0 || j.ok === true || j.Success === true));
     msg = (j && (j.Message || j.message)) || ('HTTP ' + r.status);
   } catch (e) { msg = 'HTTP ' + r.status; }
-  if (ok) return '签到成功';
-  // 已签到类提示也算成功
-  if (/已签到|已经签到|今日已|重复|today|repeat/i.test(msg)) return '今日已签到';
+  if (ok) { console.log('[签到] 成功'); return '签到成功'; }
+  if (/已签到|已经签到|今日已|重复|today|repeat/i.test(msg)) { console.log('[签到] 服务端确认已签到: ' + msg); return '今日已签到'; }
+  console.log('[签到] 失败: ' + msg);
   return '签到失败(' + msg + ')';
 }
 
-// ===== 抽奖（doLottery）=====
-// POST /argus/api/v2/checkin/lottery，SDKSign 组，空 body。
-// 服务端按账号剩余抽奖次数自动抽（原脚本循环次数 = HasVideoUrge + 另一计数，body 字段全为空串）。
+// ===== 抽奖=====
 async function doLottery(cookie, ctx) {
   const ltSign = await getSign(LOTTERY_URL, 'post', {}, ctx);
   const ltHeaders = baseHeaders(cookie, ltSign, true);
@@ -338,15 +367,16 @@ async function doLottery(cookie, ctx) {
       const p = j.Data.prizeName || j.Data.PrizeName || j.Data.rewardName || j.Data.RewardName || findValueByKey(j.Data, 'prizename');
       if (p) prize = '（' + p + '）';
     }
+    console.log('[抽奖] 成功' + prize);
     return '抽奖成功' + prize;
   }
-  if (/无抽奖|次数|没有|不足|no.*(lottery|draw)|not.*enough/i.test(msg)) return '暂无可抽次数';
+  if (/无抽奖|次数|没有|不足|no.*(lottery|draw)|not.*enough/i.test(msg)) { console.log('[抽奖] 暂无次数: ' + msg); return '暂无可抽次数'; }
+  console.log('[抽奖] 失败: ' + msg);
   return '抽奖失败(' + msg + ')';
 }
 
 // ===== 主流程 =====
 (async function () {
-  // 从 QDREADER_COOKIE 读取（JSON 格式 {"uid":"cookie串"}），uid 一并取出
   const stored = readStoredCookie();
   const cookie = stored.cookie;
   if (!cookie) {
@@ -356,7 +386,6 @@ async function doLottery(cookie, ctx) {
     return;
   }
   const cm = parseCookie(cookie);
-  // ctx.uid 来自存储 JSON 的 key，签名网关 payload 用到
   const ctx = { uid: stored.uid, qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
   console.log('cookie loaded uid=' + ctx.uid + ' QDH length=' + ctx.qdh.length);
 
