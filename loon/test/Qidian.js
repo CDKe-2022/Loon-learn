@@ -1,37 +1,31 @@
 /*
- * 起点读书 · 福利中心 — 主脚本（cron 定时任务）
+ * 起点读书 · 福利中心 — 主脚本（cron 定时任务，多账号版）
  * ──────────────────────────────────────────────────────────
  * 流程：
- *   1) mainPage 拿任务 → 逐个未完成任务 finishWatch(看完广告)，含惊喜福利
- *   2) doCheckin 签到（服务端按账号状态判断是否已签）
- *   3) doLottery 抽奖（服务端按账号剩余抽奖次数决定抽几次）
- *   4) 汇总推送结果
+ *   1) 读取 QDREADER_COOKIE（多账号 JSON）→ 逐账号执行
+ *   2) 每账号：mainPage 拿任务 → finishWatch 看广告（含惊喜福利）→ 签到 → 抽奖
+ *   3) 汇总所有账号结果推送通知
  *
- * 签名机制：每个起点请求都先调用第三方签名网关 api.120399.xyz/qdreader/sign
+ * 签名机制：每个起点请求先调第三方签名网关 api.120399.xyz/qdreader/sign
  *          拿到签名头(sdksign/qdsign/borgus/tstamp/ibex/cecelia...) 再贴到请求上。
  *
  * Loon 配置：
  *   [Script]
- *   qidian_welfare = cron,30 8 * * *,tag=起点福利中心,script-path=https://你的地址/qidian_welfare.js
+ *   qidian_welfare = cron,30 8 * * *,tag=起点福利中心,script-path=本脚本地址
  *
- * 依赖：持久化存储里要有 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
+ * 依赖：持久化存储 QDREADER_COOKIE，值为 JSON：
+ *      {"uid1":"cookie串1","uid2":"cookie串2"}
+ *      配合上面的 Cookie 获取脚本自动写入。
  *
  * ── 迭代记录 ─────────────────────────────────────────────
- * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type）
- * [修正2] type 参数按任务来源动态化（激励/多步=0，阅读页=1）
- * [修正3] doSurpriseBenefit 模块（每小时惊喜福利广告任务）
- * [Loon修正] $httpClient 全部用 options 对象形式
- * [日志美化] 按任务名分组输出；失败即停
- * [已完成可见] 已完成任务逐条显示"✓ 已完成（跳过）"，不再静默过滤
- * [随机等待] 每次请求前随机等待 1-3 秒，等待时长显示在执行日志里；
- *            签到/抽奖执行前也补上了等待（原来只有广告任务有）
+ * [多账号] readAllAccounts 读取所有账号；主流程遍历执行；账号间随机等待2-4秒；
+ *          通知按账号分组汇总；单账号异常不影响其他账号
  */
 
 // ===== 配置区 =====
-const STORE_COOKIE = 'QDREADER_COOKIE';  // 值为 JSON {"uid":"cookie串"}
+const STORE_COOKIE = 'QDREADER_COOKIE';  // 多账号 JSON {"uid1":"cookie1","uid2":"cookie2"}
 const SIGN_GATEWAY = 'https://api.120399.xyz/qdreader/sign';
 
-// 接口地址
 const MP_URL = 'https://h5.if.qidian.com/argus/api/v2/video/adv/mainPage';
 const FW_URL = 'https://magev6.if.qidian.com/argus/api/v1/video/adv/finishWatch';
 const WEEK_CHECKIN_URL = 'https://h5.if.qidian.com/argus/api/v3/checkin/getcurrentweekcheckininfo';
@@ -50,18 +44,20 @@ function parseCookie(cookie) {
   return map;
 }
 
-function readStoredCookie() {
+// [多账号] 读取所有账号，返回 [{uid, cookie}, ...]
+function readAllAccounts() {
   const stored = $persistentStore.read(STORE_COOKIE);
-  if (!stored) return { uid: '', cookie: '' };
-  const s = String(stored).trim();
-  if (s.charAt(0) === '{') {
-    try {
-      const obj = JSON.parse(s);
-      const uid = Object.keys(obj)[0] || '';
-      return { uid: uid, cookie: uid ? String(obj[uid]) : '' };
-    } catch (e) { /* 格式异常，按裸字符串处理 */ }
-  }
-  return { uid: '', cookie: s };
+  if (!stored) return [];
+  const accounts = [];
+  try {
+    const obj = JSON.parse(String(stored).trim());
+    for (const uid in obj) {
+      if (obj.hasOwnProperty(uid) && typeof obj[uid] === 'string' && obj[uid].indexOf('=') >= 0) {
+        accounts.push({ uid: uid, cookie: obj[uid] });
+      }
+    }
+  } catch (e) { console.log('[存储] QDREADER_COOKIE 解析失败: ' + e); }
+  return accounts;
 }
 
 // [Loon修正] 统一 options 对象形式
@@ -127,16 +123,13 @@ function baseHeaders(cookie, signData, isPost) {
   return h;
 }
 
-// [随机等待] 随机等待 minSec~maxSec 秒，返回实际等待时长（用于日志显示）
+// 随机等待 minSec~maxSec 秒，返回实际等待时长
 function randomWait(minSec, maxSec) {
   const s = Number((minSec + Math.random() * (maxSec - minSec)).toFixed(1));
   return new Promise(function (r) { setTimeout(function () { r(s); }, s * 1000); });
 }
 
 // ===== 从 mainPage 响应里抽取任务 =====
-// type 映射（抓包验证）：
-//   DailyBenefitModule（激励任务）→ '0'   VideoRewardTab（额外任务）→ '0'
-//   ReadingPageTaskModule（加点·广告）→ '1'
 function getTasks(mpBody) {
   const tasks = [];
   let obj;
@@ -182,25 +175,15 @@ function findValueByKey(obj, keySubstr) {
 }
 
 function isAlreadyCheckedIn(obj) {
-  let hit;
-  (function walk(o) {
-    if (hit !== undefined || o === null || typeof o !== 'object') return;
-    if (Array.isArray(o)) { o.forEach(walk); return; }
-    for (const k in o) {
-      if (hit !== undefined) return;
-      const kl = k.toLowerCase();
-      const isFlag = /ischeckin|checkedin|checkinstatus|todaycheckin|hassignin/i.test(kl) && !/count|info|module|task|list|detail|reward|gift|config|total/i.test(kl);
-      if (isFlag && (o[k] === 1 || o[k] === true || o[k] === '1')) { hit = true; return; }
-      if (typeof o[k] === 'object') walk(o[k]);
-    }
-  })(obj);
-  return !!hit;
+  // 只查顶层确定性字段，不递归扫数组（避免命中历史天数的签到记录）
+  const d = (obj && obj.Data) || obj || {};
+  return d.TodayHasCheckin === 1 || d.TodayHasCheckin === true
+      || d.IsCheckedIn === 1 || d.IsCheckedIn === true
+      || d.IsTodayCheckin === 1 || d.IsTodayCheckin === true;
 }
 
 // ===== 看广告=====
-// 请求体按抓包为 3 参数；旧参数注释保留（fwData 与 fwBody 必须同步改）：
-//   const fwData = { banId: '0', gradientLevel: '1', h5: '0', taskId: t.id, type: t.type };
-//   const fwBody = 'banId=0&gradientLevel=1&h5=0&taskId=' + t.id + '&type=' + t.type;
+// 请求体按抓包为 3 参数；旧参数注释保留（fwData 与 fwBody 必须同步改）
 async function doAdvJobs(cookie, ctx) {
   const out = [];
   const mpSign = await getSign(MP_URL, 'get', {}, ctx);
@@ -225,8 +208,8 @@ async function doAdvJobs(cookie, ctx) {
     out.push('已跳过已完成任务 ' + done.length + ' 项：' + done.map(function (t) { return t.name; }).join('、'));
   }
 
-  let firstCall = true; // 全局第一次请求前不等待
-  let totalWaited = 0;  // [随机等待] 统计总等待时长
+  let firstCall = true;
+  let totalWaited = 0;
 
   for (const t of pending) {
     const times = Math.min(3, Math.max(1, (t.total - t.process)));
@@ -331,7 +314,6 @@ async function doCheckin(cookie, ctx) {
   } catch (e) { /* 解析失败则继续尝试签到 */ }
   if (already) { console.log('[签到] 今日已签到，跳过'); return '今日已签到'; }
 
-  // [随机等待] 签到执行前等待
   const waited = await randomWait(1, 3);
   console.log('[签到] 执行（等待' + waited + 's）...');
   const ckSign = await getSign(CHECKIN_URL, 'post', {}, ctx);
@@ -352,7 +334,6 @@ async function doCheckin(cookie, ctx) {
 
 // ===== 抽奖=====
 async function doLottery(cookie, ctx) {
-  // [随机等待] 抽奖执行前等待
   const waited = await randomWait(1, 3);
   console.log('[抽奖] 执行（等待' + waited + 's）...');
   const ltSign = await getSign(LOTTERY_URL, 'post', {}, ctx);
@@ -379,42 +360,73 @@ async function doLottery(cookie, ctx) {
   return '抽奖失败(' + msg + ')';
 }
 
-// ===== 主流程 =====
+// ===== 主流程（多账号版）=====
 (async function () {
   const started = Date.now();
-  const stored = readStoredCookie();
-  const cookie = stored.cookie;
-  if (!cookie) {
-    $notification.post('起点读书', '未配置 Cookie', '请在持久化存储写入 QDREADER_COOKIE（格式 {"uid":"cookie串"}）');
+
+  // [多账号] 读取所有账号
+  const accounts = readAllAccounts();
+  if (!accounts.length) {
+    $notification.post('起点读书', '未配置 Cookie', '请在持久化存储写入 QDREADER_COOKIE（格式 {"uid":"cookie串"}）\n或用 Cookie 获取脚本自动捕获');
     console.log('no cookie');
     $done();
     return;
   }
-  const cm = parseCookie(cookie);
-  const ctx = { uid: stored.uid, qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
-  console.log('cookie loaded uid=' + ctx.uid + ' QDH length=' + ctx.qdh.length);
+  console.log('共 ' + accounts.length + ' 个账号待执行：' + accounts.map(function (a) { return a.uid; }).join(', '));
 
-  const results = [];
-  const parts = [];
+  const allResults = []; // [{uid, lines, parts}]
 
-  // 1) 看广告（含惊喜福利）
-  try {
-    const adv = await doAdvJobs(cookie, ctx);
-    adv.lines.forEach(function (l) { results.push(l); });
-    parts.push(adv.count ? ('看广告' + adv.count + '项') : '无看广告待办');
-  } catch (e) { results.push('看广告异常: ' + (e && e.message || e)); }
+  // [多账号] 逐账号执行
+  for (let a = 0; a < accounts.length; a++) {
+    const acct = accounts[a];
+    console.log('\n########## 账号 ' + (a + 1) + '/' + accounts.length + '（uid=' + acct.uid + '）##########');
 
-  // 2) 签到
-  try { const c = await doCheckin(cookie, ctx); results.push('签到: ' + c); parts.push((c.indexOf('成功') >= 0 || c.indexOf('已签到') >= 0) ? '已签到' : '签到未成'); }
-  catch (e) { results.push('签到异常: ' + (e && e.message || e)); }
+    const cm = parseCookie(acct.cookie);
+    const ctx = { uid: acct.uid, qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
+    console.log('cookie loaded uid=' + ctx.uid + ' QDH length=' + ctx.qdh.length);
 
-  // 3) 抽奖
-  try { const l = await doLottery(cookie, ctx); results.push('抽奖: ' + l); parts.push(l.indexOf('成功') >= 0 ? '已抽奖' : '抽奖未成'); }
-  catch (e) { results.push('抽奖异常: ' + (e && e.message || e)); }
+    const results = [];
+    const parts = [];
 
+    // 1) 看广告（含惊喜福利）
+    try {
+      const adv = await doAdvJobs(acct.cookie, ctx);
+      adv.lines.forEach(function (l) { results.push(l); });
+      parts.push(adv.count ? ('看广告' + adv.count + '项') : '无看广告待办');
+    } catch (e) { results.push('看广告异常: ' + (e && e.message || e)); }
+
+    // 2) 签到
+    try {
+      const c = await doCheckin(acct.cookie, ctx);
+      results.push('签到: ' + c);
+      parts.push((c.indexOf('成功') >= 0 || c.indexOf('已签到') >= 0) ? '已签到' : '签到未成');
+    } catch (e) { results.push('签到异常: ' + (e && e.message || e)); }
+
+    // 3) 抽奖
+    try {
+      const l = await doLottery(acct.cookie, ctx);
+      results.push('抽奖: ' + l);
+      parts.push(l.indexOf('成功') >= 0 ? '已抽奖' : '抽奖未成');
+    } catch (e) { results.push('抽奖异常: ' + (e && e.message || e)); }
+
+    allResults.push({ uid: acct.uid, lines: results, parts: parts });
+
+    // [多账号] 账号间随机等待 2-4 秒，避免请求过密
+    if (a < accounts.length - 1) {
+      const gap = await randomWait(2, 4);
+      console.log('[多账号] 切换下一账号前等待 ' + gap + 's');
+    }
+  }
+
+  // [多账号] 汇总通知：按账号分组
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
-  console.log('\n===== 执行结束，总耗时 ' + elapsed + ' 秒 =====');
-  const title = '起点福利中心 · ' + parts.join(' / ');
-  $notification.post('起点读书', title, results.join('\n') || '今日无待办');
+  console.log('\n===== 全部账号执行结束，总耗时 ' + elapsed + ' 秒 =====');
+
+  const title = '起点福利中心 · ' + accounts.length + '个账号';
+  const content = allResults.map(function (r) {
+    return '【账号 ' + r.uid + '】' + r.parts.join(' / ') + '\n' + r.lines.join('\n');
+  }).join('\n\n');
+
+  $notification.post('起点读书', title, content || '今日无待办');
   $done();
 })();
