@@ -16,18 +16,19 @@
  *
  * 依赖：持久化存储里要有 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
  *      （兼容裸 Cookie 字符串）。可配合 qidian_welfare_cookie.js 自动刷新。
- *   注意：本脚本直接复用原脚本的签名网关，效果与原脚本一致；网关若失效需另寻签名方案。
  *
  * ── 迭代记录 ─────────────────────────────────────────────
  * [修正1] finishWatch 请求体按抓包改为 3 参数（h5/taskId/type），旧参数注释保留
  * [修正2] type 参数按任务来源动态化（激励/多步=0，阅读页=1）
  * [修正3] 新增 doSurpriseBenefit 模块（每小时惊喜福利广告任务）
- * [键名修正] 存储键为 QDREADER_COOKIE（大写），值格式 {"uid":"cookie串"}，
- *           ctx.uid 正确传入签名网关（修复上一版漏传 uid 的 bug）
+ * [键名修正] 存储键 QDREADER_COOKIE（大写），值 {"uid":"cookie串"}，ctx.uid 传入签名网关
+ * [Loon修正] $httpClient 调用全部改为 options 对象形式。Loon 不支持 Surge 的
+ *           多参数签名 $httpClient.post(url, headers, body, cb)——会把第2个参数
+ *           headers 对象误当回调，导致 TypeError: o is not a function
  */
 
 // ===== 配置区 =====
-const STORE_COOKIE = 'QDREADER_COOKIE';  // [键名修正] 大写键名，值为 JSON {"uid":"cookie串"}
+const STORE_COOKIE = 'QDREADER_COOKIE';  // 值为 JSON {"uid":"cookie串"}
 const STORE_UID = 'qdreader_uid';        // 已废弃，仅为兼容保留，可删
 const SIGN_GATEWAY = 'https://api.120399.xyz/qdreader/sign';
 
@@ -53,9 +54,8 @@ function parseCookie(cookie) {
   return map;
 }
 
-// [键名修正] 读取 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
-//   JSON 的 key 就是 uid（如 {"969032829":"cmfuToken=...;ywguid=..."}）
-//   兼容旧格式：裸 Cookie 字符串（此时 uid 为空，签名网关收空 uid）
+// 读取 QDREADER_COOKIE，值为 JSON：{"uid":"cookie串"}
+//   JSON 的 key 就是 uid；兼容旧格式裸 Cookie 字符串（此时 uid 为空）
 function readStoredCookie() {
   const stored = $persistentStore.read(STORE_COOKIE);
   if (!stored) return { uid: '', cookie: '' };
@@ -70,25 +70,36 @@ function readStoredCookie() {
   return { uid: '', cookie: s };
 }
 
+// [Loon修正] 统一使用 options 对象形式发起请求：
+//   GET:  $httpClient.get({url, headers}, callback)
+//   POST: $httpClient.post({url, headers, body}, callback)
+// 这是 Loon 的标准签名。 Surge 的多参数形式（url, headers, body, cb）Loon 不认。
 function httpReq(method, url, headers, body) {
   return new Promise(function (resolve) {
     const cb = function (e, resp, data) {
       if (e) { console.log('[http] ' + method + ' ' + url + ' error: ' + e); resolve({ status: 0, body: '' }); return; }
       resolve({ status: (resp && resp.status) || 0, body: data || '' });
     };
-    if (method === 'GET') $httpClient.get(url, headers, cb);
-    else $httpClient.post(url, headers, body || '', cb);
+    const options = { url: url, headers: headers || {} };
+    if (method !== 'GET') options.body = body || '';
+    if (method === 'GET') $httpClient.get(options, cb);
+    else $httpClient.post(options, cb);
   });
 }
 
 // 调用签名网关，返回签名头对象（如 {SDKSign,borgus,tstamp,helios,ibex} 或 {QDSign,borgus,tstamp,ibex,cecelia,sora}）
+// [Loon修正] options 对象形式发起 POST（原 4 参数形式在 Loon 下崩溃，即本次报错根因）
 function getSign(url, method, dataObj, ctx) {
   return new Promise(function (resolve) {
     const payload = {
       qdh: ctx.qdh, qdheader: '', url: url, method: method,
       data: dataObj || {}, uid: ctx.uid || '', guid: ctx.guid, qimei: ctx.qimei, qimei36: ctx.qimei,
     };
-    $httpClient.post(SIGN_GATEWAY, { 'Content-Type': 'application/json' }, JSON.stringify(payload), function (e, resp, data) {
+    $httpClient.post({
+      url: SIGN_GATEWAY,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, function (e, resp, data) {
       if (e) { console.log('[sign] error: ' + e); resolve(null); return; }
       try {
         const j = JSON.parse(data);
@@ -128,11 +139,11 @@ function baseHeaders(cookie, signData, isPost) {
   return h;
 }
 
-// ===== [修正2] 从 mainPage 响应里抽取未完成任务（按模块标记 type）=====
+// ===== 从 mainPage 响应里抽取未完成任务（按模块标记 type）=====
 // type 映射（抓包验证）：
 //   DailyBenefitModule（激励任务）→ '0'   2026-08-21 已验证
 //   VideoRewardTab（多步视频任务）→ '0'   已验证（完成3个广告得奖励，3次均 type=0）
-//   ReadingPageTaskModule（阅读页）→ '1'  待明天任务重置后验证，若失败改为 '0'
+//   ReadingPageTaskModule（阅读页）→ '1'  待任务重置后验证，若失败改为 '0'
 function getTasks(mpBody) {
   const tasks = [];
   let obj;
@@ -196,7 +207,7 @@ function isAlreadyCheckedIn(obj) {
   return !!hit;
 }
 
-// ===== 看广告（finishWatch）=====
+// ===== 看广告=====
 // [修正1] 请求体按 2026-08-21 真实抓包改为 3 参数：h5=0&taskId=xxx&type=x
 //   抓包证据：激励任务 content-length=38，多步任务 content-length=37，均不含 banId/gradientLevel
 //   ⚠️ 旧版参数保留注释，若某类任务失败可恢复（fwData 与 fwBody 必须同步改，否则签名不一致）：
@@ -240,7 +251,7 @@ async function doAdvJobs(cookie, ctx) {
   return { lines: out, count: tasks.length };
 }
 
-// ===== [修正3] 惊喜福利（doSurpriseBenefit）=====
+// ===== [修正3] 惊喜福利=====
 // mainPage 里的 SurpriseBenefit 节点（每小时广告任务）。
 //   IsFinished === 1  → 已完成，跳过
 //   IntervalTime < 0  → 冷却剩余毫秒（换算分钟；若日志数值离谱，可能单位是秒，届时除以1000）
@@ -335,7 +346,7 @@ async function doLottery(cookie, ctx) {
 
 // ===== 主流程 =====
 (async function () {
-  // [键名修正] 从 QDREADER_COOKIE 读取（JSON 格式 {"uid":"cookie串"}），uid 一并取出
+  // 从 QDREADER_COOKIE 读取（JSON 格式 {"uid":"cookie串"}），uid 一并取出
   const stored = readStoredCookie();
   const cookie = stored.cookie;
   if (!cookie) {
@@ -345,7 +356,7 @@ async function doLottery(cookie, ctx) {
     return;
   }
   const cm = parseCookie(cookie);
-  // [键名修正] ctx.uid 来自存储 JSON 的 key，签名网关 payload 用到
+  // ctx.uid 来自存储 JSON 的 key，签名网关 payload 用到
   const ctx = { uid: stored.uid, qdh: cm['QDH'] || '', guid: cm['ywguid'] || '', qimei: cm['qid'] || '' };
   console.log('cookie loaded uid=' + ctx.uid + ' QDH length=' + ctx.qdh.length);
 
