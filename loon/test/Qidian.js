@@ -21,11 +21,10 @@
  * [修正2] type 参数按任务来源动态化（激励/多步=0，阅读页=1）
  * [修正3] doSurpriseBenefit 模块（每小时惊喜福利广告任务）
  * [Loon修正] $httpClient 全部用 options 对象形式
- * [日志美化] 按任务名分组输出；随机等待1-3秒；失败即停
- * [本轮修正1] 已完成任务不再静默过滤：日志逐条显示"✓ 已完成（跳过）"，
- *             通知汇总一行"已跳过N项已完成"
- * [本轮修正2] doSurpriseBenefit 已完成/冷却分支补上 console.log（原来静默）
- * [本轮修正3] mainPage 日志同时显示"待执行/已完成"两份数量
+ * [日志美化] 按任务名分组输出；失败即停
+ * [已完成可见] 已完成任务逐条显示"✓ 已完成（跳过）"，不再静默过滤
+ * [随机等待] 每次请求前随机等待 1-3 秒，等待时长显示在执行日志里；
+ *            签到/抽奖执行前也补上了等待（原来只有广告任务有）
  */
 
 // ===== 配置区 =====
@@ -128,15 +127,13 @@ function baseHeaders(cookie, signData, isPost) {
   return h;
 }
 
-// 随机等待 minSec~maxSec 秒
+// [随机等待] 随机等待 minSec~maxSec 秒，返回实际等待时长（用于日志显示）
 function randomWait(minSec, maxSec) {
   const s = Number((minSec + Math.random() * (maxSec - minSec)).toFixed(1));
-  return new Promise(function (r) { setTimeout(function () { r(); }, s * 1000); });
+  return new Promise(function (r) { setTimeout(function () { r(s); }, s * 1000); });
 }
 
 // ===== 从 mainPage 响应里抽取任务 =====
-// [本轮修正1] 不再过滤已完成任务：全部收集，用 finished 字段区分，
-//   已完成的在日志中显示"✓ 已完成（跳过）"，不再静默消失
 // type 映射（抓包验证）：
 //   DailyBenefitModule（激励任务）→ '0'   VideoRewardTab（额外任务）→ '0'
 //   ReadingPageTaskModule（加点·广告）→ '1'
@@ -162,7 +159,7 @@ function getTasks(mpBody) {
         total: Number(t.Total) || 1,
         process: Number(t.Process) || 0,
         type: m.type,
-        finished: t.IsFinished === 1,   // [本轮修正1] 保留已完成状态
+        finished: t.IsFinished === 1,
       });
     });
   });
@@ -212,7 +209,6 @@ async function doAdvJobs(cookie, ctx) {
   const mpBody = mpRes.body;
   const tasks = getTasks(mpBody);
 
-  // [本轮修正3] 拆分：待执行 / 已完成
   const pending = tasks.filter(function (t) { return !t.finished; });
   const done = tasks.filter(function (t) { return t.finished; });
 
@@ -221,17 +217,16 @@ async function doAdvJobs(cookie, ctx) {
   console.log('mainPage status=' + mpRes.status + ' 账号=' + (nick || ctx.uid || '-')
     + ' | 待执行 ' + pending.length + ' 项 / 已完成 ' + done.length + ' 项');
 
-  // [本轮修正1] 已完成任务逐条体现（不请求，只报状态）
   if (done.length) {
     console.log('── 已完成任务（跳过）──');
     done.forEach(function (t) {
       console.log('   ✓ [' + t.label + '] ' + t.name + '（' + t.process + '/' + t.total + '）');
     });
-    // 通知里汇总一行，避免太长
     out.push('已跳过已完成任务 ' + done.length + ' 项：' + done.map(function (t) { return t.name; }).join('、'));
   }
 
   let firstCall = true; // 全局第一次请求前不等待
+  let totalWaited = 0;  // [随机等待] 统计总等待时长
 
   for (const t of pending) {
     const times = Math.min(3, Math.max(1, (t.total - t.process)));
@@ -239,7 +234,12 @@ async function doAdvJobs(cookie, ctx) {
 
     let okCount = 0, rewardCount = 0, lastMsg = '';
     for (let i = 0; i < times; i++) {
-      if (!firstCall) await randomWait(1, 3);
+      let waitNote = '';
+      if (!firstCall) {
+        const waited = await randomWait(1, 3);
+        totalWaited += waited;
+        waitNote = '（等待' + waited + 's）';
+      }
       firstCall = false;
 
       const fwData = { h5: '0', taskId: t.id, type: (t.type || '0') };
@@ -256,10 +256,10 @@ async function doAdvJobs(cookie, ctx) {
       if (ok) {
         okCount++;
         if (hasReward) rewardCount += j.Data.RewardList.length;
-        console.log('   第' + (i + 1) + '/' + times + '次 ✓ ' + (hasReward ? '完成（奖励×' + j.Data.RewardList.length + '）' : '进度+1'));
+        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✓ ' + (hasReward ? '完成（奖励×' + j.Data.RewardList.length + '）' : '进度+1'));
       } else {
         lastMsg = msg;
-        console.log('   第' + (i + 1) + '/' + times + '次 ✗ 失败（' + msg + '）');
+        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✗ 失败（' + msg + '）');
         break; // 失败即停该任务
       }
     }
@@ -271,6 +271,8 @@ async function doAdvJobs(cookie, ctx) {
     }
   }
 
+  if (totalWaited > 0) console.log('[随机等待] 广告任务累计等待 ' + totalWaited.toFixed(1) + ' 秒');
+
   // 惊喜福利（复用同一个 mpBody）
   try {
     const sbResult = await doSurpriseBenefit(cookie, ctx, mpBody);
@@ -281,7 +283,6 @@ async function doAdvJobs(cookie, ctx) {
 }
 
 // ===== 惊喜福利=====
-// [本轮修正2] 已完成/冷却中分支补上 console.log（原来静默返回，日志完全看不到）
 async function doSurpriseBenefit(cookie, ctx, mpBody) {
   let obj;
   try { obj = JSON.parse(mpBody); } catch (e) { return null; }
@@ -292,21 +293,18 @@ async function doSurpriseBenefit(cookie, ctx, mpBody) {
   }
   const name = sb.Title || '惊喜福利';
 
-  // 已完成
   if (sb.IsFinished === 1) {
     console.log('── [惊喜福利] ' + name + ' ✓ 已完成（跳过）');
     return '[惊喜福利] ' + name + ' 已完成';
   }
 
-  // 冷却中
   if (Number(sb.IntervalTime) < 0) {
     const mins = Math.round(Math.abs(Number(sb.IntervalTime)) / 60000);
     console.log('── [惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）');
     return '[惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）';
   }
 
-  // 执行（type=0）
-  await randomWait(1, 3);
+  const waited = await randomWait(1, 3);
   const fwData = { h5: '0', taskId: String(sb.TaskId), type: '0' };
   const fwSign = await getSign(FW_URL, 'post', fwData, ctx);
   const fwHeaders = baseHeaders(cookie, fwSign, true);
@@ -317,7 +315,7 @@ async function doSurpriseBenefit(cookie, ctx, mpBody) {
   let ok = false, j = null;
   try { j = JSON.parse(r.body); ok = j && j.Result === 0; } catch (e) {}
   const hasReward = !!(j && j.Data && j.Data.RewardList && j.Data.RewardList.length);
-  console.log('── [惊喜福利] ' + name + ' ' + (ok ? '✓ 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '') : '✗ 失败'));
+  console.log('── [惊喜福利] ' + name + '（等待' + waited + 's）' + (ok ? ' ✓ 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '') : ' ✗ 失败'));
   return '[惊喜福利] ' + name + (ok ? (' 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '')) : ' 失败');
 }
 
@@ -333,6 +331,9 @@ async function doCheckin(cookie, ctx) {
   } catch (e) { /* 解析失败则继续尝试签到 */ }
   if (already) { console.log('[签到] 今日已签到，跳过'); return '今日已签到'; }
 
+  // [随机等待] 签到执行前等待
+  const waited = await randomWait(1, 3);
+  console.log('[签到] 执行（等待' + waited + 's）...');
   const ckSign = await getSign(CHECKIN_URL, 'post', {}, ctx);
   const ckHeaders = baseHeaders(cookie, ckSign, true);
   if (ctx.qdh) ckHeaders['qdh'] = ctx.qdh;
@@ -351,6 +352,9 @@ async function doCheckin(cookie, ctx) {
 
 // ===== 抽奖=====
 async function doLottery(cookie, ctx) {
+  // [随机等待] 抽奖执行前等待
+  const waited = await randomWait(1, 3);
+  console.log('[抽奖] 执行（等待' + waited + 's）...');
   const ltSign = await getSign(LOTTERY_URL, 'post', {}, ctx);
   const ltHeaders = baseHeaders(cookie, ltSign, true);
   if (ctx.qdh) ltHeaders['qdh'] = ctx.qdh;
@@ -377,6 +381,7 @@ async function doLottery(cookie, ctx) {
 
 // ===== 主流程 =====
 (async function () {
+  const started = Date.now();
   const stored = readStoredCookie();
   const cookie = stored.cookie;
   if (!cookie) {
@@ -407,6 +412,8 @@ async function doLottery(cookie, ctx) {
   try { const l = await doLottery(cookie, ctx); results.push('抽奖: ' + l); parts.push(l.indexOf('成功') >= 0 ? '已抽奖' : '抽奖未成'); }
   catch (e) { results.push('抽奖异常: ' + (e && e.message || e)); }
 
+  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+  console.log('\n===== 执行结束，总耗时 ' + elapsed + ' 秒 =====');
   const title = '起点福利中心 · ' + parts.join(' / ');
   $notification.post('起点读书', title, results.join('\n') || '今日无待办');
   $done();
