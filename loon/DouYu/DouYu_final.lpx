@@ -1,10 +1,19 @@
 #!name = 斗鱼【签到&去广告】
-#!desc = 集成斗鱼去广告与自动签到功能：移除开屏、首页视频流、首页轮播图广告，移除直播间悬浮窗，并支持每日签到任务。
+#!desc = 集成斗鱼去广告与自动签到功能：移除开屏、首页视频流、首页轮播图广告，移除直播间悬浮窗，并支持每日签到任务（签到时间、通知开关可自定义）。
 #!openUrl = https://apps.apple.com/app/id863882795
 #!author = 可莉🅥 & qwen
 #!homepage = https://gitlab.com/lodepuly/vpn_tool/-/blob/master/README.md
 #!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png
 #!tag = 去广告,签到
+#!loon_version = 3.5.1(978)
+
+
+[Argument]
+# ==================== 签到功能设置 ====================
+DYSign = switch, true, tag=斗鱼签到, desc=控制是否执行斗鱼签到任务
+DYSignTime = select, "10 8 * * *", "0 9 * * *", "30 7 * * *", "0 12 * * *", "0 20 * * *", tag=签到执行时间, desc=选择每日签到的执行时间（Cron格式：分 时 日 月 周）
+DYNotify = switch, true, tag=签到结果通知, desc=签到完成后是否发送系统通知提醒
+DYCookie = switch, true, tag=斗鱼cookie获取, desc=控制是否自动获取斗鱼签到所需cookie
 
 
 [Rule]
@@ -20,41 +29,41 @@ AND, ((DEST-PORT, 18000), (PROTOCOL, STUN)), REJECT
 DOMAIN, stun1.douyucdn.cn, REJECT
 DOMAIN, stun1.qvb.qcloud.com, REJECT
 
-# 请求重定向
-^(http:\/\/)((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(hlsh5p1\.douyucdn2\.cn)(.*) 302 $1$5$6
 
 [Rewrite]
+# IP直连重定向到域名（原302规则已从[Rule]移至此处并转为v2语法）
+request if ${url} ~= /^(http:\/\/)\d+\.\d+\.\d+\.\d+\/(hlsh5p1\.douyucdn2\.cn)(.*)/ as ipredir then redirect(302, "${ipredir.1}${ipredir.2}${ipredir.3}")
+
 # 开屏广告
 request if ${url} ~= /^https:\/\/rtbapi\.douyucdn\.cn\/japi\/sign\/app\/getinfo/i then reject_dict(200)
 
-# 首页直播间悬浮窗 - 直播间悬浮窗data.pendant_a / 直播间宝箱data.entrance_d
+# 首页直播间悬浮窗
 response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list/i then response.json.delete(["data.pendant_a", "data.entrance_d", "data.fix_entrance"])
 
-# 修改应用配置 - 大神游戏陪玩greatGodGameSitterSwitch / 关注更多主播入口followMoreAnchorEntrance / 直播横幅sdklivebanner / 首页活动悬浮窗homeActFloatSwitch / 带货开关bringGoodsSwitch / QQ游戏qqGameSwitch
+# 修改应用配置（关闭各种推广开关）
 response if ${url} ~= /^https:\/\/venus\.douyucdn\.cn\/venus\/config\/static\/update.+keyCodeSet=flow_config/i then response.json.replace(["greatGodGameSitterSwitch", "followMoreAnchorEntrance", "sdklivebanner", "homeActFloatSwitch", "bringGoodsSwitch", "qqGameSwitch"], [0, 0, 0, 0, 0, 0])
 
 # 去除直播页面下方广告
 response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/japi\/entrance\/roomRes\/nc\/m\/list/i then response.json.delete(["data.fix_entrance", "data.pendant_top", "data.sub_act_entrance", "data.pendant_mobile_b"])
 request if ${url} ~= /^https:\/\/rtbapi\.douyucdn\.cn\/japi\/dyadx\/gateway\/app\/getinfo\?/i then reject_dict(200)
 response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/yubaTab\/recommendFeedList\?/i then response.json.delete("data.ad")
-response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/yubanc\/api\/feed\/followedUserFeedList\/v2\?/i then response.json.delete("data.list[2].ad")
+response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/mgapi\/feed\/followedUserFeedList\/v2\?/i then response.json.delete("data.list[2].ad")
 response if ${url} ~= /^https:\/\/apiv3\.douyucdn\.cn\/japi\/ecl\/api\/query\/user\/goods\/list\?/i then response.json.jq("del(.data.details)")
-#去除直播间页面的淘宝广告
-response if ${url} ~= /^https:\//vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com\/live-tag\/.*\.json$/i then response.json.jq("map(del(.ads))")
+
+# 去除直播间页面的淘宝广告（修正了原正则中 https:\/\/ 转义遗漏）
+response if ${url} ~= /^https:\/\/vpls-videojj-cdn\.oss-cn-beijing\.aliyuncs\.com\/live-tag\/.*\.json$/i then response.json.jq("map(del(.ads))")
 
 # 首页轮播图和视频流广告
 response if ${url} ~= /^https:\/\/apiv2\.douyucdn\.cn\/mgapi\/livenc\/home\/getRecV3/i then response.json.jq(".data.rec_card |= (.[]? |= (.card_banner |= map(select(has(\"ad\") | not)))) | .data.rec_cont |= map(select(has(\"ad\") | not))")
 
-[Argument]
-DYSign = switch, true, false, tag = 斗鱼签到, desc = 控制是否执行斗鱼签到任务
-DYCookie = switch, true, false, tag = 斗鱼cookie获取, desc = 控制是否获取斗鱼签到任务cookie
 
 [Script]
-# 定时签到（每天 08:10 执行）
-cron "10 8 * * *" script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, timeout=300, tag=斗鱼每日签到, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {DYSign}
+# 定时签到（执行时间通过 DYSignTime 参数在插件设置中选择）
+cron {DYSignTime} script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_sign.js, timeout=300, tag=斗鱼每日签到, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, argument=[{DYNotify}], enable={DYSign}
 
 # 获取签到所需 Cookie（下次一定）
-http-response ^https:\/\/apiv2\.douyucdn\.cn\/H5nc\/welcome\/to script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_cookie.js, requires-body=false, timeout=60, tag=斗鱼cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable = {DYCookie}
+http-response ^https:\/\/apiv2\.douyucdn\.cn\/H5nc\/welcome\/to script-path=https://github.com/CDKe-2022/Loon-learn/raw/refs/heads/main/loon/DouYu/dy_cookie.js, requires-body=false, timeout=60, tag=斗鱼cookie获取, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/120px/Douyu.png, enable={DYCookie}
 
-[MitM]
+
+[Mitm]
 hostname = rtbapi.douyucdn.cn, apiv2.douyucdn.cn, venus.douyucdn.cn, apiv3.douyucdn.cn, vpls-videojj-cdn.oss-cn-beijing.aliyuncs.com
