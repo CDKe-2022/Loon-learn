@@ -1,282 +1,139 @@
-/*
- * 顺丰速运签到脚本（Loon 专用 · 微信小程序 V2 版 · 最终版）
- *
- * 接口信息（2026-08-22 抓包确认）：
- *   - 签到动作：~integralSignV2Service~getTodaySign（幂等，请求体 {}）
- *   - 签到记录：~integralSignV2Service~getSignInfoRecords（查明日奖励）
- *   - signature 按接口路径计算 → 每个接口的请求头需分别捕获、分别使用
- *
- * 使用流程：
- *   1. 微信打开顺丰小程序 → 我的积分页（等待签到日历加载完成，会同时触发两个接口）
- *   2. 收到「Cookie 捕获成功」通知（会累计捕获各接口的签名）
- *   3. 每天定时脚本自动签到
- */
+const $ = new Env('顺丰速运')
+$.KEY_login = 'chavy_login_sfexpress'
 
-// ============================================================
-// 1. 常量
-// ============================================================
+!(async () => {
+  await loginapp()
+  await $.wait('1000')
+  await loginweb()
+  await $.wait('1000')
+  await sign()
+  await $.wait('1000')
+  await signDailyTasks()
+  showmsg()
+})()
+  .catch((e) => $.logErr(e))
+  .finally(() => $.done())
 
-const SCRIPT_NAME = '顺丰速运';
-const KEY_LOGIN = 'sf_login_v4'; // 新键名（存储结构变了）
+function loginapp() {
+  const loginOpts = $.getjson($.KEY_login)
+  delete loginOpts.headers.Cookie
 
-const API_HOST = 'mcs-mimp-web.sf-express.com';
-const PATH_SIGN = 'getTodaySign';
-const PATH_INFO = 'getSignInfoRecords';
-
-// ============================================================
-// 2. 入口分流
-// ============================================================
-
-if (typeof $request !== 'undefined') {
-    saveCookie();
-} else {
-    (async () => {
-        console.log(`🔔 ${SCRIPT_NAME} 开始签到`);
-        await runSign();
-    })().catch(e => {
-        console.log(`❌ 执行出错: ${JSON.stringify(e)}`);
-        notify('签到执行出错', JSON.stringify(e));
-        $done({});
-    });
+  return $.http
+    .post(loginOpts)
+    .then((resp) => {
+      $.login = JSON.parse(resp.body)
+    })
+    .catch((err) => {
+      console.log(err)
+    })
 }
 
-// ============================================================
-// 3. 捕获模式：按接口路径分别保存凭证
-// ============================================================
+function loginweb() {
+  const sign = encodeURIComponent($.login.obj.sign)
+  const loginOpts = {
+    url: `https://mcs-mimp-web.sf-express.com/mcs-mimp/share/app/shareRedirect?sign=${sign}&source=SFAPP&bizCode=647@RnlvejM1R3VTSVZ6d3BNaXJxRFpOUVVtQkp0ZnFpNDBKdytobm5TQWxMeHpVUXVrVzVGMHVmTU5BVFA1bXlwcw==`
+  }
+  return $.http.get(loginOpts)
+}
 
-function saveCookie() {
-    const reqHeaders = $request.headers || {};
-    const cookieStr = getHeaderVal(reqHeaders, 'Cookie');
-    const url = $request.url;
-
-    console.log('[捕获] 命中: ' + url);
-
-    if (!cookieStr) {
-        console.log('[捕获] 请求头无Cookie，跳过');
-        $done({});
-        return;
+function sign() {
+  const signOpts = {
+    url: `https://mcs-mimp-web.sf-express.com/mcs-mimp/commonPost/~memberNonactivity~integralTaskSignPlusService~automaticSignFetchPackage`,
+    body: `{"comeFrom": "vioin", "channelFrom": "SFAPP"}`,
+    headers: {
+      'Content-Type': 'application/json'
     }
-    if (cookieStr.indexOf('_login_user_id_') === -1 && cookieStr.indexOf('sessionId') === -1) {
-        console.log('[捕获] Cookie缺少登录字段，跳过');
-        $done({});
-        return;
-    }
+  }
+  return $.http.post(signOpts).then((resp) => {
+    $.sign = JSON.parse(resp.body)
+  })
+}
 
-    // 读取现有存储（结构：{ getTodaySign: {...}, getSignInfoRecords: {...} }）
-    let store = {};
-    try {
-        const val = $persistentStore.read(KEY_LOGIN);
-        if (val) store = JSON.parse(val) || {};
-    } catch (e) { /* 忽略，用空对象重建 */ }
+function queryDailyTask() {
+  return $.http
+    .post({
+      url: `https://mcs-mimp-web.sf-express.com/mcs-mimp/commonPost/~memberNonactivity~integralTaskStrategyService~queryPointTaskAndSignFromES`,
+      body: `{"channelType":"1"}`,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then((resp) => {
+      $.tasks = JSON.parse(resp.body).obj.taskTitleLevels
+    })
+}
 
-    // 根据URL确定接口标识
-    let endpoint = null;
-    if (url.indexOf(PATH_SIGN) !== -1) endpoint = PATH_SIGN;
-    else if (url.indexOf(PATH_INFO) !== -1) endpoint = PATH_INFO;
+async function signDailyTasks() {
+  await queryDailyTask()
 
-    if (!endpoint) {
-        console.log('[捕获] 非目标接口（无签名价值），跳过');
-        $done({});
-        return;
-    }
-
-    // 保存该接口的完整请求头
-    store[endpoint] = {
-        url: url,
-        headers: reqHeaders,
-        body: $request.body || '',
-        savedAt: new Date().toISOString()
-    };
-
-    if ($persistentStore.write(JSON.stringify(store), KEY_LOGIN)) {
-        const got = Object.keys(store).join(' + ');
-        console.log(`[捕获] 已保存 ${endpoint} 的凭证，现有: ${got}`);
-        $notification.post(
-            SCRIPT_NAME,
-            `Cookie 捕获成功 ✅ (${endpoint})`,
-            `已捕获接口: ${got}\n` + (got.indexOf(PATH_SIGN) !== -1 ? '签到凭证已就绪' : '再进入积分页可捕获更多接口签名')
-        );
+  for (let i = 0; i < $.tasks.length; i++) {
+    const task = $.tasks[i]
+    if (task.status === 1) {
+      await getPoint(task)
+    } else if (task.status === 2) {
+      await doTask(task)
+      await getPoint(task)
+    } else if (task.status === 3) {
+      task.result = '积分已领取！'
     } else {
-        $notification.post(SCRIPT_NAME, 'Cookie 捕获失败 ❌', '本地存储写入失败');
+      task.result = '未知'
     }
-
-    $done({});
+  }
 }
 
-// ============================================================
-// 4. 签到模式：主流程
-// ============================================================
+function doTask(task) {
+  return $.http.post({
+    url: `https://mcs-mimp-web.sf-express.com/mcs-mimp/commonRoutePost/memberEs/taskRecord/finishTask`,
+    body: `{"taskCode":"${task.taskCode}"}`,
+    headers: {}
+  })
+}
 
-async function runSign() {
-    // 4.1 读取凭证存储
-    let store = {};
-    try {
-        const val = $persistentStore.read(KEY_LOGIN);
-        if (val) store = JSON.parse(val) || {};
-    } catch (e) {
-        console.log('[诊断] 读取失败: ' + e);
-    }
 
-    // 4.2 确定签到接口的凭证（必须要有 getTodaySign 的签名）
-    let signOpts = store[PATH_SIGN];
-    if (!signOpts) {
-        // 兼容提示：可能只捕获到了查询接口
-        notify('签到失败', `未找到签到接口凭证（需 ${PATH_SIGN}），\n请重新打开小程序积分页并等待页面完全加载`);
-        $done({});
-        return;
-    }
 
-    console.log(`[诊断] 签到凭证捕获于: ${signOpts.savedAt || '未知时间'}`);
 
-    // 4.3 执行签到（幂等接口）
-    const signData = await doSign(signOpts);
-    await wait(1000);
+function getPoint(task) {
+  return $.http
+    .post({
+      url: 'https://mcs-mimp-web.sf-express.com/mcs-mimp/commonPost/~memberNonactivity~integralTaskStrategyService~fetchIntegral',
+      body: `{"strategyId":${task.strategyId},"taskId":"${task.taskId}","taskCode":"${task.taskCode}","channelType":"1"}`,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then((resp) => {
+      const data = JSON.parse(resp.body)
+      task.result = data.success ? '成功' : data.errorMessage
+    })
+}
 
-    // 4.4 凭证失效判断
-    if (!signData || signData.success === false) {
-        notify('签到失败', signData ? (signData.errorMessage || '请求被拒') : '请求失败，请重新捕获');
-        $done({});
-        return;
-    }
-
-    // 4.5 查询明日奖励（可选，用查询接口自己的签名）
-    let infoData = null;
-    if (store[PATH_INFO]) {
-        infoData = await getSignInfo(store[PATH_INFO]);
+function showmsg() {
+  const success = $.sign && $.sign.success
+  $.subt = `签到: `
+  $.desc = []
+  if (success) {
+    if ($.sign.obj.hasFinishSign){
+      $.subt += `重复`
+      $.desc.push(`说明: 连续签到${$.sign.obj.countDay}天`)
     } else {
-        console.log('[提示] 未捕获查询接口凭证，跳过明日奖励查询');
+      $.subt += `成功`
+      $.desc.push(`说明: 连续签到${$.sign.obj.countDay}天`)
     }
+  } else {
+    const errmsg = $.sign.errorMessage
+    $.subt += `失败`
+    $.desc.push(`说明: ${errmsg}`)
+  }
 
-    // 4.6 汇总通知
-    showmsg(signData, infoData);
-    $done({});
+  $.desc.push('', `每日任务: `)
+  for (let i = 0; i < $.tasks.length; i++) {
+    const name = $.tasks[i].title
+    const result = $.tasks[i].result
+    $.desc.push(`${name}: ${result}`)
+  }
+
+  $.msg($.name, $.subt, $.desc.join('\n'))
 }
 
-// ============================================================
-// 5. 接口请求
-// ============================================================
-
-function doSign(opts) {
-    return new Promise((resolve) => {
-        $httpClient.post({
-            url: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~${PATH_SIGN}`,
-            headers: buildHeaders(opts),
-            body: '{}'
-        }, (error, response, data) => {
-            if (error) {
-                console.log('签到请求失败: ' + JSON.stringify(error));
-                resolve(null);
-                return;
-            }
-            console.log('签到响应: ' + String(data).slice(0, 400));
-            try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
-        });
-    });
-}
-
-function getSignInfo(opts) {
-    return new Promise((resolve) => {
-        const now = new Date();
-        const start = formatDate(new Date(now.getTime() - 30 * 86400000));
-        const end = formatDate(new Date(now.getTime() + 21 * 86400000));
-
-        $httpClient.post({
-            url: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~${PATH_INFO}`,
-            headers: buildHeaders(opts),
-            body: JSON.stringify({
-                startTm: `${start} 00:00:00`,
-                endTm: `${end} 23:59:59`
-            })
-        }, (error, response, data) => {
-            if (error) {
-                console.log('查询记录失败: ' + JSON.stringify(error));
-                resolve(null);
-                return;
-            }
-            console.log('查询记录响应: ' + String(data).slice(0, 300));
-            try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
-        });
-    });
-}
-
-// ============================================================
-// 6. 工具函数
-// ============================================================
-
-function buildHeaders(opts) {
-    const src = opts.headers || {};
-    const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*'
-    };
-
-    ['Cookie', 'cookie', 'channel', 'syscode', 'platform', 'signature', 'timestamp',
-     'sw8', 'user-agent', 'User-Agent', 'referer', 'Referer', 'origin', 'Origin',
-     'accept-language'].forEach(k => {
-        if (!src[k]) return;
-        if (k.toLowerCase() === 'cookie') {
-            headers['Cookie'] = headers['Cookie'] ? headers['Cookie'] + '; ' + src[k] : src[k];
-        } else if (k === 'user-agent') {
-            headers['User-Agent'] = src[k];
-        } else if (k === 'referer') {
-            headers['Referer'] = src[k];
-        } else if (k === 'origin') {
-            headers['Origin'] = src[k];
-        } else {
-            headers[k] = src[k];
-        }
-    });
-
-    return headers;
-}
-
-function getHeaderVal(headers, name) {
-    if (!headers) return '';
-    const lower = name.toLowerCase();
-    for (const k of Object.keys(headers)) {
-        if (k.toLowerCase() === lower) {
-            const v = headers[k];
-            return Array.isArray(v) ? v.join('; ') : String(v);
-        }
-    }
-    return '';
-}
-
-function formatDate(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
-
-function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function notify(subtitle, content) {
-    $notification.post(SCRIPT_NAME, subtitle, content);
-}
-
-function showmsg(signData, infoData) {
-    const obj = (signData && signData.obj) || {};
-    const content = [];
-
-    if (obj.signed) {
-        content.push(`连续签到: ${obj.dayCount || 0} 天`);
-        if (obj.bubbleText) content.push(`本次奖励: ${obj.bubbleText}`);
-
-        // 明日奖励（查询失败就不显示，不影响签到结果）
-        if (infoData && infoData.success && infoData.obj && Array.isArray(infoData.obj.predictAwards)) {
-            const tomorrow = infoData.obj.predictAwards.find(
-                p => p.dayCount === (obj.dayCount || 0) + 1
-            );
-            if (tomorrow && tomorrow.awardNum) {
-                content.push(`明日奖励: ${tomorrow.awardNum} ${tomorrow.awardType === 'SFP' ? '积分' : '礼品'}`);
-            }
-        }
-
-        notify('签到: 成功', content.join('\n'));
-    } else {
-        notify('签到: 异常', '接口返回成功但 signed 为 false，详情见日志');
-    }
-}
+// prettier-ignore
+function Env(t,e){class s{constructor(t){this.env=t}send(t,e="GET"){t="string"==typeof t?{url:t}:t;let s=this.get;return"POST"===e&&(s=this.post),new Promise((e,i)=>{s.call(this,t,(t,s,r)=>{t?i(t):e(s)})})}get(t){return this.send.call(this.env,t)}post(t){return this.send.call(this.env,t,"POST")}}return new class{constructor(t,e){this.name=t,this.http=new s(this),this.data=null,this.dataFile="box.dat",this.logs=[],this.isMute=!1,this.isNeedRewrite=!1,this.logSeparator="\n",this.startTime=(new Date).getTime(),Object.assign(this,e),this.log("",`\ud83d\udd14${this.name}, \u5f00\u59cb!`)}isNode(){return"undefined"!=typeof module&&!!module.exports}isQuanX(){return"undefined"!=typeof $task}isSurge(){return"undefined"!=typeof $httpClient&&"undefined"==typeof $loon}isLoon(){return"undefined"!=typeof $loon}isShadowrocket(){return"undefined"!=typeof $rocket}toObj(t,e=null){try{return JSON.parse(t)}catch{return e}}toStr(t,e=null){try{return JSON.stringify(t)}catch{return e}}getjson(t,e){let s=e;const i=this.getdata(t);if(i)try{s=JSON.parse(this.getdata(t))}catch{}return s}setjson(t,e){try{return this.setdata(JSON.stringify(t),e)}catch{return!1}}getScript(t){return new Promise(e=>{this.get({url:t},(t,s,i)=>e(i))})}runScript(t,e){return new Promise(s=>{let i=this.getdata("@chavy_boxjs_userCfgs.httpapi");i=i?i.replace(/\n/g,"").trim():i;let r=this.getdata("@chavy_boxjs_userCfgs.httpapi_timeout");r=r?1*r:20,r=e&&e.timeout?e.timeout:r;const[o,h]=i.split("@"),a={url:`http://${h}/v1/scripting/evaluate`,body:{script_text:t,mock_type:"cron",timeout:r},headers:{"X-Key":o,Accept:"*/*"}};this.post(a,(t,e,i)=>s(i))}).catch(t=>this.logErr(t))}loaddata(){if(!this.isNode())return{};{this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e);if(!s&&!i)return{};{const i=s?t:e;try{return JSON.parse(this.fs.readFileSync(i))}catch(t){return{}}}}}writedata(){if(this.isNode()){this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e),r=JSON.stringify(this.data);s?this.fs.writeFileSync(t,r):i?this.fs.writeFileSync(e,r):this.fs.writeFileSync(t,r)}}lodash_get(t,e,s){const i=e.replace(/\[(\d+)\]/g,".$1").split(".");let r=t;for(const t of i)if(r=Object(r)[t],void 0===r)return s;return r}lodash_set(t,e,s){return Object(t)!==t?t:(Array.isArray(e)||(e=e.toString().match(/[^.[\]]+/g)||[]),e.slice(0,-1).reduce((t,s,i)=>Object(t[s])===t[s]?t[s]:t[s]=Math.abs(e[i+1])>>0==+e[i+1]?[]:{},t)[e[e.length-1]]=s,t)}getdata(t){let e=this.getval(t);if(/^@/.test(t)){const[,s,i]=/^@(.*?)\.(.*?)$/.exec(t),r=s?this.getval(s):"";if(r)try{const t=JSON.parse(r);e=t?this.lodash_get(t,i,""):e}catch(t){e=""}}return e}setdata(t,e){let s=!1;if(/^@/.test(e)){const[,i,r]=/^@(.*?)\.(.*?)$/.exec(e),o=this.getval(i),h=i?"null"===o?null:o||"{}":"{}";try{const e=JSON.parse(h);this.lodash_set(e,r,t),s=this.setval(JSON.stringify(e),i)}catch(e){const o={};this.lodash_set(o,r,t),s=this.setval(JSON.stringify(o),i)}}else s=this.setval(t,e);return s}getval(t){return this.isSurge()||this.isLoon()?$persistentStore.read(t):this.isQuanX()?$prefs.valueForKey(t):this.isNode()?(this.data=this.loaddata(),this.data[t]):this.data&&this.data[t]||null}setval(t,e){return this.isSurge()||this.isLoon()?$persistentStore.write(t,e):this.isQuanX()?$prefs.setValueForKey(t,e):this.isNode()?(this.data=this.loaddata(),this.data[e]=t,this.writedata(),!0):this.data&&this.data[e]||null}initGotEnv(t){this.got=this.got?this.got:require("got"),this.cktough=this.cktough?this.cktough:require("tough-cookie"),this.ckjar=this.ckjar?this.ckjar:new this.cktough.CookieJar,t&&(t.headers=t.headers?t.headers:{},void 0===t.headers.Cookie&&void 0===t.cookieJar&&(t.cookieJar=this.ckjar))}get(t,e=(()=>{})){t.headers&&(delete t.headers["Content-Type"],delete t.headers["Content-Length"]),this.isSurge()||this.isLoon()?(this.isSurge()&&this.isNeedRewrite&&(t.headers=t.headers||{},Object.assign(t.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient.get(t,(t,s,i)=>{!t&&s&&(s.body=i,s.statusCode=s.status),e(t,s,i)})):this.isQuanX()?(this.isNeedRewrite&&(t.opts=t.opts||{},Object.assign(t.opts,{hints:!1})),$task.fetch(t).then(t=>{const{statusCode:s,statusCode:i,headers:r,body:o}=t;e(null,{status:s,statusCode:i,headers:r,body:o},o)},t=>e(t))):this.isNode()&&(this.initGotEnv(t),this.got(t).on("redirect",(t,e)=>{try{if(t.headers["set-cookie"]){const s=t.headers["set-cookie"].map(this.cktough.Cookie.parse).toString();s&&this.ckjar.setCookieSync(s,null),e.cookieJar=this.ckjar}}catch(t){this.logErr(t)}}).then(t=>{const{statusCode:s,statusCode:i,headers:r,body:o}=t;e(null,{status:s,statusCode:i,headers:r,body:o},o)},t=>{const{message:s,response:i}=t;e(s,i,i&&i.body)}))}post(t,e=(()=>{})){const s=t.method?t.method.toLocaleLowerCase():"post";if(t.body&&t.headers&&!t.headers["Content-Type"]&&(t.headers["Content-Type"]="application/x-www-form-urlencoded"),t.headers&&delete t.headers["Content-Length"],this.isSurge()||this.isLoon())this.isSurge()&&this.isNeedRewrite&&(t.headers=t.headers||{},Object.assign(t.headers,{"X-Surge-Skip-Scripting":!1})),$httpClient[s](t,(t,s,i)=>{!t&&s&&(s.body=i,s.statusCode=s.status),e(t,s,i)});else if(this.isQuanX())t.method=s,this.isNeedRewrite&&(t.opts=t.opts||{},Object.assign(t.opts,{hints:!1})),$task.fetch(t).then(t=>{const{statusCode:s,statusCode:i,headers:r,body:o}=t;e(null,{status:s,statusCode:i,headers:r,body:o},o)},t=>e(t));else if(this.isNode()){this.initGotEnv(t);const{url:i,...r}=t;this.got[s](i,r).then(t=>{const{statusCode:s,statusCode:i,headers:r,body:o}=t;e(null,{status:s,statusCode:i,headers:r,body:o},o)},t=>{const{message:s,response:i}=t;e(s,i,i&&i.body)})}}time(t,e=null){const s=e?new Date(e):new Date;let i={"M+":s.getMonth()+1,"d+":s.getDate(),"H+":s.getHours(),"m+":s.getMinutes(),"s+":s.getSeconds(),"q+":Math.floor((s.getMonth()+3)/3),S:s.getMilliseconds()};/(y+)/.test(t)&&(t=t.replace(RegExp.$1,(s.getFullYear()+"").substr(4-RegExp.$1.length)));for(let e in i)new RegExp("("+e+")").test(t)&&(t=t.replace(RegExp.$1,1==RegExp.$1.length?i[e]:("00"+i[e]).substr((""+i[e]).length)));return t}msg(e=t,s="",i="",r){const o=t=>{if(!t)return t;if("string"==typeof t)return this.isLoon()?t:this.isQuanX()?{"open-url":t}:this.isSurge()?{url:t}:void 0;if("object"==typeof t){if(this.isLoon()){let e=t.openUrl||t.url||t["open-url"],s=t.mediaUrl||t["media-url"];return{openUrl:e,mediaUrl:s}}if(this.isQuanX()){let e=t["open-url"]||t.url||t.openUrl,s=t["media-url"]||t.mediaUrl;return{"open-url":e,"media-url":s}}if(this.isSurge()){let e=t.url||t.openUrl||t["open-url"];return{url:e}}}};if(this.isMute||(this.isSurge()||this.isLoon()?$notification.post(e,s,i,o(r)):this.isQuanX()&&$notify(e,s,i,o(r))),!this.isMuteLog){let t=["","==============\ud83d\udce3\u7cfb\u7edf\u901a\u77e5\ud83d\udce3=============="];t.push(e),s&&t.push(s),i&&t.push(i),console.log(t.join("\n")),this.logs=this.logs.concat(t)}}log(...t){t.length>0&&(this.logs=[...this.logs,...t]),console.log(t.join(this.logSeparator))}logErr(t,e){const s=!this.isSurge()&&!this.isQuanX()&&!this.isLoon();s?this.log("",`\u2757\ufe0f${this.name}, \u9519\u8bef!`,t.stack):this.log("",`\u2757\ufe0f${this.name}, \u9519\u8bef!`,t)}wait(t){return new Promise(e=>setTimeout(e,t))}done(t={}){const e=(new Date).getTime(),s=(e-this.startTime)/1e3;this.log("",`\ud83d\udd14${this.name}, \u7ed3\u675f! \ud83d\udd5b ${s} \u79d2`),this.log(),(this.isSurge()||this.isQuanX()||this.isLoon())&&$done(t)}}(t,e)}
