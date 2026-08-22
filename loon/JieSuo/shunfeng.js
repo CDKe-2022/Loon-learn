@@ -1,16 +1,15 @@
 /*
- * 顺丰速运签到脚本（Loon 专用 · 微信小程序 V2 版）
+ * 顺丰速运签到脚本（Loon 专用 · 微信小程序 V2 版 · 最终版）
  *
- * 接口确认（2026-08-22 抓包）：
- *   - 签到动作：~memberNonactivity~integralSignV2Service~getTodaySign（请求体 {}，幂等）
- *   - 签到记录：~memberNonactivity~integralSignV2Service~getSignInfoRecords
- *   - 认证依赖：signature + timestamp + channel(mypoint) + syscode(MCS-MIMP-CORE)
- *               + platform(MINI_PROGRAM) + sw8 + Cookie(_login_user_id_/sessionId/HWWAFSESID等)
+ * 接口信息（2026-08-22 抓包确认）：
+ *   - 签到动作：~integralSignV2Service~getTodaySign（幂等，请求体 {}）
+ *   - 签到记录：~integralSignV2Service~getSignInfoRecords（查明日奖励）
+ *   - signature 按接口路径计算 → 每个接口的请求头需分别捕获、分别使用
  *
  * 使用流程：
- *   1. 微信打开顺丰小程序 → 我的积分页（触发 integralSignV2Service 请求）
- *   2. 收到「Cookie 捕获成功」通知
- *   3. 每天定时脚本调用 getTodaySign 完成签到
+ *   1. 微信打开顺丰小程序 → 我的积分页（等待签到日历加载完成，会同时触发两个接口）
+ *   2. 收到「Cookie 捕获成功」通知（会累计捕获各接口的签名）
+ *   3. 每天定时脚本自动签到
  */
 
 // ============================================================
@@ -18,16 +17,11 @@
 // ============================================================
 
 const SCRIPT_NAME = '顺丰速运';
-const KEY_LOGIN = 'sf_login_v3';
+const KEY_LOGIN = 'sf_login_v4'; // 新键名（存储结构变了）
 
 const API_HOST = 'mcs-mimp-web.sf-express.com';
-
-const API = {
-    // 签到动作（幂等：已签到返回 signed:true）
-    doSign: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~getTodaySign`,
-    // 签到记录（用于查询明日奖励）
-    signInfo: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~getSignInfoRecords`
-};
+const PATH_SIGN = 'getTodaySign';
+const PATH_INFO = 'getSignInfoRecords';
 
 // ============================================================
 // 2. 入口分流
@@ -47,37 +41,61 @@ if (typeof $request !== 'undefined') {
 }
 
 // ============================================================
-// 3. 捕获模式：保存完整凭证
+// 3. 捕获模式：按接口路径分别保存凭证
 // ============================================================
 
 function saveCookie() {
     const reqHeaders = $request.headers || {};
     const cookieStr = getHeaderVal(reqHeaders, 'Cookie');
+    const url = $request.url;
 
-    console.log('[捕获] 命中: ' + $request.url);
+    console.log('[捕获] 命中: ' + url);
 
     if (!cookieStr) {
         console.log('[捕获] 请求头无Cookie，跳过');
         $done({});
         return;
     }
-
-    // 校验是否包含关键登录字段
     if (cookieStr.indexOf('_login_user_id_') === -1 && cookieStr.indexOf('sessionId') === -1) {
         console.log('[捕获] Cookie缺少登录字段，跳过');
         $done({});
         return;
     }
 
-    const session = {
-        url: $request.url,
-        headers: reqHeaders,  // 完整请求头（signature/timestamp/sw8/cookie 等）
-        body: $request.body || ''
+    // 读取现有存储（结构：{ getTodaySign: {...}, getSignInfoRecords: {...} }）
+    let store = {};
+    try {
+        const val = $persistentStore.read(KEY_LOGIN);
+        if (val) store = JSON.parse(val) || {};
+    } catch (e) { /* 忽略，用空对象重建 */ }
+
+    // 根据URL确定接口标识
+    let endpoint = null;
+    if (url.indexOf(PATH_SIGN) !== -1) endpoint = PATH_SIGN;
+    else if (url.indexOf(PATH_INFO) !== -1) endpoint = PATH_INFO;
+
+    if (!endpoint) {
+        console.log('[捕获] 非目标接口（无签名价值），跳过');
+        $done({});
+        return;
+    }
+
+    // 保存该接口的完整请求头
+    store[endpoint] = {
+        url: url,
+        headers: reqHeaders,
+        body: $request.body || '',
+        savedAt: new Date().toISOString()
     };
 
-    if ($persistentStore.write(JSON.stringify(session), KEY_LOGIN)) {
-        console.log('[捕获] 凭证已保存，Cookie前100字: ' + cookieStr.slice(0, 100));
-        $notification.post(SCRIPT_NAME, 'Cookie 捕获成功 ✅', '已保存V2登录凭证，签到功能已就绪');
+    if ($persistentStore.write(JSON.stringify(store), KEY_LOGIN)) {
+        const got = Object.keys(store).join(' + ');
+        console.log(`[捕获] 已保存 ${endpoint} 的凭证，现有: ${got}`);
+        $notification.post(
+            SCRIPT_NAME,
+            `Cookie 捕获成功 ✅ (${endpoint})`,
+            `已捕获接口: ${got}\n` + (got.indexOf(PATH_SIGN) !== -1 ? '签到凭证已就绪' : '再进入积分页可捕获更多接口签名')
+        );
     } else {
         $notification.post(SCRIPT_NAME, 'Cookie 捕获失败 ❌', '本地存储写入失败');
     }
@@ -90,36 +108,46 @@ function saveCookie() {
 // ============================================================
 
 async function runSign() {
-    // 4.1 读取凭证
-    let opts = null;
+    // 4.1 读取凭证存储
+    let store = {};
     try {
         const val = $persistentStore.read(KEY_LOGIN);
-        if (val) opts = JSON.parse(val);
+        if (val) store = JSON.parse(val) || {};
     } catch (e) {
         console.log('[诊断] 读取失败: ' + e);
     }
 
-    if (!opts) {
-        notify('签到失败', '未找到登录凭证，请打开微信顺丰小程序进入我的积分页触发捕获');
+    // 4.2 确定签到接口的凭证（必须要有 getTodaySign 的签名）
+    let signOpts = store[PATH_SIGN];
+    if (!signOpts) {
+        // 兼容提示：可能只捕获到了查询接口
+        notify('签到失败', `未找到签到接口凭证（需 ${PATH_SIGN}），\n请重新打开小程序积分页并等待页面完全加载`);
         $done({});
         return;
     }
 
-    // 4.2 执行签到（getTodaySign 幂等接口）
-    const signData = await doSign(opts);
+    console.log(`[诊断] 签到凭证捕获于: ${signOpts.savedAt || '未知时间'}`);
+
+    // 4.3 执行签到（幂等接口）
+    const signData = await doSign(signOpts);
     await wait(1000);
 
-    // 4.3 凭证失效判断
+    // 4.4 凭证失效判断
     if (!signData || signData.success === false) {
-        notify('签到失败', signData ? (signData.errorMessage || '请求被拒') : '请求失败');
+        notify('签到失败', signData ? (signData.errorMessage || '请求被拒') : '请求失败，请重新捕获');
         $done({});
         return;
     }
 
-    // 4.4 查询明日奖励（可选，失败不影响签到结果）
-    const infoData = await getSignInfo(opts);
+    // 4.5 查询明日奖励（可选，用查询接口自己的签名）
+    let infoData = null;
+    if (store[PATH_INFO]) {
+        infoData = await getSignInfo(store[PATH_INFO]);
+    } else {
+        console.log('[提示] 未捕获查询接口凭证，跳过明日奖励查询');
+    }
 
-    // 4.5 汇总通知
+    // 4.6 汇总通知
     showmsg(signData, infoData);
     $done({});
 }
@@ -131,7 +159,7 @@ async function runSign() {
 function doSign(opts) {
     return new Promise((resolve) => {
         $httpClient.post({
-            url: API.doSign,
+            url: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~${PATH_SIGN}`,
             headers: buildHeaders(opts),
             body: '{}'
         }, (error, response, data) => {
@@ -153,7 +181,7 @@ function getSignInfo(opts) {
         const end = formatDate(new Date(now.getTime() + 21 * 86400000));
 
         $httpClient.post({
-            url: API.signInfo,
+            url: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralSignV2Service~${PATH_INFO}`,
             headers: buildHeaders(opts),
             body: JSON.stringify({
                 startTm: `${start} 00:00:00`,
@@ -175,7 +203,6 @@ function getSignInfo(opts) {
 // 6. 工具函数
 // ============================================================
 
-// 构建请求头：完整继承捕获请求的认证头
 function buildHeaders(opts) {
     const src = opts.headers || {};
     const headers = {
@@ -203,7 +230,6 @@ function buildHeaders(opts) {
     return headers;
 }
 
-// 统一取 header 值（兼容数组形式的多个 cookie）
 function getHeaderVal(headers, name) {
     if (!headers) return '';
     const lower = name.toLowerCase();
@@ -239,11 +265,9 @@ function showmsg(signData, infoData) {
         content.push(`连续签到: ${obj.dayCount || 0} 天`);
         if (obj.bubbleText) content.push(`本次奖励: ${obj.bubbleText}`);
 
-        // 明日奖励（来自 getSignInfoRecords 的 predictAwards）
-        if (infoData && infoData.obj && Array.isArray(infoData.obj.predictAwards)) {
-            const tomorrow = (obj.predictAwards && obj.predictAwards.find(
-                p => p.dayCount === (obj.dayCount || 0) + 1
-            )) || infoData.obj.predictAwards.find(
+        // 明日奖励（查询失败就不显示，不影响签到结果）
+        if (infoData && infoData.success && infoData.obj && Array.isArray(infoData.obj.predictAwards)) {
+            const tomorrow = infoData.obj.predictAwards.find(
                 p => p.dayCount === (obj.dayCount || 0) + 1
             );
             if (tomorrow && tomorrow.awardNum) {
