@@ -11,7 +11,7 @@
 [Argument]
 # ==================== 签到功能设置 ====================
 DYSign = switch, true, tag=斗鱼签到, desc=控制是否执行斗鱼签到任务
-DYSignTime = select, "10 8 * * *", "0 9 * * *", "30 7 * * *", "0 12 * * *", "0 20 * * *", tag=签到执行时间, desc=选择每日签到的执行时间（Cron格式：分 时 日 月 周）
+DYSignTime = input, "10 8 * * *", tag=签到执行时间, desc=格式：分 时 日 月 周。例：10 8 * * *（每天8:10）、0 */2 * * *（每2小时）、0 9 * * 1-5（工作日9点）
 DYNotify = switch, true, tag=签到结果通知, desc=签到完成后是否发送系统通知提醒
 DYCookie = switch, true, tag=斗鱼cookie获取, desc=控制是否自动获取斗鱼签到所需cookie
 
