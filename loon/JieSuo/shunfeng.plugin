@@ -1,18 +1,34 @@
 #!name = 顺丰签到
 #!desc = 每日顺丰签到以及Cookie获取
-#!author = Sliverkiss
-#!openUrl = 
-#!homepage = 
+#!author = CDKe-2022
+#!openUrl = https://github.com/CDKe-2022/Loon-learn
+#!homepage = https://github.com/CDKe-2022/Loon-learn
 #!icon = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/sunfeng.png
 #!system = iOS, iPadOS, tvOS, macOS
 #!system_version = 17
 #!loon_version = 3.2.1(379)
-#!tag = 签到，Sliverkiss
-#!date = 2024-09-08 18:05:47
+#!tag = 签到
+#!date = 2025-07-07
+
+[Argument]
+# 通知相关配置
+notify_title = input,"顺丰签到",tag=通知标题,desc=签到成功后通知的标题
+notify_content = input,"签到成功，已连续签到{count}天",tag=通知内容,desc=通知内容，可包含变量如连续签到天数
+
+# 签到行为配置
+sign_delay = input,"0",tag=签到延迟(秒),desc=执行签到前的延迟时间，单位秒
+task_delay = input,"0",tag=任务延迟(秒),desc=执行任务前的延迟时间，单位秒
+enable_task = switch,true,tag=执行每日任务,desc=是否执行每日任务以获取积分
+
+# 高级配置（可选）
+debug_mode = switch,false,tag=调试模式,desc=开启后输出详细日志，便于排查问题
 
 [Script]
-cron "5 9 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/shunfeng.js, timeout=60, tag=顺丰每日签到, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/sunfeng.png
-http-response ^https:\/\/mcs-mimp-web\.sf-express\.com\/mcs-mimp\/share\/weChat\/shareGiftReceiveRedirect.+ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/loon/JieSuo/shunfeng.js, requires-body=true, timeout=60, tag=顺丰速运获取token
+# 每日签到任务（将参数传递给脚本）
+cron "5 9 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/shunfeng.js, timeout=60, tag=顺丰每日签到, img-url=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/main/icon/sunfeng.png, argument=[{notify_title},{notify_content},{sign_delay},{task_delay},{enable_task},{debug_mode}]
+
+# Cookie获取脚本（捕获登录凭证）
+http-response ^https:\/\/mcs-mimp-web\.sf-express\.com\/mcs-mimp\/share\/weChat\/shareGiftReceiveRedirect.+ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/shunfeng.js, requires-body=true, timeout=60, tag=顺丰速运获取token, argument=[{notify_title},{notify_content}]
 
 [Mitm]
 hostname = mcs-mimp-web.sf-express.com
