@@ -1,15 +1,18 @@
 /*
- * 顺丰速运签到脚本（Loon 专用 · 单文件版 · 修复版）
+ * 顺丰速运签到脚本（Loon 专用 · 单文件版）
  *
- * 修复内容：
- *   1. 所有接口 URL 硬编码，不再使用捕获到的 URL（避免打到错误接口返回 HTML）
- *   2. 捕获规则使用 http-request 匹配签到接口本身（拿到完整会员 Cookie）
- *   3. 增加诊断日志，便于排查
+ * 设计说明：
+ *   1. 一个文件两种角色：
+ *      - http-response 触发（匹配 shareGiftReceiveRedirect）→ 捕获 Cookie 并保存
+ *      - cron 定时触发 → 自动签到 + 领积分
+ *   2. 所有签到接口 URL 硬编码，不使用捕获到的 URL
+ *      （捕获的是分享跳转接口，用它请求会返回HTML导致解析失败）
+ *   3. 存储读取兼容新旧键名，旧数据不会丢失
  *
  * 使用流程：
- *   1. 安装插件 → 打开顺丰APP → 我的 → 会员中心 → 手动点一次签到
+ *   1. 安装插件 → 打开顺丰APP → 触发一次分享礼包请求（会员中心/分享页面）
  *   2. 收到「Cookie 捕获成功」通知
- *   3. 之后每天定时自动签到
+ *   3. 之后每天定时自动签到，Cookie 失效会通知重新捕获
  */
 
 // ============================================================
@@ -17,12 +20,14 @@
 // ============================================================
 
 const SCRIPT_NAME = '顺丰速运';
-const KEY_LOGIN = 'sf_login_v2'; // 新键名，避免读到旧脏数据
+const KEY_LOGIN = 'sf_login_v2';                 // 新键名
+const KEY_LOGIN_LEGACY = 'chavy_login_sfexpress'; // 旧键名（兼容读取）
 const API_HOST = 'mcs-mimp-web.sf-express.com';
 
+// 所有接口 URL 硬编码（核心修复点！）
 const API = {
-    sign: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralTaskSignPlusService~automaticSignFetchPackage`,
     login: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralTaskSignPlusService~automaticSignFetchPackage`,
+    sign: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralTaskSignPlusService~automaticSignFetchPackage`,
     taskQuery: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralTaskStrategyService~queryPointTaskAndSignFromES`,
     taskFinish: `https://${API_HOST}/mcs-mimp/commonRoutePost/memberEs/taskRecord/finishTask`,
     taskPoint: `https://${API_HOST}/mcs-mimp/commonPost/~memberNonactivity~integralTaskStrategyService~fetchIntegral`,
@@ -34,7 +39,7 @@ const API = {
 // ============================================================
 
 if (typeof $request !== 'undefined') {
-    // ---------- 捕获模式（http-request 触发） ----------
+    // ---------- 捕获模式（http-response 触发，$request 依然可用） ----------
     saveCookie();
 } else {
     // ---------- 签到模式（cron / 手动触发） ----------
@@ -53,32 +58,31 @@ if (typeof $request !== 'undefined') {
 // ============================================================
 
 function saveCookie() {
-    const headers = $request.headers || {};
-    const cookieStr = headers['Cookie'] || headers['cookie'] || headers['COOKIE'];
+    const reqHeaders = $request.headers || {};
+    const cookieStr = reqHeaders['Cookie'] || reqHeaders['cookie'] || reqHeaders['COOKIE'];
 
-    console.log('[捕获] 命中请求: ' + $request.url);
+    console.log('[捕获] 命中: ' + $request.url);
 
     if (!cookieStr) {
-        $notification.post(SCRIPT_NAME, 'Cookie 捕获失败 ❌', '请求头中没有 Cookie，请确认已在APP中登录');
+        console.log('[捕获] 请求头无Cookie，跳过');
         $done({});
         return;
     }
 
     const session = {
         url: $request.url,           // 仅作记录，签到时不使用
-        headers: $request.headers,   // 核心凭证
-        body: $request.body || ''    // 签到请求体（含登录凭证）
+        headers: $request.headers,   // 核心凭证（含Cookie）
+        body: $request.body || ''    // 请求体（含登录凭证）
     };
 
     if ($persistentStore.write(JSON.stringify(session), KEY_LOGIN)) {
-        console.log('[捕获] 登录参数已保存');
+        console.log('[捕获] 登录参数已保存，Cookie前80字: ' + cookieStr.slice(0, 80));
         $notification.post(SCRIPT_NAME, 'Cookie 捕获成功 ✅', '已保存登录参数，签到功能已就绪');
     } else {
         $notification.post(SCRIPT_NAME, 'Cookie 捕获失败 ❌', '本地存储写入失败');
     }
 
-    // 原样放行，不干扰APP正常签到
-    $done({});
+    $done({}); // 放行响应，不干扰APP
 }
 
 // ============================================================
@@ -86,24 +90,23 @@ function saveCookie() {
 // ============================================================
 
 async function runSign() {
-    // 4.1 读取登录参数
-    let opts;
-    try {
-        const val = $persistentStore.read(KEY_LOGIN);
-        opts = val ? JSON.parse(val) : null;
-    } catch (e) {
-        opts = null;
-    }
-
-    // 诊断日志
-    if (opts) {
-        console.log('[诊断] 已读取存储，Cookie前80字: ' + String(getCookieStr(opts)).slice(0, 80));
-    } else {
-        console.log('[诊断] 本地存储为空，未捕获过Cookie');
+    // 4.1 读取登录参数（兼容新旧键名）
+    let opts = null;
+    for (const key of [KEY_LOGIN, KEY_LOGIN_LEGACY]) {
+        try {
+            const val = $persistentStore.read(key);
+            if (val) {
+                opts = JSON.parse(val);
+                console.log(`[诊断] 从 ${key} 读取，Cookie前80字: ` + String(getCookieStr(opts)).slice(0, 80));
+                break;
+            }
+        } catch (e) {
+            console.log(`[诊断] ${key} 解析失败: ${e}`);
+        }
     }
 
     if (!opts || !getCookieStr(opts)) {
-        notify('签到失败', '未找到登录参数，请打开顺丰APP进入会员中心手动签到一次以捕获Cookie');
+        notify('签到失败', '未找到登录参数，请打开顺丰APP触发一次分享/签到请求以捕获Cookie');
         $done({});
         return;
     }
@@ -130,6 +133,7 @@ async function runSign() {
             // 已完成未领取 → 直接领积分
             await getPoint(opts, task);
         } else if (task.status === 3) {
+            // 已领取
             task.result = '积分已领取';
         }
         await wait(500);
@@ -141,12 +145,12 @@ async function runSign() {
 }
 
 // ============================================================
-// 5. 登录相关（URL 全部硬编码）
+// 5. 登录相关（URL 全部硬编码，核心修复！）
 // ============================================================
 
 function loginapp(opts) {
     return new Promise((resolve) => {
-        // 从捕获的请求头中挑选有用的字段（不带 Cookie，走登录流程）
+        // 从捕获的请求头中挑选有用的字段（不带Cookie，走登录流程）
         const srcHeaders = opts.headers || {};
         const headers = {
             'Content-Type': 'application/json'
@@ -158,7 +162,7 @@ function loginapp(opts) {
         });
 
         const req = {
-            url: API.login,
+            url: API.login,  // 硬编码登录接口，不使用捕获的URL
             headers: headers,
             body: opts.body || '{"comeFrom": "vioin", "channelFrom": "SFAPP"}'
         };
@@ -329,7 +333,7 @@ function showmsg(signData, tasks) {
         content.push(`连续签到: ${obj.countDay || 0} 天`);
     } else {
         subtitle += '失败';
-        content.push(`说明: ${signData ? signData.errorMessage : 'Cookie可能已失效，请重新在APP内签到一次捕获'}`);
+        content.push(`说明: ${signData ? signData.errorMessage : 'Cookie可能已失效，请重新在APP内触发捕获'}`);
     }
 
     if (tasks && tasks.length > 0) {
