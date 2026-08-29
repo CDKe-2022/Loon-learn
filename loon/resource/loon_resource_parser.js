@@ -824,8 +824,15 @@ function splitLoonLine(line) {
   var s = str(line);
   var idx = s.indexOf(" = ");
   if (idx > 0) return { name: s.slice(0, idx).trim(), body: s.slice(idx + 3).trim() };
+  // 兼容无空格写法（name=shadowsocks,host,port）。
+  // 必须要求 body 含逗号：否则整段 base64 会因为末尾的 padding "=" 被切开，
+  // 变成一条名字是一长串乱码的假节点，真正的节点反而全丢了。
   idx = s.indexOf("=");
-  if (idx > 0) return { name: s.slice(0, idx).trim(), body: s.slice(idx + 1).trim() };
+  if (idx > 0) {
+    var name = s.slice(0, idx).trim();
+    var body = s.slice(idx + 1).trim();
+    if (body.indexOf(",") > 0) return { name: name, body: body };
+  }
   return null;
 }
 
@@ -1362,6 +1369,7 @@ function typeIndex(proto, order) {
 
 var CFG = {};
 var DEBUG = false;
+var ARG_EMPTY = false; // 是否没收到任何插件参数，用于给出可操作的排查提示
 
 function log(msg) { console.log(msg); }
 function debug(msg) { if (DEBUG) console.log(msg); }
@@ -1446,44 +1454,49 @@ function renderLine(node, order) {
 }
 
 /** 识别输入格式并解析 */
-function parseAny(text) {
+/**
+ * 逐层识别订阅格式。
+ * depth 用于 base64 嵌套：解出来还是未知格式时递归再认一次，最多 2 层。
+ * 关键点：base64 解出来的内容必须走完整的识别流程（YAML / JSON / URI / 行格式），
+ * 早期版本只认了前三种，导致「base64 包裹的 Loon 行格式」被当成一个乱码节点，
+ * 表现为插件里填任何参数都不生效。
+ */
+function parseAny(text, depth) {
+  depth = depth || 0;
   var raw = normalizeText(text);
   var trimmed = raw.trim();
   if (!trimmed) return null;
+  var tag = depth > 0 ? "[解析器] (第 " + depth + " 层) " : "[解析器] ";
 
   // 1) SIP008 JSON
   var json = parseSip008(trimmed);
-  if (json) { debug("[解析器] 识别为 SIP008 JSON"); return json; }
+  if (json) { log(tag + "识别为 SIP008 JSON"); return json; }
 
   // 2) Clash YAML（明文）
   if (looksLikeClashYaml(trimmed)) {
     var yaml = parseClashToLoon(trimmed);
-    if (yaml) { debug("[解析器] 识别为 Clash YAML"); return yaml; }
+    if (yaml) { log(tag + "识别为 Clash YAML"); return yaml; }
   }
 
-  // 3) base64：解出来再二次识别（V1 会把 base64 里的 YAML 当 URI 行输出）
-  if (looksLikeBase64(trimmed)) {
+  // 3) base64：递归识别解码后的内容，覆盖全部内层格式
+  if (depth < 2 && looksLikeBase64(trimmed)) {
     var decoded = base64DecodeUnicode(trimmed);
-    if (decoded) {
-      var inner = normalizeText(decoded).trim();
-      if (looksLikeClashYaml(inner)) {
-        var innerYaml = parseClashToLoon(inner);
-        if (innerYaml) { debug("[解析器] 识别为 base64(Clash YAML)"); return innerYaml; }
+    if (decoded && decoded !== trimmed) {
+      var inner = parseAny(decoded, depth + 1);
+      if (inner && inner.nodes.length) {
+        log(tag + "识别为 base64 包裹的订阅内容");
+        return inner;
       }
-      var innerJson = parseSip008(inner);
-      if (innerJson) { debug("[解析器] 识别为 base64(SIP008)"); return innerJson; }
-      var uri = parseUriList(inner);
-      if (uri && uri.nodes.length) { debug("[解析器] 识别为 base64(URI 列表)"); return uri; }
     }
   }
 
   // 4) 明文 URI 列表
   var plainUri = parseUriList(trimmed);
-  if (plainUri && plainUri.nodes.length) { debug("[解析器] 识别为 URI 列表"); return plainUri; }
+  if (plainUri && plainUri.nodes.length) { log(tag + "识别为 URI 列表"); return plainUri; }
 
   // 5) Loon / Surge 行格式
   var loon = parseLoonStyle(trimmed);
-  if (loon && loon.nodes.length) { debug("[解析器] 识别为 Loon 行格式"); return loon; }
+  if (loon && loon.nodes.length) { log(tag + "识别为 Loon 行格式"); return loon; }
 
   return null;
 }
@@ -1500,7 +1513,7 @@ function processResource(content) {
 
   var nodes = parsed.nodes;
   var total = nodes.length;
-  debug("[解析器] 解析到节点: " + total);
+  log("[解析器] 解析到节点: " + total);
 
   // 改名
   applyNameRules(nodes, CFG);
@@ -1705,6 +1718,35 @@ function readArgument() {
   CFG.text = bool(g("text"));
 
   parseRenameRules(str(g("rename")));
+
+  ARG_EMPTY = !obj;
+}
+
+/** 无条件输出参数接收状态——"填了参数却没效果"时，这一行能直接定位问题 */
+function reportArgumentState() {
+  if (ARG_EMPTY) {
+    log("[解析器] 参数状态：没有收到插件参数，本次仅做格式转换。" +
+      "如果你在插件里填了参数却看到这条，说明参数没传进脚本，请检查 .plugin 里 " +
+      "[Argument] 的参数名与 script(...) 中的占位符是否一一对应（旧语法是 {x}，新语法是 ${x}）。");
+    return;
+  }
+  var on = [];
+  if (CFG.pre) on.push("pre");
+  if (CFG.suf) on.push("suf");
+  if (CFG.emoji !== "false") on.push("emoji=" + CFG.emoji);
+  if (CFG.exclude.length) on.push("exclude");
+  if (CFG.filter.length) on.push("filter");
+  if (CFG.includeType.length) on.push("includeType");
+  if (CFG.excludeType.length) on.push("excludeType");
+  if (CFG.filterRegex) on.push("filterRegex");
+  if (CFG.excludeRegex) on.push("excludeRegex");
+  if (renameRules.length) on.push("rename×" + renameRules.length);
+  if (CFG.dedup !== "off") on.push("dedup=" + CFG.dedup);
+  if (CFG.sort.length) on.push("sort");
+  if (CFG.sortBy !== "keyword") on.push("sortBy=" + CFG.sortBy);
+  if (CFG.limit > 0) on.push("limit=" + CFG.limit);
+  if (CFG.ua) on.push("自定义UA拉取");
+  log("[解析器] 参数状态：已收到 " + (on.length ? on.join(" ") : "参数，但全部为默认值（未填写）"));
 }
 
 function normalizeTypes(v) {
@@ -1716,7 +1758,8 @@ function normalizeTypes(v) {
 
 (function init() {
   readArgument();
-  debug("[解析器] 已读取插件参数: " + JSON.stringify({
+  reportArgumentState();
+  debug("[解析器] 已读取插件参数明细: " + JSON.stringify({
     pre: CFG.pre, suf: CFG.suf, emoji: CFG.emoji, sort: CFG.sort,
     sortBy: CFG.sortBy, sortOrder: CFG.sortOrder, filter: CFG.filter,
     exclude: CFG.exclude, includeType: CFG.includeType, excludeType: CFG.excludeType,
