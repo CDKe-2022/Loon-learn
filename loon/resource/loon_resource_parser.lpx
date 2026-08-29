@@ -29,4 +29,4 @@ noCache = switch,false,tag=拉取时禁用缓存,desc=仅上方开关打开时�
 debug = switch,false,tag=输出详细日志,desc=排查问题时打开 会打印各阶段节点数量
 
 [Script]
-generic then script("loon_resource_parser_v2.js", {${emoji}, ${exclude}, ${filter}, ${includeType}, ${rename}, ${pre}, ${suf}, ${dedup}, ${sort}, ${sortBy}, ${limit}, ${ua}, ${userAgent}, ${timeout}, ${noCache}, ${debug}}) with tag="节点解析器", timeout=300
+generic then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/resource/loon_resource_parser.js", {${emoji}, ${exclude}, ${filter}, ${includeType}, ${rename}, ${pre}, ${suf}, ${dedup}, ${sort}, ${sortBy}, ${limit}, ${ua}, ${userAgent}, ${timeout}, ${noCache}, ${debug}}) with tag="节点解析器", timeout=300
