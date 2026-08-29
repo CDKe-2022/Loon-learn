@@ -40,18 +40,31 @@
     return m ? m[1] : "";
   };
 
-  // Base64 解码 jwt-token，提取 device_id
+  // 纯 JS Base64 解码（Loon 的 JS 环境没有 Buffer 对象）
+  const base64Decode = (input) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const clean = String(input).replace(/[^A-Za-z0-9+/]/g, "");
+    let bits = 0, value = 0, output = "";
+    for (let i = 0; i < clean.length; i++) {
+      const idx = chars.indexOf(clean[i]);
+      if (idx < 0) continue;
+      value = (value << 6) | idx;
+      bits += 6;
+      if (bits >= 8) {
+        bits -= 8;
+        output += String.fromCharCode((value >>> bits) & 0xFF);
+        value &= (1 << bits) - 1;
+      }
+    }
+    return output;
+  };
+
+  // 解码 jwt-token 提取 device_id（格式: 设备ID|App版本）
   const decodeJwtToken = (jwtToken) => {
     if (!jwtToken) return "";
-    try {
-      const decoded = Buffer.from(jwtToken, "base64").toString("utf-8");
-      // 格式: d2699126c76fbe037a3cb50200001621|8.21
-      const parts = decoded.split("|");
-      return parts[0] || "";
-    } catch (e) {
-      console.log("jwt-token 解码失败: " + e.message);
-      return "";
-    }
+    const id = (base64Decode(jwtToken).split("|")[0] || "").trim();
+    if (!id) console.log("⚠️ jwt-token 解码结果为空: " + jwtToken);
+    return id;
   };
 
   // 更稳健地切分 Set-Cookie（避免 Expires 里的逗号被误切）
@@ -162,13 +175,13 @@
     if (installId) console.log("install_id=" + mask(installId));
     if (ttreq) console.log("ttreq=" + mask(ttreq));
     if (userToken) console.log("user_token=" + mask(userToken));
-    if (deviceId) console.log("device_id=" + mask(deviceId));
+    if (deviceId) console.log("device_id=" + deviceId);
 
     const lines = [];
     if (acfAuth) lines.push(`acf_auth=${mask(acfAuth)}`);
     if (acfUid) lines.push(`acf_uid=${acfUid}`);
     if (userToken) lines.push(`user_token=${mask(userToken)}`);
-    if (deviceId) lines.push(`device_id=${mask(deviceId)}`);
+    if (deviceId) lines.push(`device_id=${deviceId}`);
 
     $notification.post(
       "斗鱼 Cookie 已更新",
