@@ -46,7 +46,7 @@
  *   headers        附加请求头，K:V|K:V 或 JSON 对象
  *   noCache        true 时带 Cache-Control: no-cache
  *   retry          拉取失败重试次数，默认 1
- *   timeout        超时秒数，默认 15
+ *   timeout        拉取超时，单位毫秒（与 $httpClient 一致），默认 8000
  *
  * 【其它】
  *   debug          true 输出详细日志
@@ -78,9 +78,14 @@ function bool(v) {
   return s === "true" || s === "1" || s === "yes" || s === "on" || s === "开";
 }
 
+/**
+ * 逗号分隔列表，同时兼容竖线分隔。
+ * 原因是 Loon 的 argument=[{x}] 占位符替换时，值里若含逗号可能破坏 JSON 结构，
+ * 此时用竖线分隔更稳妥（例如 exclude=剩余流量|过期|官网）。
+ */
 function list(v) {
   var out = [];
-  var parts = str(v).split(",");
+  var parts = str(v).replace(/\|/g, ",").split(",");
   for (var i = 0; i < parts.length; i++) {
     var p = parts[i].trim();
     if (p) out.push(p);
@@ -336,7 +341,8 @@ function parseClashProxies(text) {
   var current = null;
   var stack = [];
   var nodes = [];
-  var seqStack = []; // 记录正在收集块序列的路径
+  var inGroupSection = false;
+  var groupBaseIndent = -1;
 
   function pathOf() {
     var out = [];
@@ -373,6 +379,16 @@ function parseClashProxies(text) {
     var indent = mIndent ? mIndent[0].length : 0;
 
     if (!inProxies) {
+      // 先跳过 proxy-groups 段：它内部也有一个 proxies 字段，不能当成节点列表
+      if (inGroupSection) {
+        if (indent <= groupBaseIndent && /^[A-Za-z0-9_"'.-]+\s*:/.test(trimmed)) inGroupSection = false;
+        else continue;
+      }
+      if (/^proxy-groups\s*:/.test(trimmed)) {
+        inGroupSection = true;
+        groupBaseIndent = indent;
+        continue;
+      }
       if (/^proxies\s*:\s*(\[\s*\])?\s*$/.test(trimmed)) {
         inProxies = true;
         baseIndent = indent;
@@ -796,6 +812,8 @@ function makeNode(opts) {
     protocol: opts.protocol || "",
     body: opts.body || "",
     prefix: opts.prefix || "",
+    raw: opts.raw || "",
+    encode: opts.encode || null,
     slot: opts.slot == null ? -1 : opts.slot
   };
 }
@@ -848,6 +866,71 @@ function extractRemarkName(line) {
   return decodeFragment(m[1]);
 }
 
+/* --- vmess:// ：名字在 base64 JSON 的 ps 字段里，通常没有 #片段 --- */
+
+function parseVmessUri(line) {
+  if (str(line).toLowerCase().indexOf("vmess://") !== 0) return null;
+  var rest = line.slice(8);
+  var hashPos = rest.indexOf("#");
+  var payload = hashPos > -1 ? rest.slice(0, hashPos) : rest;
+  var decoded = base64DecodeUnicode(payload);
+  if (!decoded) return null;
+  var obj = null;
+  try { obj = JSON.parse(decoded); } catch (e) { return null; }
+  if (!obj || typeof obj !== "object") return null;
+  return {
+    obj: obj,
+    name: pick(obj.ps, obj.remarks, obj.name, ""),
+    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
+  };
+}
+
+function vmessEncoder(obj, suffix) {
+  return function (newName) {
+    obj.ps = newName;
+    if (obj.remarks !== undefined) obj.remarks = newName;
+    var encoded = base64EncodeUnicode(JSON.stringify(obj));
+    if (encoded === null) return null;
+    return "vmess://" + encoded + suffix;
+  };
+}
+
+/* --- ssr:// ：名字在 base64 明文串的 remarks 参数里（值通常再做一次 base64） --- */
+
+function parseSsrUri(line) {
+  if (str(line).toLowerCase().indexOf("ssr://") !== 0) return null;
+  var rest = line.slice(6);
+  var hashPos = rest.indexOf("#");
+  var payload = hashPos > -1 ? rest.slice(0, hashPos) : rest;
+  var decoded = base64DecodeUnicode(payload);
+  if (!decoded) return null;
+  var m = decoded.match(/[?&]remarks=([^&]*)/);
+  if (!m) return null;
+  var name = decodeFragment(m[1]);
+  var inner = base64DecodeUnicode(name);
+  if (inner && !/[\u0000-\u0008\u000E-\u001F]/.test(inner)) name = inner;
+  return {
+    decoded: decoded,
+    name: name,
+    urlSafe: /[-_]/.test(payload),
+    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
+  };
+}
+
+function ssrEncoder(decoded, urlSafe, suffix) {
+  return function (newName) {
+    var encodedName = base64EncodeUnicode(newName);
+    if (encodedName === null) return null;
+    var remarksValue = encodedName.replace(/=+$/, "");
+    var next = decoded.replace(/([?&]remarks=)[^&]*/, "$1" + remarksValue);
+    var out = base64EncodeUnicode(next);
+    if (out === null) return null;
+    out = out.replace(/=+$/, "");
+    if (urlSafe) out = out.replace(/\+/g, "-").replace(/\//g, "_");
+    return "ssr://" + out + suffix;
+  };
+}
+
 function parseUriList(text) {
   var lines = normalizeText(text).split("\n");
   var slots = [];
@@ -868,6 +951,38 @@ function parseUriList(text) {
       slots.push({ kind: "node", node: makeNode({ index: nodes.length, name: name, protocol: proto, prefix: left, slot: slots.length }) });
       nodes.push(slots[slots.length - 1].node);
       continue;
+    }
+
+    // vmess:// 的名字在 base64 JSON 的 ps 字段里
+    if (proto === "vmess") {
+      var vm = parseVmessUri(line);
+      if (vm) {
+        slots.push({
+          kind: "node",
+          node: makeNode({
+            index: nodes.length, name: vm.name, protocol: proto, slot: slots.length,
+            raw: line, encode: vmessEncoder(vm.obj, vm.suffix)
+          })
+        });
+        nodes.push(slots[slots.length - 1].node);
+        continue;
+      }
+    }
+
+    // ssr:// 的名字在 base64 明文的 remarks 参数里
+    if (proto === "ssr") {
+      var sm = parseSsrUri(line);
+      if (sm) {
+        slots.push({
+          kind: "node",
+          node: makeNode({
+            index: nodes.length, name: sm.name, protocol: proto, slot: slots.length,
+            raw: line, encode: ssrEncoder(sm.decoded, sm.urlSafe, sm.suffix)
+          })
+        });
+        nodes.push(slots[slots.length - 1].node);
+        continue;
+      }
     }
 
     var remark = extractRemarkName(line);
@@ -962,6 +1077,26 @@ function base64DecodeUnicode(s) {
       bytes.push("%" + ("00" + binary.charCodeAt(i).toString(16)).slice(-2));
     }
     return decodeURIComponent(bytes.join(""));
+  } catch (e) {
+    return null;
+  }
+}
+
+/** base64 编码（UTF-8 安全）；环境不支持 btoa 时返回 null，调用方回退原行 */
+function base64EncodeUnicode(s) {
+  try {
+    if (typeof btoa === "undefined") return null;
+    var enc = encodeURIComponent(str(s));
+    var bin = "";
+    for (var i = 0; i < enc.length; i++) {
+      if (enc.charAt(i) === "%") {
+        bin += String.fromCharCode(parseInt(enc.substr(i + 1, 2), 16));
+        i += 2;
+      } else {
+        bin += enc.charAt(i);
+      }
+    }
+    return btoa(bin);
   } catch (e) {
     return null;
   }
@@ -1301,6 +1436,11 @@ function renderLine(node, order) {
     name: name, proto: node.protocol, server: nodeServer(node), flag: extractFlag(name)
   }), idx);
   name = pre + name + suf;
+  if (node.encode) {
+    var encoded = node.encode(name);
+    if (encoded !== null && encoded !== undefined) return encoded;
+    return node.raw || (node.prefix + encodeURIComponent(name));
+  }
   if (node.prefix) return node.prefix + encodeURIComponent(name);
   return name + " = " + node.body;
 }
@@ -1556,8 +1696,9 @@ function readArgument() {
   CFG.noCache = bool(g("noCache"));
   CFG.retry = parseInt(g("retry"), 10);
   if (isNaN(CFG.retry) || CFG.retry < 0) CFG.retry = 1;
+  // 与 $httpClient 保持一致，单位是毫秒
   CFG.timeout = parseInt(g("timeout"), 10);
-  if (isNaN(CFG.timeout) || CFG.timeout <= 0) CFG.timeout = 15;
+  if (isNaN(CFG.timeout) || CFG.timeout <= 0) CFG.timeout = 8000;
 
   DEBUG = bool(g("debug"));
   CFG.fallback = g("fallback") === undefined ? true : bool(g("fallback"));
