@@ -177,6 +177,21 @@ var PROTO_ALIAS = {
 
 var DEFAULT_TYPE_ORDER = ["anytls", "hy2", "vless", "trojan", "vmess", "ss", "ssr", "socks5", "http", "wireguard", "direct"];
 
+/**
+ * 内置地区顺序。两个用途：
+ * 1) sortBy=keyword 但没填 sort 时的默认顺序——否则 keyword 模式不填词就完全不排序，
+ *    而它又是插件的默认值，用户一上手就会觉得"排序没用"。
+ * 2) sortBy=area 但节点名没有国旗时的回退依据。
+ * 用户一旦填了 sort / typeOrder，就完全以用户的为准，本表不再参与。
+ */
+var DEFAULT_AREA_ORDER = [
+  "香港", "澳门", "台湾", "日本", "韩国", "新加坡", "马来西亚", "泰国", "越南",
+  "菲律宾", "印度尼西亚", "印度", "美国", "加拿大", "墨西哥", "巴西", "阿根廷",
+  "英国", "德国", "法国", "荷兰", "瑞士", "瑞典", "挪威", "丹麦", "芬兰",
+  "意大利", "西班牙", "波兰", "俄罗斯", "土耳其", "乌克兰",
+  "澳大利亚", "新西兰", "南非", "埃及", "阿联酋", "沙特", "伊朗", "以色列",
+];
+
 function normProto(p) {
   var k = str(p).trim().toLowerCase();
   return PROTO_ALIAS[k] || k;
@@ -354,7 +369,11 @@ function parseClashProxies(text) {
     var obj = current;
     for (var i = 0; i < stack.length; i++) {
       var k = stack[i].key;
-      if (!obj[k] || typeof obj[k] !== "object") obj[k] = stack[i].isSeq ? [] : {};
+      // 类型纠正：栈里标记为序列但目标不是数组时（例如该 key 先被初始化成了 {}），
+      // 必须强制换回 []，否则后续 Array.isArray 判断失败，alpn / peers 等数组字段会静默丢失
+      if (!obj[k] || typeof obj[k] !== "object" || (stack[i].isSeq && !Array.isArray(obj[k]))) {
+        obj[k] = stack[i].isSeq ? [] : {};
+      }
       obj = obj[k];
     }
     return obj;
@@ -364,7 +383,6 @@ function parseClashProxies(text) {
     if (current && current.name) nodes.push(current);
     current = null;
     stack = [];
-    seqStack = [];
   }
 
   for (var i = 0; i < lines.length; i++) {
@@ -506,8 +524,12 @@ function parseClashProxies(text) {
 }
 
 /** 判断文本是否像 Clash YAML */
+/**
+ * 只认 proxies 段。proxy-providers 是另一套机制（订阅里只有它时解析不出任何节点），
+ * 原先一并匹配会让这类文件先做一次注定失败的 YAML 解析，再回退别的格式。
+ */
 function looksLikeClashYaml(text) {
-  return /^\s*(proxies|proxy-providers)\s*:/m.test(str(text));
+  return /^\s*proxies\s*:/m.test(str(text));
 }
 
 /* ============================== Clash → Loon 转换 ============================== */
@@ -763,7 +785,21 @@ function clashToLoonBody(n) {
   /* ---------- WireGuard ---------- */
   if (type === "wireguard") {
     var peers = n.peers;
-    if (!Array.isArray(peers) || !peers.length) return null;
+    // 兼容平铺写法：部分 Clash 配置把 peer 参数直接放在节点外层，而不是 peers 数组里
+    if (!Array.isArray(peers) || !peers.length) {
+      if (n.server && n.port && (n["public-key"] || n.publicKey)) {
+        peers = [{
+          server: n.server,
+          port: n.port,
+          "public-key": pick(n["public-key"], n.publicKey),
+          "preshared-key": pick(n["preshared-key"], n.presharedKey),
+          "allowed-ips": pick(n["allowed-ips"], n.allowedIps, "0.0.0.0/0"),
+          reserved: n.reserved
+        }];
+      } else {
+        return null;
+      }
+    }
     var p0 = peers[0] && typeof peers[0] === "object" ? peers[0] : {};
     var peerServer = pick(p0.server, p0.endpoint ? str(p0.endpoint).split(":")[0] : "");
     var peerPort = pick(p0.port, p0.endpoint && str(p0.endpoint).indexOf(":") > -1 ? str(p0.endpoint).split(":")[1] : "");
@@ -1192,8 +1228,11 @@ function parseRenameRules(raw) {
       var to = "";
       var flags = "g";
       if (rest.charAt(0) === "/") {
+        // 非贪婪 + 回溯：既能正确处理转义斜杠 \/，也兼容 pattern 里出现裸 /
         var m = rest.match(/^\/(.*?)\/([gimsu]*)(?::([\s\S]*))?$/);
         if (m) { pattern = m[1]; to = m[3]; if (m[2]) flags = m[2]; }
+        else log("[解析器] rename 规则写法有误，已跳过：" + item +
+          "（正确写法 regex:/匹配内容/标志:替换为，例如 regex:/^\\d+\\.\\s+/:）");
       } else {
         var li = lastIndexOfUnescaped(rest, ":");
         if (li > -1) { pattern = rest.slice(0, li); to = rest.slice(li + 1); }
@@ -1201,7 +1240,11 @@ function parseRenameRules(raw) {
       pattern = unescapeText(pattern).trim();
       if (!pattern) continue;
       var re = null;
-      try { re = new RegExp(pattern, flags); } catch (e) { re = null; }
+      try { re = new RegExp(pattern, flags); }
+      catch (e2) {
+        log("[解析器] rename 的正则表达式非法，已跳过：" + pattern + "（" + e2.message + "）");
+        re = null;
+      }
       if (re) renameRules.push({ mode: "regex", re: re, to: unescapeText(to) });
       continue;
     }
@@ -1322,10 +1365,11 @@ var KEYWORD_HEAD = 0;
 var KEYWORD_MID = 500;
 var KEYWORD_TAIL = 1000;
 
-function buildKeywordIndex(name, cfg) {
-  if (!cfg.sort.length) return 0;
-  for (var i = 0; i < cfg.sort.length; i++) {
-    var kw = cfg.sort[i];
+function buildKeywordIndex(name, cfg, words) {
+  var list = words || cfg.sort;
+  if (!list.length) return 0;
+  for (var i = 0; i < list.length; i++) {
+    var kw = list[i];
     if (kw === "*") continue;
     var tail = kw.charAt(0) === "-";
     var real = tail ? kw.slice(1) : kw;
@@ -1333,6 +1377,14 @@ function buildKeywordIndex(name, cfg) {
     if (matchKeyword(name, real)) return (tail ? KEYWORD_TAIL : KEYWORD_HEAD) + i;
   }
   return KEYWORD_MID;
+}
+
+/** 按内置地区表给节点名算排序权重，用于 area 模式无国旗时的回退 */
+function areaIndex(name) {
+  for (var i = 0; i < DEFAULT_AREA_ORDER.length; i++) {
+    if (matchKeyword(name, DEFAULT_AREA_ORDER[i])) return i;
+  }
+  return DEFAULT_AREA_ORDER.length;
 }
 
 function compareText(a, b) {
@@ -1346,18 +1398,68 @@ function sortNodes(nodes, cfg) {
   if (cfg.sortBy === "none") return list;
 
   var typeOrder = cfg.typeOrder.length ? cfg.typeOrder : DEFAULT_TYPE_ORDER;
+  // keyword 没填词时退回到内置地区顺序，避免"选了排序却毫无变化"
+  var sortWords = cfg.sort.length ? cfg.sort : DEFAULT_AREA_ORDER;
+  var usingDefaultArea = !cfg.sort.length;
 
   list.sort(function (a, b) {
     var r = 0;
-    if (cfg.sortBy === "keyword") r = buildKeywordIndex(a.name, cfg) - buildKeywordIndex(b.name, cfg);
-    else if (cfg.sortBy === "name") r = compareText(a.name, b.name);
-    else if (cfg.sortBy === "type") r = typeIndex(a.protocol, typeOrder) - typeIndex(b.protocol, typeOrder);
-    else if (cfg.sortBy === "area") r = compareText(extractFlag(a.name), extractFlag(b.name));
-    else if (cfg.sortBy === "random") r = (a.__rand || 0) - (b.__rand || 0);
+    if (cfg.sortBy === "keyword") {
+      r = buildKeywordIndex(a.name, cfg, sortWords) - buildKeywordIndex(b.name, cfg, sortWords);
+    } else if (cfg.sortBy === "name") {
+      r = compareText(a.name, b.name);
+    } else if (cfg.sortBy === "type") {
+      r = typeIndex(a.protocol, typeOrder) - typeIndex(b.protocol, typeOrder);
+    } else if (cfg.sortBy === "area") {
+      var fa = extractFlag(a.name), fb = extractFlag(b.name);
+      // 有国旗就按国旗排；都没有国旗时退回按名称里的地区词排
+      if (fa || fb) r = compareText(fa, fb);
+      else r = areaIndex(a.name) - areaIndex(b.name);
+    } else if (cfg.sortBy === "random") {
+      r = (a.__rand || 0) - (b.__rand || 0);
+    }
     if (r !== 0) return cfg.sortOrder === "desc" ? -r : r;
     return cfg.sortOrder === "desc" ? b.index - a.index : a.index - b.index;
   });
+
+  reportSortState(nodes, list, cfg, typeOrder, usingDefaultArea);
   return list;
+}
+
+/** 无条件输出排序结果说明——"选了排序却没反应"时，这一行能说清原因 */
+function reportSortState(before, after, cfg, typeOrder, usingDefaultArea) {
+  if (cfg.sortBy === "none") { log("[解析器] 排序：sortBy=none，保持订阅原顺序"); return; }
+
+  var changed = false;
+  for (var i = 0; i < before.length && i < after.length; i++) {
+    if (before[i] !== after[i]) { changed = true; break; }
+  }
+
+  if (cfg.sortBy === "keyword") {
+    if (usingDefaultArea) {
+      log("[解析器] 排序：按内置默认地区顺序（未填 sort，如需自定义请填写「地区排序关键词」，" +
+        "例如 香港,日本,美国）");
+    } else {
+      log("[解析器] 排序：按自定义关键词顺序（" + cfg.sort.join(" ") + "）");
+    }
+  } else if (cfg.sortBy === "name") {
+    log("[解析器] 排序：按节点名称");
+  } else if (cfg.sortBy === "type") {
+    var order = cfg.typeOrder.length ? "自定义" : "内置默认";
+    log("[解析器] 排序：按协议（" + order + "顺序 " + typeOrder.join(" > ") + "）");
+  } else if (cfg.sortBy === "area") {
+    var hasFlag = false;
+    for (var j = 0; j < before.length; j++) { if (extractFlag(before[j].name)) { hasFlag = true; break; } }
+    log("[解析器] 排序：按地区（" + (hasFlag ? "依据节点名中的国旗" : "节点名无国旗，已改用地区关键词") +
+      "）。注意 emoji=true 会清除国旗，此时也走关键词");
+  } else if (cfg.sortBy === "random") {
+    log("[解析器] 排序：随机打乱（每次拉取订阅顺序都会变）");
+  }
+
+  if (!changed) {
+    log("[解析器] 排序：结果与原顺序相同——可能所有节点的排序依据都一样" +
+      "（例如全是同一地区、同一协议、或名称里没有匹配的关键词）");
+  }
 }
 
 function typeIndex(proto, order) {
@@ -1746,7 +1848,9 @@ function reportArgumentState() {
   if (CFG.sortBy !== "keyword") on.push("sortBy=" + CFG.sortBy);
   if (CFG.limit > 0) on.push("limit=" + CFG.limit);
   if (CFG.ua) on.push("自定义UA拉取");
-  log("[解析器] 参数状态：已收到 " + (on.length ? on.join(" ") : "参数，但全部为默认值（未填写）"));
+  log("[解析器] 参数状态：" + (on.length
+    ? "已收到 " + on.join(" ")
+    : "已收到参数，但全部为默认值（未填写）"));
 }
 
 function normalizeTypes(v) {
