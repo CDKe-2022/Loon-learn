@@ -6,7 +6,7 @@
  *   1) 从 persistentStore 读取 Cookie 抓取脚本保存的凭证
  *   2) 调用斗鱼 H5nc 签到接口
  *   3) 准确区分：签到成功 / 今日已签 / 查询成功但未签 / 请求失败
- *   4) 发送通知
+ *   4) device_id 支持从已存的 jwt-token 自动解码（纯 JS Base64）
  */
 
 (() => {
@@ -15,8 +15,43 @@
   // ========== 配置 ==========
   const ENABLE_NOTIFICATION = true;
 
-  // 从 persistentStore 读取（由 Cookie 抓取脚本自动写入）
-  const DEVICE_ID = $persistentStore.read("douyu_device_id") || "";
+  // ========== 纯 JS Base64 解码（Loon 环境没有 Buffer / atob） ==========
+  function base64Decode(input) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const clean = String(input).replace(/[^A-Za-z0-9+/]/g, "");
+    let bits = 0, value = 0, output = "";
+    for (let i = 0; i < clean.length; i++) {
+      const idx = chars.indexOf(clean[i]);
+      if (idx < 0) continue;
+      value = (value << 6) | idx;
+      bits += 6;
+      if (bits >= 8) {
+        bits -= 8;
+        output += String.fromCharCode((value >>> bits) & 0xFF);
+        value &= (1 << bits) - 1;
+      }
+    }
+    return output;
+  }
+
+  // 优先读已存的 device_id；没有则从已存的 jwt-token 解码并回写
+  function getDeviceId() {
+    let id = $persistentStore.read("douyu_device_id") || "";
+    if (id) return id;
+    const jwt = $persistentStore.read("douyu_jwt_token") || "";
+    if (jwt) {
+      id = (base64Decode(jwt).split("|")[0] || "").trim();
+      if (id) {
+        $persistentStore.write(id, "douyu_device_id");
+        console.log("✅ 已从 jwt-token 解码 device_id: " + id);
+      }
+    }
+    // 兜底：抓包确认过的设备ID（设备不变则长期有效）
+    return id || "d2699126c76fbe037a3cb50200001621";
+  }
+
+  // ========== 从 persistentStore 读取凭证（由 Cookie 抓取脚本自动写入） ==========
+  const DEVICE_ID = getDeviceId();
   const USER_TOKEN = $persistentStore.read("douyu_user_token") || "";
 
   const DY_COOKIE = {
@@ -176,7 +211,7 @@
   }
 
   async function main() {
-    // 前置检查：确保所有必要凭证都已抓取
+    // 前置检查
     if (!DY_COOKIE.acf_auth) {
       return notify("斗鱼签到失败", "缺少Cookie", "❌ 未检测到 acf_auth，请先打开斗鱼App触发 Cookie 抓取");
     }
@@ -186,6 +221,8 @@
     if (!DEVICE_ID) {
       return notify("斗鱼签到失败", "缺少DeviceID", "❌ 未检测到 device_id，请先打开斗鱼App触发 Cookie 抓取");
     }
+
+    console.log(`[斗鱼签到] 凭证检查通过: uid=${DY_COOKIE.acf_uid}, did=${DEVICE_ID}`);
 
     let signRet;
     try {
