@@ -1,1 +1,31 @@
-1
+#!name=Loon 节点订阅解析器
+#!desc=节点订阅改名 过滤 去重 排序 与 Clash YAML 转换。在节点订阅页面选择本解析器启用。
+#!tag=解析器,订阅
+#!system=
+#!system_version=
+#!loon_version=3.5.1(983)
+#!author=
+#!homepage=
+#!icon=
+#!type=parser
+
+[Argument]
+emoji = select,"false","true","flag",tag=Emoji 处理,desc=false 不处理 / true 清除全部 / flag 只保留国旗且保持原位
+exclude = input,"",tag=排除关键词,desc=命中即剔除 多个用英文逗号或竖线分隔 例如 剩余流量 过期 官网
+filter = input,"",tag=仅保留关键词,desc=留空表示不限制 命中才保留 多个用英文逗号或竖线分隔
+includeType = input,"",tag=仅保留协议,desc=留空表示不限制 例如 ss vmess trojan hysteria2
+rename = input,"",tag=重命名规则,desc=写法 香港:HK 美国:US 支持 exact: 与 regex: 前缀
+pre = input,"",tag=名称前缀,desc=支持模板变量 序号 名称 协议 地址 国旗
+suf = input,"",tag=名称后缀,desc=同上 例 -IEPL
+dedup = select,"off","name","server","strict",tag=去重方式,desc=off 不去重 / name 同名 / server 同地址端口 / strict 完全相同
+sort = input,"",tag=地区排序关键词,desc=按填写顺序排 例 香港 日本 美国 前缀减号可排到最后
+sortBy = select,"keyword","name","type","area","random","none",tag=排序依据,desc=keyword 关键词 / name 名称 / type 协议 / area 国旗 / random 随机 / none 不排序
+limit = input,"",tag=最多保留节点数,desc=留空不限制 排序后从前往后截取
+ua = switch,false,tag=用指定 UA 重新拉取,desc=机场按 UA 下发不同协议时开启
+userAgent = input,"",tag=自定义 User-Agent,desc=仅上方开关打开时生效 例 clash-verge/v2.4.7
+timeout = input,8000,tag=拉取订阅超时,desc=单位毫秒 仅上方开关打开时生效 留空按 8000 处理
+noCache = switch,false,tag=拉取时禁用缓存,desc=仅上方开关打开时生效 用于订阅被中间层缓存的情况
+debug = switch,false,tag=输出详细日志,desc=排查问题时打开 会打印各阶段节点数量
+
+[Script]
+generic then script("loon_resource_parser_v2.js", {${emoji}, ${exclude}, ${filter}, ${includeType}, ${rename}, ${pre}, ${suf}, ${dedup}, ${sort}, ${sortBy}, ${limit}, ${ua}, ${userAgent}, ${timeout}, ${noCache}, ${debug}}) with tag="节点解析器", timeout=300
