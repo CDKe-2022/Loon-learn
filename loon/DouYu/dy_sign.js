@@ -1,9 +1,13 @@
 /*
-斗鱼每日签到（优化稳健版，Loon）
-- 准确区分：签到成功 / 今日已签 / 查询成功但未签 / 请求失败
-- 兼容 error 为数字或字符串
-- Cookie 仅发送有效字段，减少异常
-*/
+ * 脚本名称：douyu_sign.js
+ * 脚本类型：cron
+ * 定时：每天早上 8 点（可在插件中修改）
+ * 功能：
+ *   1) 从 persistentStore 读取 Cookie 抓取脚本保存的凭证
+ *   2) 调用斗鱼 H5nc 签到接口
+ *   3) 准确区分：签到成功 / 今日已签 / 查询成功但未签 / 请求失败
+ *   4) 发送通知
+ */
 
 (() => {
   "use strict";
@@ -11,12 +15,9 @@
   // ========== 配置 ==========
   const ENABLE_NOTIFICATION = true;
 
-  // 可改成 persistentStore 覆盖（便于更新）
-  const DEFAULT_DEVICE_ID = "d2699126c76fbe037a3cb50200001621";
-  const DEFAULT_USER_TOKEN = "160153378_11_e79954d2d6e04f51_2_90552255";
-
-  const DEVICE_ID = $persistentStore.read("douyu_device_id") || DEFAULT_DEVICE_ID;
-  const USER_TOKEN = $persistentStore.read("douyu_user_token") || DEFAULT_USER_TOKEN;
+  // 从 persistentStore 读取（由 Cookie 抓取脚本自动写入）
+  const DEVICE_ID = $persistentStore.read("douyu_device_id") || "";
+  const USER_TOKEN = $persistentStore.read("douyu_user_token") || "";
 
   const DY_COOKIE = {
     acf_auth: $persistentStore.read("douyu_acf_auth") || "",
@@ -138,7 +139,7 @@
         title: "斗鱼签到异常",
         subtitle: "签到请求失败，但状态可查询",
         message:
-          `⚠️ 签到请求未成功，且并非“已签到”返回\n` +
+          `⚠️ 签到请求未成功，且并非"已签到"返回\n` +
           `📅 日期: ${d.today}\n` +
           `🔥 连续签到: ${d.continuous} 天\n` +
           `请检查 token / did / Cookie 是否过期`
@@ -175,8 +176,15 @@
   }
 
   async function main() {
+    // 前置检查：确保所有必要凭证都已抓取
     if (!DY_COOKIE.acf_auth) {
-      return notify("斗鱼签到失败", "缺少Cookie", "❌ 未检测到 acf_auth，请先抓取 Cookie");
+      return notify("斗鱼签到失败", "缺少Cookie", "❌ 未检测到 acf_auth，请先打开斗鱼App触发 Cookie 抓取");
+    }
+    if (!USER_TOKEN) {
+      return notify("斗鱼签到失败", "缺少Token", "❌ 未检测到 user_token，请先打开斗鱼App触发 Cookie 抓取");
+    }
+    if (!DEVICE_ID) {
+      return notify("斗鱼签到失败", "缺少DeviceID", "❌ 未检测到 device_id，请先打开斗鱼App触发 Cookie 抓取");
     }
 
     let signRet;
@@ -199,7 +207,7 @@
       }
     }
 
-    // fail: 不再误报“已签到”
+    // fail: 不再误报"已签到"
     try {
       const info = await getSignInfo();
       notify(...Object.values(render("not_signed_but_query_ok", info)));
