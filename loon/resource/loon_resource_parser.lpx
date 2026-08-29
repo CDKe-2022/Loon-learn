@@ -7,7 +7,7 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://github.com/mc2u/Loon
 #!icon=https://raw.githubusercontent.com/Loon0x00/Loon0x00.github.io/main/static/img/loon.png
-#!date=2026-06-12 06:00:00
+#!date=2026-08-30 06:00:00
 #!type=parser
 
 [Argument]
@@ -30,3 +30,4 @@ debug = switch,false,tag=输出详细日志,desc=排查问题时打开 会打印
 
 [Script]
 generic then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/resource/loon_resource_parser.js", {${emoji}, ${exclude}, ${filter}, ${includeType}, ${rename}, ${pre}, ${suf}, ${dedup}, ${sort}, ${sortBy}, ${limit}, ${ua}, ${userAgent}, ${timeout}, ${noCache}, ${debug}}) with tag="节点解析器", timeout=300
+
