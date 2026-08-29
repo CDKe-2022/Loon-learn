@@ -1,12 +1,13 @@
 #!name=Loon 节点订阅解析器
-#!desc=节点订阅改名 过滤 去重 排序 与 Clash YAML 转换。在节点订阅页面选择本解析器启用。
-#!tag=解析器,订阅
+#!desc=用于节点名称处理与排序，支持前后缀、去除 Emoji、文本替换、自定义排序及自定义UA拉取订阅，如果自定义UA获取不到节点可以开启禁用缓存试试。文本替换格式为 旧文本:新文本，多个规则用英文逗号分隔，例如 香港:HK,日本:JP；如需匹配英文冒号、逗号、反斜杠，分别写作 \:、\,、\\。节点排序按关键词先后顺序排序，使用英文逗号分隔，例如 香港,日本,新加坡,美国。在订阅管理界面对订阅进行单独配置。
+#!author=mc2u[https://github.com/mc2u]
+#!tag=解析器,节点,订阅
 #!system=
 #!system_version=
-#!loon_version=3.5.1(983)
-#!author=
-#!homepage=
-#!icon=
+#!loon_version=3.5.0(969)
+#!homepage=https://github.com/mc2u/Loon
+#!icon=https://raw.githubusercontent.com/Loon0x00/Loon0x00.github.io/main/static/img/loon.png
+#!date=2026-06-12 06:00:00
 #!type=parser
 
 [Argument]
