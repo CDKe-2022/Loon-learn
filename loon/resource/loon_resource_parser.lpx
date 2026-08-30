@@ -7,9 +7,8 @@
 #!loon_version=3.5.0(969)
 #!homepage=https://github.com/mc2u/Loon
 #!icon=https://raw.githubusercontent.com/Loon0x00/Loon0x00.github.io/main/static/img/loon.png
-#!date=2026-08-30 09:00:00
+#!date=2026-08-30 09:20:00
 #!type=parser
-
 
 [Argument]
 exclude = input,"",tag=①过滤·黑名单关键词,desc=命中即剔除；多项用竖线分隔：剩余流量|过期|官网
@@ -30,4 +29,4 @@ debug = switch,false,tag=⑥调试日志,desc=在 Loon 日志页输出格式识�
 extra = input,"",tag=⑥高级参数,desc=低频参数从这里填；格式 k=v&k=v；支持 filterRegex excludeRegex includeType excludeType typeOrder indexStart retry timeout headers fallback text；示例 indexStart=10&fallback=false
 
 [Script]
-generic script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/resource/loon_resource_parser.js,tag=资源解析器,timeout=120,argument=[{exclude},{filter},{emoji},{rename},{pre},{suf},{sortBy},{sort},{sortOrder},{dedup},{limit},{refetch},{userAgent},{noCache},{debug},{extra}]
+generic then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/resource/loon_resource_parser.js", {${exclude}, ${filter}, ${emoji}, ${rename}, ${pre}, ${suf}, ${sortBy}, ${sort}, ${sortOrder}, ${dedup}, ${limit}, ${refetch}, ${userAgent}, ${noCache}, ${debug}, ${extra}}) with tag="资源解析器", timeout=120
