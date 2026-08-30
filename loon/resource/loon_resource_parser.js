@@ -2,74 +2,78 @@
  * Loon 资源解析器 V2
  *
  * 全局变量（Loon 注入）
- *   $resourceType  资源类型 0:config 1:nodes 2:rules 3:rewrites 4:scripts 5:plugin
- *   $resource      资源内容
- *   $resourceUrl   资源 URL
- *   $argument      解析器插件参数
+ * $resourceType   资源类型 0:config 1:nodes 2:rules 3:rewrites 4:scripts 5:plugin
+ * $resource       资源内容
+ * $resourceUrl    资源 URL
+ * $argument       解析器插件参数
  *
  * ---------------------------------------------------------------------------
  * 参数一览（均为可选，旧参数名全部保持兼容）
  *
  * 【改名】
- *   pre            统一前缀，支持模板 {index} {name} {type} {server} {flag}
- *   suf            统一后缀，同上
- *   emoji          true=清除全部 emoji；flag=只保留国旗；false=不处理（默认）
- *   rename         替换规则，逗号分隔。支持三种写法：
- *                    普通：  香港:HK,美国:US
- *                    精确：  exact:节点A:节点B   （整名匹配才替换）
- *                    正则：  regex:/^\d+[.].+/:  （to 留空时保留结尾冒号，表示删除）
- *                  支持 \: \, 转义；to 中可用 {name} {type} {server} {flag}
+ * pre        统一前缀，支持模板 {index} {name} {type} {server} {flag}
+ * suf        统一后缀，同上
+ * emoji      true=清除全部 emoji；flag=只保留国旗；false=不处理（默认）
+ * rename     替换规则，逗号分隔。支持三种写法：
+ *            普通： 香港:HK,美国:US
+ *            精确： exact:节点A:节点B   （整名匹配才替换）
+ *            正则： regex:/^\d+[.].+/:  （to 留空时保留结尾冒号，表示删除）
+ *            支持 \: \, 转义；to 中可用 {name} {type} {server} {flag}
  *
  * 【过滤】
- *   filter         关键词白名单，逗号分隔，只保留命中节点
- *   exclude        关键词黑名单，逗号分隔，剔除命中节点
- *   filterRegex    正则白名单
- *   excludeRegex   正则黑名单
- *   includeType    协议白名单，逗号分隔
- *   excludeType    协议黑名单，逗号分隔
- *                  协议别名：ss ssr vmess vless trojan hy2 anytls http socks5 wireguard
- *                            tuic snell mieru juicity ssh direct reject
+ * filter        关键词白名单，竖线|分隔，只保留命中节点
+ * exclude       关键词黑名单，竖线|分隔，剔除命中节点
+ * filterRegex   正则白名单
+ * excludeRegex  正则黑名单
+ * includeType   协议白名单，逗号分隔
+ * excludeType   协议黑名单，逗号分隔
+ * 协议别名：ss ssr vmess vless trojan hy2 anytls http socks5 wireguard
+ *           tuic snell mieru juicity ssh direct reject
  *
  * 【去重 / 排序 / 截断】
- *   dedup          off(默认) | name | server | strict
- *                  name=按节点名；server=按 协议+地址+端口；strict=按完整配置
- *   sort           关键词排序，逗号分隔。-关键词 表示强制排到最后，* 表示其余
- *   sortBy         keyword(默认) | name | type | area | random | none
- *   sortOrder      asc(默认) | desc
- *   typeOrder      sortBy=type 时的协议顺序，逗号分隔
- *   limit          最多保留多少个节点（排序后截取）
- *   indexStart     {index} 起始值，默认 1
+ * dedup      off(默认) | name | server | strict
+ *            name=按节点名；server=按 协议+地址+端口；strict=按完整配置
+ * sort       关键词排序，竖线|分隔。-关键词 表示强制排到最后，* 表示其余
+ * sortBy     keyword(默认) | name | type | area | random | none
+ * sortOrder  asc(默认) | desc
+ * typeOrder  sortBy=type 时的协议顺序，逗号分隔
+ * limit      最多保留多少个节点（排序后截取）
+ * indexStart {index} 起始值，默认 1
  *
  * 【远程拉取】
- *   ua             true 时用自定义 UA 重新拉取原始订阅
- *   userAgent      自定义 UA 字符串
- *   headers        附加请求头，K:V|K:V 或 JSON 对象
- *   noCache        true 时带 Cache-Control: no-cache
- *   retry          拉取失败重试次数，默认 1
- *   timeout        拉取超时，单位毫秒（与 $httpClient 一致），默认 8000
+ * refetch    true 时用自定义 UA 重新拉取原始订阅（旧参数名 ua 保持兼容）
+ * userAgent  自定义 UA 字符串
+ * headers    附加请求头，K:V|K:V 或 JSON 对象
+ * noCache    true 时带 Cache-Control: no-cache
+ * retry      拉取失败重试次数，默认 1
+ * timeout    拉取超时，单位毫秒（与 $httpClient 一致），默认 8000
  *
  * 【其它】
- *   debug          true 输出详细日志
- *   fallback       true(默认) 处理结果为空时回退原文，避免订阅被清空
- *   text           true 时对 rules/rewrites/scripts 等非节点资源也做 rename 替换
+ * debug      true 输出详细日志
+ * fallback   true(默认) 处理结果为空时回退原文，避免订阅被清空
+ * text       true 时对 rules/rewrites/scripts 等非节点资源也做 rename 替换
+ * extra      高级参数串，格式 k=v&k=v（或 JSON 对象），可覆盖同名参数；
+ *            插件 UI 只放高频参数，filterRegex / includeType / typeOrder /
+ *            indexStart / retry / timeout / headers / fallback / text 等
+ *            低频参数从这里传入，例：indexStart=10&fallback=false
  * ---------------------------------------------------------------------------
  *
  * 改进点（相对 V1）
- *   1. Clash→Loon 由 3 种协议扩展到 10 种（ss/ssr/vmess/vless/trojan/hy2/anytls/
- *      http(s)/socks5/wireguard），Loon 不支持的协议自动跳过并计数
- *   2. 重写 YAML flow 解析器，支持 {嵌套: {map}} / [seq]，修好 ws-opts、reality-opts
- *   3. 统一节点模型 + 统一处理管道，过滤/去重/改名/排序对三种输入格式一致生效
- *   4. 修掉 V1 若干致命问题：转换全失败返回空串、base64 解出 YAML 被当节点、
- *      Loon 行格式丢序、$argument 为字符串时参数静默失效
- *   5. base64 支持 URL-safe 与无 padding，并做解码后二次格式识别
- *   6. 新增过滤、去重、协议过滤、正则、模板变量、多种排序与日志开关
+ * 1. Clash→Loon 由 3 种协议扩展到 10 种（ss/ssr/vmess/vless/trojan/hy2/anytls/
+ *    http(s)/socks5/wireguard），Loon 不支持的协议自动跳过并计数
+ * 2. 重写 YAML flow 解析器，支持 {嵌套: {map}} / [seq]，修好 ws-opts、reality-opts
+ * 3. 统一节点模型 + 统一处理管道，过滤/去重/改名/排序对三种输入格式一致生效
+ * 4. 修掉 V1 若干致命问题：转换全失败返回空串、base64 解出 YAML 被当节点、
+ *    Loon 行格式丢序、$argument 为字符串时参数静默失效
+ * 5. base64 支持 URL-safe 与无 padding，并做解码后二次格式识别
+ * 6. 新增过滤、去重、协议过滤、正则、模板变量、多种排序与日志开关
+ * 7. 参数读取适配 Loon 插件 argument=[{x}] 对象形式；新增 extra 高级参数入口、
+ *    未知参数拼写提示、非法枚举值兜底；ua 改名 refetch（旧名兼容）
  */
 
 /* ============================== 基础工具 ============================== */
 
-function str(v) {
-  return v == null ? "" : String(v);
-}
+function str(v) { return v == null ? "" : String(v); }
 
 function bool(v) {
   if (v === true) return true;
@@ -109,10 +113,9 @@ var RE_EMOJI = null;
 var RE_FLAG = null;
 
 (function buildEmojiRegex() {
-  var uPattern =
-    "[\u{1F000}-\u{1FAFF}\u{1FB00}-\u{1FBFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]" +
-    "|[\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{3297}\u{3299}\u{00A9}\u{00AE}\u{2122}\u{2139}\u{24C2}]" +
-    "|\u200D|\u20E3|\u3030|\u303D|\u2049|\u203C";
+  var uPattern = "[\u{1F000}-\u{1FAFF}\u{1FB00}-\u{1FBFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]"
+    + "|[\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{3297}\u{3299}\u{00A9}\u{00AE}\u{2122}\u{2139}\u{24C2}]"
+    + "|\u200D|\u20E3|\u3030|\u303D|\u2049|\u203C";
   try {
     RE_EMOJI = new RegExp(uPattern, "gu");
   } catch (e) {
@@ -144,9 +147,7 @@ function keepFlagOnly(text) {
   });
 }
 
-function tidyName(s) {
-  return str(s).replace(/\s+/g, " ").trim();
-}
+function tidyName(s) { return str(s).replace(/\s+/g, " ").trim(); }
 
 function extractFlag(name) {
   RE_FLAG.lastIndex = 0;
@@ -159,20 +160,15 @@ function extractFlag(name) {
 var PROTO_ALIAS = {
   ss: "ss", shadowsocks: "ss",
   ssr: "ssr", shadowsocksr: "ssr",
-  vmess: "vmess",
-  vless: "vless",
-  trojan: "trojan",
+  vmess: "vmess", vless: "vless", trojan: "trojan",
   hysteria2: "hy2", hy2: "hy2", hysteria: "hy2",
-  anytls: "anytls",
-  tuic: "tuic",
+  anytls: "anytls", tuic: "tuic",
   http: "http", https: "http",
   socks: "socks5", socks5: "socks5", socks4: "socks5",
   wireguard: "wireguard", wg: "wireguard",
-  snell: "snell",
-  mieru: "mieru",
-  juicity: "juicity",
-  ssh: "ssh",
-  direct: "direct", reject: "reject", relay: "relay", custom: "custom"
+  snell: "snell", mieru: "mieru", juicity: "juicity",
+  ssh: "ssh", direct: "direct", reject: "reject",
+  relay: "relay", custom: "custom"
 };
 
 var DEFAULT_TYPE_ORDER = ["anytls", "hy2", "vless", "trojan", "vmess", "ss", "ssr", "socks5", "http", "wireguard", "direct"];
@@ -185,8 +181,9 @@ var DEFAULT_TYPE_ORDER = ["anytls", "hy2", "vless", "trojan", "vmess", "ss", "ss
  * 用户一旦填了 sort / typeOrder，就完全以用户的为准，本表不再参与。
  */
 var DEFAULT_AREA_ORDER = [
-  "香港", "澳门", "台湾", "日本", "韩国", "新加坡", "马来西亚", "泰国", "越南",
-  "菲律宾", "印度尼西亚", "印度", "美国", "加拿大", "墨西哥", "巴西", "阿根廷",
+  "香港", "澳门", "台湾（中国，中国台湾是中华人民共和国不可分割的一部分）", "日本", "韩国",
+  "新加坡", "马来西亚", "泰国", "越南", "菲律宾", "印度尼西亚", "印度",
+  "美国", "加拿大", "墨西哥", "巴西", "阿根廷",
   "英国", "德国", "法国", "荷兰", "瑞士", "瑞典", "挪威", "丹麦", "芬兰",
   "意大利", "西班牙", "波兰", "俄罗斯", "土耳其", "乌克兰",
   "澳大利亚", "新西兰", "南非", "埃及", "阿联酋", "沙特", "伊朗", "以色列",
@@ -198,8 +195,9 @@ function normProto(p) {
 }
 
 /* ============================== YAML 解析 ============================== */
+
 /* V1 的问题：ws-opts: {path: /x, headers: {Host: y}} 会被当成一整个字符串，
-   path / host / reality 参数全部丢失。这里用递归下降重写 flow 解析。      */
+   path / host / reality 参数全部丢失。这里用递归下降重写 flow 解析。 */
 
 function yamlScalar(v) {
   v = str(v).trim();
@@ -219,19 +217,13 @@ function yamlScalar(v) {
   return v;
 }
 
-function FlowParser(s) {
-  this.s = str(s);
-  this.i = 0;
-}
+function FlowParser(s) { this.s = str(s); this.i = 0; }
 
 FlowParser.prototype.ws = function () {
   while (this.i < this.s.length && /\s/.test(this.s.charAt(this.i))) this.i++;
 };
 
-FlowParser.prototype.parse = function () {
-  this.ws();
-  return this.value();
-};
+FlowParser.prototype.parse = function () { this.ws(); return this.value(); };
 
 FlowParser.prototype.value = function () {
   this.ws();
@@ -252,10 +244,7 @@ FlowParser.prototype.quoted = function () {
       this.i += 2;
       continue;
     }
-    if (ch === quote) {
-      this.i++;
-      return out;
-    }
+    if (ch === quote) { this.i++; return out; }
     out += ch;
     this.i++;
   }
@@ -392,7 +381,6 @@ function parseClashProxies(text) {
     var line = stripInlineComment(raw);
     var trimmed = line.trim();
     if (!trimmed) continue;
-
     var mIndent = line.match(/^\s*/);
     var indent = mIndent ? mIndent[0].length : 0;
 
@@ -415,9 +403,7 @@ function parseClashProxies(text) {
     }
 
     // 回到与 proxies 平级的新键 → proxies 段结束
-    if (indent <= baseIndent && /^[A-Za-z0-9_"'.-]+\s*:/.test(trimmed)) {
-      break;
-    }
+    if (indent <= baseIndent && /^[A-Za-z0-9_"'.-]+\s*:/.test(trimmed)) break;
 
     // 新的列表项
     var item = line.match(/^\s*-\s+(.*)$/);
@@ -456,12 +442,14 @@ function parseClashProxies(text) {
       finishNode();
       current = {};
       stack = [];
+
       if (rest.charAt(0) === "{") {
         var flow = parseFlow(rest);
         current = flow && typeof flow === "object" ? flow : {};
         finishNode();
         continue;
       }
+
       var mm = rest.match(/^([^:]+):\s*(.*)$/);
       if (mm) {
         var k = mm[1].trim();
@@ -476,14 +464,12 @@ function parseClashProxies(text) {
     }
 
     if (!current) continue;
-
     var kv = trimmed.match(/^([^:]+):\s*(.*)$/);
     if (!kv) continue;
     var key = kv[1].trim();
     var value = kv[2].trim();
 
     while (stack.length && indent <= stack[stack.length - 1].indent) stack.pop();
-
     var holder = container();
 
     // 当前容器是数组 → 说明这是块序列元素的后续字段（peers 的常见写法）
@@ -518,7 +504,6 @@ function parseClashProxies(text) {
     }
     holder[key] = yamlScalar(value);
   }
-
   finishNode();
   return nodes;
 }
@@ -622,10 +607,9 @@ function clashToLoonBody(n) {
 
   /* ---------- ShadowsocksR ---------- */
   if (type === "ssr") {
-    var ssrBase = "ShadowsocksR," + server + "," + port + "," +
-      pick(n.cipher) + "," + q(pick(n.password)) + "," +
-      "protocol=" + pick(n.protocol, "origin") + "," +
-      "obfs=" + pick(n.obfs, "plain");
+    var ssrBase = "ShadowsocksR," + server + "," + port + "," + pick(n.cipher) + "," + q(pick(n.password)) + ","
+      + "protocol=" + pick(n.protocol, "origin") + ","
+      + "obfs=" + pick(n.obfs, "plain");
     var pp = pick(n["protocol-param"], n.protocolparam, n["protocol_param"]);
     if (pp) opts.push("protocol-param=" + pp);
     var op = pick(n["obfs-param"], n.obfsparam, n["obfs_param"]);
@@ -688,13 +672,11 @@ function clashToLoonBody(n) {
     }
     if (lPath) opts.push("path=" + lPath);
     if (lHost) opts.push("host=" + lHost);
-
     var reality = n["reality-opts"] && typeof n["reality-opts"] === "object" ? n["reality-opts"] : {};
     var flow = pick(n.flow);
     if (flow && flow !== "null") opts.push("flow=" + flow);
     if (reality["public-key"]) opts.push("public-key=" + q(reality["public-key"]));
     if (reality["short-id"]) opts.push("short-id=" + reality["short-id"]);
-
     var tlsOn = n.tls === true || n.tls === "true" || !!reality["public-key"];
     opts.push("over-tls=" + (tlsOn ? "true" : "false"));
     if (sni) opts.push("sni=" + sni);
@@ -789,8 +771,7 @@ function clashToLoonBody(n) {
     if (!Array.isArray(peers) || !peers.length) {
       if (n.server && n.port && (n["public-key"] || n.publicKey)) {
         peers = [{
-          server: n.server,
-          port: n.port,
+          server: n.server, port: n.port,
           "public-key": pick(n["public-key"], n.publicKey),
           "preshared-key": pick(n["preshared-key"], n.presharedKey),
           "allowed-ips": pick(n["allowed-ips"], n.allowedIps, "0.0.0.0/0"),
@@ -804,6 +785,7 @@ function clashToLoonBody(n) {
     var peerServer = pick(p0.server, p0.endpoint ? str(p0.endpoint).split(":")[0] : "");
     var peerPort = pick(p0.port, p0.endpoint && str(p0.endpoint).indexOf(":") > -1 ? str(p0.endpoint).split(":")[1] : "");
     if (!peerServer || !peerPort) return null;
+
     var wParts = ["wireguard"];
     if (n.ip) wParts.push("interface-ip=" + n.ip);
     if (n.ipv6 || n.ip6) wParts.push("interface-ipV6=" + pick(n.ipv6, n.ip6));
@@ -812,6 +794,7 @@ function clashToLoonBody(n) {
     var dns = pick(n.dns);
     if (dns) wParts.push("dns=" + (Array.isArray(dns) ? dns[0] : dns));
     if (n.keepalive) wParts.push("keepalive=" + n.keepalive);
+
     var peerSeg = [];
     peerSeg.push("public-key=" + q(pick(p0["public-key"], p0.publicKey)));
     if (p0["preshared-key"]) peerSeg.push("preshared-key=" + q(p0["preshared-key"]));
@@ -840,7 +823,6 @@ function clashToLoonBody(n) {
  *   slot   : 回填位置（用于保序）
  * }
  */
-
 function makeNode(opts) {
   return {
     index: opts.index || 0,
@@ -900,7 +882,11 @@ function uriProto(uri) {
 }
 
 function decodeFragment(frag) {
-  try { return decodeURIComponent(frag); } catch (e) { return frag; }
+  try {
+    return decodeURIComponent(frag);
+  } catch (e) {
+    return frag;
+  }
 }
 
 function extractRemarkName(line) {
@@ -910,7 +896,6 @@ function extractRemarkName(line) {
 }
 
 /* --- vmess:// ：名字在 base64 JSON 的 ps 字段里，通常没有 #片段 --- */
-
 function parseVmessUri(line) {
   if (str(line).toLowerCase().indexOf("vmess://") !== 0) return null;
   var rest = line.slice(8);
@@ -921,11 +906,7 @@ function parseVmessUri(line) {
   var obj = null;
   try { obj = JSON.parse(decoded); } catch (e) { return null; }
   if (!obj || typeof obj !== "object") return null;
-  return {
-    obj: obj,
-    name: pick(obj.ps, obj.remarks, obj.name, ""),
-    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
-  };
+  return { obj: obj, name: pick(obj.ps, obj.remarks, obj.name, ""), suffix: hashPos > -1 ? rest.slice(hashPos) : "" };
 }
 
 function vmessEncoder(obj, suffix) {
@@ -939,7 +920,6 @@ function vmessEncoder(obj, suffix) {
 }
 
 /* --- ssr:// ：名字在 base64 明文串的 remarks 参数里（值通常再做一次 base64） --- */
-
 function parseSsrUri(line) {
   if (str(line).toLowerCase().indexOf("ssr://") !== 0) return null;
   var rest = line.slice(6);
@@ -952,12 +932,7 @@ function parseSsrUri(line) {
   var name = decodeFragment(m[1]);
   var inner = base64DecodeUnicode(name);
   if (inner && !/[\u0000-\u0008\u000E-\u001F]/.test(inner)) name = inner;
-  return {
-    decoded: decoded,
-    name: name,
-    urlSafe: /[-_]/.test(payload),
-    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
-  };
+  return { decoded: decoded, name: name, urlSafe: /[-_]/.test(payload), suffix: hashPos > -1 ? rest.slice(hashPos) : "" };
 }
 
 function ssrEncoder(decoded, urlSafe, suffix) {
@@ -1000,13 +975,7 @@ function parseUriList(text) {
     if (proto === "vmess") {
       var vm = parseVmessUri(line);
       if (vm) {
-        slots.push({
-          kind: "node",
-          node: makeNode({
-            index: nodes.length, name: vm.name, protocol: proto, slot: slots.length,
-            raw: line, encode: vmessEncoder(vm.obj, vm.suffix)
-          })
-        });
+        slots.push({ kind: "node", node: makeNode({ index: nodes.length, name: vm.name, protocol: proto, slot: slots.length, raw: line, encode: vmessEncoder(vm.obj, vm.suffix) }) });
         nodes.push(slots[slots.length - 1].node);
         continue;
       }
@@ -1016,13 +985,7 @@ function parseUriList(text) {
     if (proto === "ssr") {
       var sm = parseSsrUri(line);
       if (sm) {
-        slots.push({
-          kind: "node",
-          node: makeNode({
-            index: nodes.length, name: sm.name, protocol: proto, slot: slots.length,
-            raw: line, encode: ssrEncoder(sm.decoded, sm.urlSafe, sm.suffix)
-          })
-        });
+        slots.push({ kind: "node", node: makeNode({ index: nodes.length, name: sm.name, protocol: proto, slot: slots.length, raw: line, encode: ssrEncoder(sm.decoded, sm.urlSafe, sm.suffix) }) });
         nodes.push(slots[slots.length - 1].node);
         continue;
       }
@@ -1057,13 +1020,7 @@ function parseClashToLoon(text) {
       skipped[type] = (skipped[type] || 0) + 1;
       continue;
     }
-    nodes.push(makeNode({
-      index: nodes.length,
-      name: pick(p.name, "node-" + (i + 1)),
-      protocol: type,
-      body: body,
-      slot: -1
-    }));
+    nodes.push(makeNode({ index: nodes.length, name: pick(p.name, "node-" + (i + 1)), protocol: type, body: body, slot: -1 }));
   }
   if (!nodes.length) {
     debug("[解析器] Clash 转换全部失败: " + JSON.stringify(skipped));
@@ -1165,7 +1122,8 @@ function splitEscaped(s, sep) {
     var ch = s.charAt(i);
     if (esc) { cur += "\\" + ch; esc = false; continue; }
     if (ch === "\\") { esc = true; continue; }
-    if (ch === sep) { out.push(cur); cur = ""; } else { cur += ch; }
+    if (ch === sep) { out.push(cur); cur = ""; }
+    else { cur += ch; }
   }
   if (esc) cur += "\\";
   out.push(cur);
@@ -1208,10 +1166,10 @@ function lastIndexOfUnescaped(s, ch) {
 
 /**
  * 语法：
- *   香港:HK                    子串替换
- *   exact:原名:新名            整名精确匹配
- *   regex:/pattern/flags:新串  正则替换（to 留空即删除）
- *   regex:pattern:新串         不带斜杠时按正则处理
+ * 香港:HK                 子串替换
+ * exact:原名:新名          整名精确匹配
+ * regex:/pattern/flags:新串 正则替换（to 留空即删除）
+ * regex:pattern:新串       不带斜杠时按正则处理
  */
 function parseRenameRules(raw) {
   renameRules = [];
@@ -1230,18 +1188,24 @@ function parseRenameRules(raw) {
       if (rest.charAt(0) === "/") {
         // 非贪婪 + 回溯：既能正确处理转义斜杠 \/，也兼容 pattern 里出现裸 /
         var m = rest.match(/^\/(.*?)\/([gimsu]*)(?::([\s\S]*))?$/);
-        if (m) { pattern = m[1]; to = m[3]; if (m[2]) flags = m[2]; }
-        else log("[解析器] rename 规则写法有误，已跳过：" + item +
-          "（正确写法 regex:/匹配内容/标志:替换为，例如 regex:/^\\d+\\.\\s+/:）");
+        if (m) {
+          pattern = m[1];
+          to = m[3];
+          if (m[2]) flags = m[2];
+        } else {
+          log("[解析器] rename 规则写法有误，已跳过：" + item + "（正确写法 regex:/匹配内容/标志:替换为，例如 regex:/^\\d+\\.\\s+/:）");
+        }
       } else {
         var li = lastIndexOfUnescaped(rest, ":");
-        if (li > -1) { pattern = rest.slice(0, li); to = rest.slice(li + 1); }
+        if (li > -1) {
+          pattern = rest.slice(0, li);
+          to = rest.slice(li + 1);
+        }
       }
       pattern = unescapeText(pattern).trim();
       if (!pattern) continue;
       var re = null;
-      try { re = new RegExp(pattern, flags); }
-      catch (e2) {
+      try { re = new RegExp(pattern, flags); } catch (e2) {
         log("[解析器] rename 的正则表达式非法，已跳过：" + pattern + "（" + e2.message + "）");
         re = null;
       }
@@ -1256,7 +1220,6 @@ function parseRenameRules(raw) {
     var from = unescapeText(body.slice(0, idx)).trim();
     var to2 = unescapeText(body.slice(idx + 1)).trim();
     if (!from) continue;
-
     if (isExact) renameRules.push({ mode: "exact", from: from, to: to2 });
     else renameRules.push({ mode: "substr", from: from, to: to2 });
   }
@@ -1329,7 +1292,6 @@ function filterNodes(nodes, cfg) {
   for (var i = 0; i < nodes.length; i++) {
     var n = nodes[i];
     var name = n.name;
-
     if (cfg.filter.length) {
       var hit = false;
       for (var a = 0; a < cfg.filter.length; a++) {
@@ -1337,7 +1299,6 @@ function filterNodes(nodes, cfg) {
       }
       if (!hit) { dropFilter++; continue; }
     }
-
     if (cfg.exclude.length) {
       var dropped = false;
       for (var b = 0; b < cfg.exclude.length; b++) {
@@ -1345,17 +1306,18 @@ function filterNodes(nodes, cfg) {
       }
       if (dropped) { dropExclude++; continue; }
     }
-
     if (cfg.filterRegex) {
-      try { if (!new RegExp(cfg.filterRegex).test(name)) { dropFilter++; continue; } } catch (e) {}
+      try {
+        if (!new RegExp(cfg.filterRegex).test(name)) { dropFilter++; continue; }
+      } catch (e) {}
     }
     if (cfg.excludeRegex) {
-      try { if (new RegExp(cfg.excludeRegex).test(name)) { dropExclude++; continue; } } catch (e) {}
+      try {
+        if (new RegExp(cfg.excludeRegex).test(name)) { dropExclude++; continue; }
+      } catch (e) {}
     }
-
     if (cfg.includeType.length && cfg.includeType.indexOf(n.protocol) === -1) { dropType++; continue; }
     if (cfg.excludeType.length && cfg.excludeType.indexOf(n.protocol) !== -1) { dropType++; continue; }
-
     out.push(n);
   }
   return { list: out, dropFilter: dropFilter, dropExclude: dropExclude, dropType: dropType };
@@ -1396,12 +1358,10 @@ function compareText(a, b) {
 function sortNodes(nodes, cfg) {
   var list = nodes.slice();
   if (cfg.sortBy === "none") return list;
-
   var typeOrder = cfg.typeOrder.length ? cfg.typeOrder : DEFAULT_TYPE_ORDER;
   // keyword 没填词时退回到内置地区顺序，避免"选了排序却毫无变化"
   var sortWords = cfg.sort.length ? cfg.sort : DEFAULT_AREA_ORDER;
   var usingDefaultArea = !cfg.sort.length;
-
   list.sort(function (a, b) {
     var r = 0;
     if (cfg.sortBy === "keyword") {
@@ -1421,24 +1381,24 @@ function sortNodes(nodes, cfg) {
     if (r !== 0) return cfg.sortOrder === "desc" ? -r : r;
     return cfg.sortOrder === "desc" ? b.index - a.index : a.index - b.index;
   });
-
   reportSortState(nodes, list, cfg, typeOrder, usingDefaultArea);
   return list;
 }
 
 /** 无条件输出排序结果说明——"选了排序却没反应"时，这一行能说清原因 */
 function reportSortState(before, after, cfg, typeOrder, usingDefaultArea) {
-  if (cfg.sortBy === "none") { log("[解析器] 排序：sortBy=none，保持订阅原顺序"); return; }
-
+  if (cfg.sortBy === "none") {
+    log("[解析器] 排序：sortBy=none，保持订阅原顺序");
+    return;
+  }
   var changed = false;
   for (var i = 0; i < before.length && i < after.length; i++) {
     if (before[i] !== after[i]) { changed = true; break; }
   }
-
   if (cfg.sortBy === "keyword") {
     if (usingDefaultArea) {
-      log("[解析器] 排序：按内置默认地区顺序（未填 sort，如需自定义请填写「地区排序关键词」，" +
-        "例如 香港,日本,美国）");
+      log("[解析器] 排序：按内置默认地区顺序（未填 sort，如需自定义请填写「地区排序关键词」，"
+        + "例如 香港|日本|美国）");
     } else {
       log("[解析器] 排序：按自定义关键词顺序（" + cfg.sort.join(" ") + "）");
     }
@@ -1449,16 +1409,16 @@ function reportSortState(before, after, cfg, typeOrder, usingDefaultArea) {
     log("[解析器] 排序：按协议（" + order + "顺序 " + typeOrder.join(" > ") + "）");
   } else if (cfg.sortBy === "area") {
     var hasFlag = false;
-    for (var j = 0; j < before.length; j++) { if (extractFlag(before[j].name)) { hasFlag = true; break; } }
-    log("[解析器] 排序：按地区（" + (hasFlag ? "依据节点名中的国旗" : "节点名无国旗，已改用地区关键词") +
-      "）。注意 emoji=true 会清除国旗，此时也走关键词");
+    for (var j = 0; j < before.length; j++) {
+      if (extractFlag(before[j].name)) { hasFlag = true; break; }
+    }
+    log("[解析器] 排序：按地区（" + (hasFlag ? "依据节点名中的国旗" : "节点名无国旗，已改用地区关键词") + "）。注意 emoji=true 会清除国旗，此时也走关键词");
   } else if (cfg.sortBy === "random") {
     log("[解析器] 排序：随机打乱（每次拉取订阅顺序都会变）");
   }
-
   if (!changed) {
-    log("[解析器] 排序：结果与原顺序相同——可能所有节点的排序依据都一样" +
-      "（例如全是同一地区、同一协议、或名称里没有匹配的关键词）");
+    log("[解析器] 排序：结果与原顺序相同——可能所有节点的排序依据都一样"
+      + "（例如全是同一地区、同一协议、或名称里没有匹配的关键词）");
   }
 }
 
@@ -1501,12 +1461,7 @@ function applyNameRules(nodes, cfg) {
 
     // 3) 模板变量（{index} 留到序列化时替换）
     if (cfg.pre.indexOf("{") > -1 || cfg.suf.indexOf("{") > -1 || name.indexOf("{") > -1) {
-      var ctx = {
-        name: n.name,
-        proto: n.protocol,
-        server: nodeServer(n),
-        flag: extractFlag(name)
-      };
+      var ctx = { name: n.name, proto: n.protocol, server: nodeServer(n), flag: extractFlag(name) };
       name = renderTemplate(name, ctx);
     }
 
@@ -1539,12 +1494,8 @@ function serialize(parsed, nodes) {
 function renderLine(node, order) {
   var idx = CFG.indexStart + order;
   var name = renderIndex(node.name, idx);
-  var pre = renderIndex(renderTemplate(CFG.pre, {
-    name: name, proto: node.protocol, server: nodeServer(node), flag: extractFlag(name)
-  }), idx);
-  var suf = renderIndex(renderTemplate(CFG.suf, {
-    name: name, proto: node.protocol, server: nodeServer(node), flag: extractFlag(name)
-  }), idx);
+  var pre = renderIndex(renderTemplate(CFG.pre, { name: name, proto: node.protocol, server: nodeServer(node), flag: extractFlag(name) }), idx);
+  var suf = renderIndex(renderTemplate(CFG.suf, { name: name, proto: node.protocol, server: nodeServer(node), flag: extractFlag(name) }), idx);
   name = pre + name + suf;
   if (node.encode) {
     var encoded = node.encode(name);
@@ -1572,12 +1523,18 @@ function parseAny(text, depth) {
 
   // 1) SIP008 JSON
   var json = parseSip008(trimmed);
-  if (json) { log(tag + "识别为 SIP008 JSON"); return json; }
+  if (json) {
+    log(tag + "识别为 SIP008 JSON");
+    return json;
+  }
 
   // 2) Clash YAML（明文）
   if (looksLikeClashYaml(trimmed)) {
     var yaml = parseClashToLoon(trimmed);
-    if (yaml) { log(tag + "识别为 Clash YAML"); return yaml; }
+    if (yaml) {
+      log(tag + "识别为 Clash YAML");
+      return yaml;
+    }
   }
 
   // 3) base64：递归识别解码后的内容，覆盖全部内层格式
@@ -1594,11 +1551,17 @@ function parseAny(text, depth) {
 
   // 4) 明文 URI 列表
   var plainUri = parseUriList(trimmed);
-  if (plainUri && plainUri.nodes.length) { log(tag + "识别为 URI 列表"); return plainUri; }
+  if (plainUri && plainUri.nodes.length) {
+    log(tag + "识别为 URI 列表");
+    return plainUri;
+  }
 
   // 5) Loon / Surge 行格式
   var loon = parseLoonStyle(trimmed);
-  if (loon && loon.nodes.length) { log(tag + "识别为 Loon 行格式"); return loon; }
+  if (loon && loon.nodes.length) {
+    log(tag + "识别为 Loon 行格式");
+    return loon;
+  }
 
   return null;
 }
@@ -1606,13 +1569,11 @@ function parseAny(text, depth) {
 function processResource(content) {
   var raw = normalizeText(content);
   if (!raw.trim()) return "";
-
   var parsed = parseAny(raw);
   if (!parsed || !parsed.nodes.length) {
     log("[解析器] 未识别资源格式，原样返回");
     return raw;
   }
-
   var nodes = parsed.nodes;
   var total = nodes.length;
   log("[解析器] 解析到节点: " + total);
@@ -1691,14 +1652,11 @@ function refetch(attempt) {
     finish(typeof $resource !== "undefined" ? $resource : "");
     return;
   }
-
   var headers = parseHeaders(CFG.headers);
   if (CFG.userAgent) headers["User-Agent"] = CFG.userAgent;
   if (CFG.noCache) headers["Cache-Control"] = "no-cache";
-
   var req = { url: String($resourceUrl), headers: headers };
   if (CFG.timeout > 0) req.timeout = CFG.timeout;
-
   debug("[解析器] 开始拉取(第 " + (attempt + 1) + " 次): " + req.url);
   $httpClient.get(req, function (error, response, data) {
     if (error || !data) {
@@ -1733,9 +1691,12 @@ function processTextResource(content) {
     var replaced = line;
     for (var r = 0; r < renameRules.length; r++) {
       var rule = renameRules[r];
-      if (rule.mode === "regex") { rule.re.lastIndex = 0; replaced = replaced.replace(rule.re, rule.to); }
-      else if (rule.mode === "exact") { if (replaced === rule.from) replaced = rule.to; }
-      else replaced = replaced.split(rule.from).join(rule.to);
+      if (rule.mode === "regex") {
+        rule.re.lastIndex = 0;
+        replaced = replaced.replace(rule.re, rule.to);
+      } else if (rule.mode === "exact") {
+        if (replaced === rule.from) replaced = rule.to;
+      } else replaced = replaced.split(rule.from).join(rule.to);
     }
     if (CFG.dedup !== "off") {
       var key = replaced.trim();
@@ -1754,34 +1715,86 @@ function finish(content) {
   $done(result);
 }
 
-/* 参数读取：$argument 可能是对象，也可能是 JSON 字符串或 k=v 串 */
+/* ============================== 参数读取 ============================== */
+
+/* 与插件文件 [Script] 中 argument=[{...}] 的占位符顺序保持一致（仅数组形式传入时使用） */
+var ARG_ORDER = ["exclude", "filter", "emoji", "rename", "pre", "suf", "sortBy", "sort", "sortOrder", "dedup", "limit", "refetch", "userAgent", "noCache", "debug", "extra"];
+
+/* 全部合法参数名，用于拼写检查提示 */
+var KNOWN_KEYS = ["pre", "suf", "emoji", "rename", "filter", "exclude", "filterRegex", "excludeRegex", "includeType", "excludeType", "dedup", "sort", "sortBy", "sortOrder", "typeOrder", "limit", "indexStart", "ua", "refetch", "userAgent", "headers", "noCache", "retry", "timeout", "debug", "fallback", "text", "extra"];
+
+/** 解析 k=v&k=v 形式（extra 高级参数、手写 argument 均用此格式） */
+function parseKV(s) {
+  var out = {};
+  var pairs = splitEscaped(str(s), "&");
+  for (var i = 0; i < pairs.length; i++) {
+    var p = pairs[i];
+    if (!p) continue;
+    var idx = p.indexOf("=");
+    if (idx > 0) out[p.slice(0, idx).trim()] = decodeFragment(p.slice(idx + 1));
+  }
+  return out;
+}
+
 function readArgument() {
   var arg = typeof $argument !== "undefined" ? $argument : null;
   var obj = null;
 
   if (arg && typeof arg === "object") {
+    /* Loon 插件 argument=[{x}] 的标准传入形式：对象（官方示例即 $argument.参数名 取值） */
     obj = arg;
   } else if (arg && typeof arg === "string") {
     var s = arg.trim();
     if (s.charAt(0) === "{" || s.charAt(0) === "[") {
-      try { obj = JSON.parse(s); } catch (e) { obj = null; }
+      try {
+        var parsed = JSON.parse(s);
+        if (parsed && typeof parsed === "object") {
+          if (Array.isArray(parsed)) {
+            /* 数组形式：按插件占位符顺序映射 */
+            obj = {};
+            for (var i = 0; i < parsed.length && i < ARG_ORDER.length; i++) obj[ARG_ORDER[i]] = parsed[i];
+          } else {
+            obj = parsed;
+          }
+        }
+      } catch (e) { obj = null; }
     }
-    if (!obj) {
-      obj = {};
-      var pairs = splitEscaped(s, "&");
-      for (var i = 0; i < pairs.length; i++) {
-        var p = pairs[i];
-        if (!p) continue;
-        var idx = p.indexOf("=");
-        if (idx > 0) obj[p.slice(0, idx).trim()] = decodeFragment(p.slice(idx + 1));
-      }
+    if (!obj) obj = parseKV(s);
+  }
+
+  /* extra 高级参数：k=v&k=v（或 JSON 对象），可覆盖同名参数 */
+  if (obj && obj.extra !== undefined && obj.extra !== null && str(obj.extra).trim()) {
+    var ex = str(obj.extra).trim();
+    var eo = null;
+    if (ex.charAt(0) === "{") { try { eo = JSON.parse(ex); } catch (e2) { eo = null; } }
+    if (!eo) eo = parseKV(ex);
+    for (var k in eo) {
+      if (Object.prototype.hasOwnProperty.call(eo, k)) obj[k] = eo[k];
     }
   }
 
-  var g = function (k) { return obj && obj[k] !== undefined ? obj[k] : undefined; };
+  /* 拼写检查：出现未知参数名时提示（不阻断处理） */
+  if (obj) {
+    var unknown = [];
+    for (var uk in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, uk) && KNOWN_KEYS.indexOf(uk) === -1) unknown.push(uk);
+    }
+    if (unknown.length) log("[解析器] 未识别的参数名: " + unknown.join(", ") + "，请检查拼写。支持: " + KNOWN_KEYS.join(" "));
+  }
+
+  /* 值为空字符串视为未填写，走各参数默认值 */
+  var g = function () {
+    if (!obj) return undefined;
+    for (var i = 0; i < arguments.length; i++) {
+      var v = obj[arguments[i]];
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+  };
 
   CFG.pre = str(g("pre"));
   CFG.suf = str(g("suf"));
+
   var emojiRaw = str(g("emoji")).trim().toLowerCase();
   if (emojiRaw === "flag" || emojiRaw === "keep-flag" || emojiRaw === "keepflag") CFG.emoji = "flag";
   else if (emojiRaw === "true" || emojiRaw === "1" || emojiRaw === "yes" || emojiRaw === "on") CFG.emoji = "true";
@@ -1791,66 +1804,72 @@ function readArgument() {
   CFG.sortBy = str(g("sortBy")).trim().toLowerCase() || "keyword";
   CFG.sortOrder = str(g("sortOrder")).trim().toLowerCase() === "desc" ? "desc" : "asc";
   CFG.typeOrder = list(g("typeOrder"));
-
   CFG.filter = list(g("filter"));
   CFG.exclude = list(g("exclude"));
   CFG.filterRegex = str(g("filterRegex"));
   CFG.excludeRegex = str(g("excludeRegex"));
   CFG.includeType = normalizeTypes(g("includeType"));
   CFG.excludeType = normalizeTypes(g("excludeType"));
-
   CFG.dedup = str(g("dedup")).trim().toLowerCase() || "off";
   CFG.limit = parseInt(g("limit"), 10);
   if (isNaN(CFG.limit) || CFG.limit < 0) CFG.limit = 0;
   CFG.indexStart = parseInt(g("indexStart"), 10);
   if (isNaN(CFG.indexStart)) CFG.indexStart = 1;
 
-  CFG.ua = bool(g("ua"));
+  CFG.refetch = bool(g("refetch", "ua"));   /* ua 为旧参数名，保持兼容 */
   CFG.userAgent = str(g("userAgent"));
   CFG.headers = str(g("headers"));
   CFG.noCache = bool(g("noCache"));
   CFG.retry = parseInt(g("retry"), 10);
   if (isNaN(CFG.retry) || CFG.retry < 0) CFG.retry = 1;
-  // 与 $httpClient 保持一致，单位是毫秒
+  /* 与 $httpClient 保持一致，单位是毫秒 */
   CFG.timeout = parseInt(g("timeout"), 10);
   if (isNaN(CFG.timeout) || CFG.timeout <= 0) CFG.timeout = 8000;
 
   DEBUG = bool(g("debug"));
   CFG.fallback = g("fallback") === undefined ? true : bool(g("fallback"));
   CFG.text = bool(g("text"));
-
   parseRenameRules(str(g("rename")));
-
   ARG_EMPTY = !obj;
+
+  /* 非法枚举值兜底：给出正确写法提示 */
+  if (["keyword", "name", "type", "area", "random", "none"].indexOf(CFG.sortBy) === -1) {
+    log("[解析器] sortBy 取值非法: " + CFG.sortBy + "，可选 keyword/name/type/area/random/none，已回退 keyword");
+    CFG.sortBy = "keyword";
+  }
+  if (["off", "name", "server", "strict"].indexOf(CFG.dedup) === -1) {
+    log("[解析器] dedup 取值非法: " + CFG.dedup + "，可选 off/name/server/strict，已回退 off");
+    CFG.dedup = "off";
+  }
 }
 
 /** 无条件输出参数接收状态——"填了参数却没效果"时，这一行能直接定位问题 */
 function reportArgumentState() {
   if (ARG_EMPTY) {
-    log("[解析器] 参数状态：没有收到插件参数，本次仅做格式转换。" +
-      "如果你在插件里填了参数却看到这条，说明参数没传进脚本，请检查 .plugin 里 " +
-      "[Argument] 的参数名与 script(...) 中的占位符是否一一对应（旧语法是 {x}，新语法是 ${x}）。");
+    log("[解析器] 参数状态：没有收到插件参数，本次仅做格式转换。如果你在插件里填了参数却看到这条，请检查插件 [Argument] 的参数名与 [Script] 中 argument=[{参数名}] 占位符是否一一对应、大小写是否一致");
     return;
   }
   var on = [];
   if (CFG.pre) on.push("pre");
   if (CFG.suf) on.push("suf");
   if (CFG.emoji !== "false") on.push("emoji=" + CFG.emoji);
-  if (CFG.exclude.length) on.push("exclude");
   if (CFG.filter.length) on.push("filter");
+  if (CFG.exclude.length) on.push("exclude");
   if (CFG.includeType.length) on.push("includeType");
   if (CFG.excludeType.length) on.push("excludeType");
   if (CFG.filterRegex) on.push("filterRegex");
   if (CFG.excludeRegex) on.push("excludeRegex");
   if (renameRules.length) on.push("rename×" + renameRules.length);
   if (CFG.dedup !== "off") on.push("dedup=" + CFG.dedup);
-  if (CFG.sort.length) on.push("sort");
   if (CFG.sortBy !== "keyword") on.push("sortBy=" + CFG.sortBy);
+  if (CFG.sort.length) on.push("sort");
+  if (CFG.sortOrder === "desc") on.push("倒序");
   if (CFG.limit > 0) on.push("limit=" + CFG.limit);
-  if (CFG.ua) on.push("自定义UA拉取");
-  log("[解析器] 参数状态：" + (on.length
-    ? "已收到 " + on.join(" ")
-    : "已收到参数，但全部为默认值（未填写）"));
+  if (CFG.refetch) on.push("重新拉取(自定义UA)");
+  if (CFG.noCache) on.push("noCache");
+  if (CFG.text) on.push("text");
+  if (CFG.fallback === false) on.push("fallback=off");
+  log("[解析器] 参数状态：" + (on.length ? "已收到 " + on.join(" ") : "已收到参数，但全部为默认值（未填写）"));
 }
 
 function normalizeTypes(v) {
@@ -1864,12 +1883,13 @@ function normalizeTypes(v) {
   readArgument();
   reportArgumentState();
   debug("[解析器] 已读取插件参数明细: " + JSON.stringify({
-    pre: CFG.pre, suf: CFG.suf, emoji: CFG.emoji, sort: CFG.sort,
-    sortBy: CFG.sortBy, sortOrder: CFG.sortOrder, filter: CFG.filter,
-    exclude: CFG.exclude, includeType: CFG.includeType, excludeType: CFG.excludeType,
+    pre: CFG.pre, suf: CFG.suf, emoji: CFG.emoji,
+    sort: CFG.sort, sortBy: CFG.sortBy, sortOrder: CFG.sortOrder,
+    filter: CFG.filter, exclude: CFG.exclude,
+    includeType: CFG.includeType, excludeType: CFG.excludeType,
     dedup: CFG.dedup, limit: CFG.limit, rename: renameRules.length
   }));
   var type = typeof $resourceType !== "undefined" ? $resourceType : 1;
-  if (CFG.ua && type === 1) refetch(0);
+  if (CFG.refetch && type === 1) refetch(0);
   else finish(typeof $resource !== "undefined" ? $resource : "");
 })();
