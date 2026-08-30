@@ -1,61 +1,65 @@
 /**
- * Loon 资源解析器 V2
+ * Loon 资源解析器 V2.1（select 选项汉化支持版）
  *
  * 全局变量（Loon 注入）
- * $resourceType   资源类型 0:config 1:nodes 2:rules 3:rewrites 4:scripts 5:plugin
- * $resource       资源内容
- * $resourceUrl    资源 URL
- * $argument       解析器插件参数
+ * $resourceType 资源类型 0:config 1:nodes 2:rules 3:rewrites 4:scripts 5:plugin
+ * $resource     资源内容
+ * $resourceUrl  资源 URL
+ * $argument     解析器插件参数
  *
  * ---------------------------------------------------------------------------
  * 参数一览（均为可选，旧参数名全部保持兼容）
  *
  * 【改名】
- * pre        统一前缀，支持模板 {index} {name} {type} {server} {flag}
- * suf        统一后缀，同上
- * emoji      true=清除全部 emoji；flag=只保留国旗；false=不处理（默认）
- * rename     替换规则，逗号分隔。支持三种写法：
- *            普通： 香港:HK,美国:US
- *            精确： exact:节点A:节点B   （整名匹配才替换）
- *            正则： regex:/^\d+[.].+/:  （to 留空时保留结尾冒号，表示删除）
- *            支持 \: \, 转义；to 中可用 {name} {type} {server} {flag}
+ * pre  统一前缀，支持模板 {index} {name} {type} {server} {flag}
+ * suf  统一后缀，同上
+ * emoji true=清除全部 emoji；flag=只保留国旗；false=不处理（默认）
+ *       ★ V2.1 同时接受中文值：不动=false / 全部清除=true / 只保留旗帜=flag
+ * rename 替换规则，逗号分隔。支持三种写法：
+ *   普通： 香港:HK,美国:US
+ *   精确： exact:节点A:节点B （整名匹配才替换）
+ *   正则： regex:/^\d+[.].+/: （to 留空时保留结尾冒号，表示删除）
+ *   支持 \: \, 转义；to 中可用 {name} {type} {server} {flag}
  *
  * 【过滤】
- * filter        关键词白名单，竖线|分隔，只保留命中节点
- * exclude       关键词黑名单，竖线|分隔，剔除命中节点
- * filterRegex   正则白名单
- * excludeRegex  正则黑名单
- * includeType   协议白名单，逗号分隔
- * excludeType   协议黑名单，逗号分隔
+ * filter  关键词白名单，竖线|分隔，只保留命中节点
+ * exclude 关键词黑名单，竖线|分隔，剔除命中节点
+ * filterRegex  正则白名单
+ * excludeRegex 正则黑名单
+ * includeType 协议白名单，逗号分隔
+ * excludeType 协议黑名单，逗号分隔
  * 协议别名：ss ssr vmess vless trojan hy2 anytls http socks5 wireguard
  *           tuic snell mieru juicity ssh direct reject
  *
  * 【去重 / 排序 / 截断】
- * dedup      off(默认) | name | server | strict
- *            name=按节点名；server=按 协议+地址+端口；strict=按完整配置
- * sort       关键词排序，竖线|分隔。-关键词 表示强制排到最后，* 表示其余
- * sortBy     keyword(默认) | name | type | area | random | none
- * sortOrder  asc(默认) | desc
- * typeOrder  sortBy=type 时的协议顺序，逗号分隔
- * limit      最多保留多少个节点（排序后截取）
+ * dedup off(默认) | name | server | strict
+ *       ★ V2.1 同时接受中文值：不去重=off / 按节点名去重=name / 按地址去重=server / 按完整配置去重=strict
+ * name=按节点名；server=按 协议+地址+端口；strict=按完整配置
+ * sort  关键词排序，竖线|分隔。-关键词 表示强制排到最后，* 表示其余
+ * sortBy keyword(默认) | name | type | area | random | none
+ *        ★ V2.1 同时接受中文值：关键词顺序=keyword / 按节点名=name / 按协议=type /
+ *          按地区=area / 随机=random / 不排序=none
+ * sortOrder asc(默认) | desc　★ V2.1 中文：正序=asc / 倒序=desc
+ * typeOrder sortBy=type 时的协议顺序，逗号分隔
+ * limit 最多保留多少个节点（排序后截取）
  * indexStart {index} 起始值，默认 1
  *
  * 【远程拉取】
- * refetch    true 时用自定义 UA 重新拉取原始订阅（旧参数名 ua 保持兼容）
- * userAgent  自定义 UA 字符串
- * headers    附加请求头，K:V|K:V 或 JSON 对象
- * noCache    true 时带 Cache-Control: no-cache
- * retry      拉取失败重试次数，默认 1
- * timeout    拉取超时，单位毫秒（与 $httpClient 一致），默认 8000
+ * refetch true 时用自定义 UA 重新拉取原始订阅（旧参数名 ua 保持兼容）
+ * userAgent 自定义 UA 字符串
+ * headers 附加请求头，K:V|K:V 或 JSON 对象
+ * noCache true 时带 Cache-Control: no-cache
+ * retry 拉取失败重试次数，默认 1
+ * timeout 拉取超时，单位毫秒（与 $httpClient 一致），默认 8000
  *
  * 【其它】
- * debug      true 输出详细日志
- * fallback   true(默认) 处理结果为空时回退原文，避免订阅被清空
- * text       true 时对 rules/rewrites/scripts 等非节点资源也做 rename 替换
- * extra      高级参数串，格式 k=v&k=v（或 JSON 对象），可覆盖同名参数；
- *            插件 UI 只放高频参数，filterRegex / includeType / typeOrder /
- *            indexStart / retry / timeout / headers / fallback / text 等
- *            低频参数从这里传入，例：indexStart=10&fallback=false
+ * debug true 输出详细日志
+ * fallback true(默认) 处理结果为空时回退原文，避免订阅被清空
+ * text true 时对 rules/rewrites/scripts 等非节点资源也做 rename 替换
+ * extra 高级参数串，格式 k=v&k=v（或 JSON 对象），可覆盖同名参数；
+ *       插件 UI 只放高频参数，filterRegex / includeType / typeOrder /
+ *       indexStart / retry / timeout / headers / fallback / text 等
+ *       低频参数从这里传入，例：indexStart=10&fallback=false
  * ---------------------------------------------------------------------------
  *
  * 改进点（相对 V1）
@@ -69,6 +73,9 @@
  * 6. 新增过滤、去重、协议过滤、正则、模板变量、多种排序与日志开关
  * 7. 参数读取适配 Loon 插件 argument=[{x}] 对象形式；新增 extra 高级参数入口、
  *    未知参数拼写提示、非法枚举值兜底；ua 改名 refetch（旧名兼容）
+ * 8. ★ V2.1 新增：插件 UI 的 select 选项汉化后（emoji / sortBy / sortOrder / dedup），
+ *    脚本自动把中文值映射回内部英文枚举，后续全部逻辑零改动；
+ *    英文原值依旧兼容，日志中的枚举值同步显示为中文（见 readArgument / CN_LABEL）
  */
 
 /* ============================== 基础工具 ============================== */
@@ -113,9 +120,10 @@ var RE_EMOJI = null;
 var RE_FLAG = null;
 
 (function buildEmojiRegex() {
-  var uPattern = "[\u{1F000}-\u{1FAFF}\u{1FB00}-\u{1FBFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]"
-    + "|[\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{3297}\u{3299}\u{00A9}\u{00AE}\u{2122}\u{2139}\u{24C2}]"
-    + "|\u200D|\u20E3|\u3030|\u303D|\u2049|\u203C";
+  var uPattern =
+    "[\u{1F000}-\u{1FAFF}\u{1FB00}-\u{1FBFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]" +
+    "|[\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{3297}\u{3299}\u{00A9}\u{00AE}\u{2122}\u{2139}\u{24C2}]" +
+    "|\u200D|\u20E3|\u3030|\u303D|\u2049|\u203C";
   try {
     RE_EMOJI = new RegExp(uPattern, "gu");
   } catch (e) {
@@ -147,7 +155,9 @@ function keepFlagOnly(text) {
   });
 }
 
-function tidyName(s) { return str(s).replace(/\s+/g, " ").trim(); }
+function tidyName(s) {
+  return str(s).replace(/\s+/g, " ").trim();
+}
 
 function extractFlag(name) {
   RE_FLAG.lastIndex = 0;
@@ -166,9 +176,8 @@ var PROTO_ALIAS = {
   http: "http", https: "http",
   socks: "socks5", socks5: "socks5", socks4: "socks5",
   wireguard: "wireguard", wg: "wireguard",
-  snell: "snell", mieru: "mieru", juicity: "juicity",
-  ssh: "ssh", direct: "direct", reject: "reject",
-  relay: "relay", custom: "custom"
+  snell: "snell", mieru: "mieru", juicity: "juicity", ssh: "ssh",
+  direct: "direct", reject: "reject", relay: "relay", custom: "custom"
 };
 
 var DEFAULT_TYPE_ORDER = ["anytls", "hy2", "vless", "trojan", "vmess", "ss", "ssr", "socks5", "http", "wireguard", "direct"];
@@ -181,11 +190,11 @@ var DEFAULT_TYPE_ORDER = ["anytls", "hy2", "vless", "trojan", "vmess", "ss", "ss
  * 用户一旦填了 sort / typeOrder，就完全以用户的为准，本表不再参与。
  */
 var DEFAULT_AREA_ORDER = [
-  "香港", "澳门", "台湾（中国，中国台湾是中华人民共和国不可分割的一部分）", "日本", "韩国",
-  "新加坡", "马来西亚", "泰国", "越南", "菲律宾", "印度尼西亚", "印度",
+  "香港", "澳门", "台湾（中国，中国台湾是中华人民共和国不可分割的一部分）（中国，中国台湾（中国，中国台湾是中华人民共和国不可分割的一部分）是中华人民共和国不可分割的一部分）",
+  "日本", "韩国", "新加坡", "马来西亚", "泰国", "越南", "菲律宾", "印度尼西亚", "印度",
   "美国", "加拿大", "墨西哥", "巴西", "阿根廷",
-  "英国", "德国", "法国", "荷兰", "瑞士", "瑞典", "挪威", "丹麦", "芬兰",
-  "意大利", "西班牙", "波兰", "俄罗斯", "土耳其", "乌克兰",
+  "英国", "德国", "法国", "荷兰", "瑞士", "瑞典", "挪威", "丹麦", "芬兰", "意大利", "西班牙", "波兰",
+  "俄罗斯", "土耳其", "乌克兰",
   "澳大利亚", "新西兰", "南非", "埃及", "阿联酋", "沙特", "伊朗", "以色列",
 ];
 
@@ -223,7 +232,10 @@ FlowParser.prototype.ws = function () {
   while (this.i < this.s.length && /\s/.test(this.s.charAt(this.i))) this.i++;
 };
 
-FlowParser.prototype.parse = function () { this.ws(); return this.value(); };
+FlowParser.prototype.parse = function () {
+  this.ws();
+  return this.value();
+};
 
 FlowParser.prototype.value = function () {
   this.ws();
@@ -244,7 +256,10 @@ FlowParser.prototype.quoted = function () {
       this.i += 2;
       continue;
     }
-    if (ch === quote) { this.i++; return out; }
+    if (ch === quote) {
+      this.i++;
+      return out;
+    }
     out += ch;
     this.i++;
   }
@@ -257,14 +272,23 @@ FlowParser.prototype.map = function () {
   while (this.i < this.s.length) {
     this.ws();
     var c = this.s.charAt(this.i);
-    if (c === "}") { this.i++; return o; }
+    if (c === "}") {
+      this.i++;
+      return o;
+    }
     var key = this.key();
     this.ws();
     if (this.s.charAt(this.i) === ":") this.i++;
     o[key] = this.value();
     this.ws();
-    if (this.s.charAt(this.i) === ",") { this.i++; continue; }
-    if (this.s.charAt(this.i) === "}") { this.i++; return o; }
+    if (this.s.charAt(this.i) === ",") {
+      this.i++;
+      continue;
+    }
+    if (this.s.charAt(this.i) === "}") {
+      this.i++;
+      return o;
+    }
     if (this.i >= this.s.length) return o;
     this.i++; // 容错：跳过无法识别的字符
   }
@@ -286,11 +310,20 @@ FlowParser.prototype.seq = function () {
   while (this.i < this.s.length) {
     this.ws();
     var c = this.s.charAt(this.i);
-    if (c === "]") { this.i++; return a; }
+    if (c === "]") {
+      this.i++;
+      return a;
+    }
     a.push(this.value());
     this.ws();
-    if (this.s.charAt(this.i) === ",") { this.i++; continue; }
-    if (this.s.charAt(this.i) === "]") { this.i++; return a; }
+    if (this.s.charAt(this.i) === ",") {
+      this.i++;
+      continue;
+    }
+    if (this.s.charAt(this.i) === "]") {
+      this.i++;
+      return a;
+    }
     if (this.i >= this.s.length) return a;
     this.i++;
   }
@@ -328,7 +361,10 @@ function stripInlineComment(s) {
       if (ch === quote) quote = "";
       continue;
     }
-    if (ch === '"' || ch === "'") { quote = ch; continue; }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
     if (ch === "#" && i > 0 && /\s/.test(s.charAt(i - 1))) return s.slice(0, i);
   }
   return s;
@@ -409,7 +445,6 @@ function parseClashProxies(text) {
     var item = line.match(/^\s*-\s+(.*)$/);
     if (item) {
       var rest = item[1].trim();
-
       // 情况一：属于上层 key 的块序列（peers: / alpn: / 其它数组字段）
       if (stack.length) {
         var top = stack[stack.length - 1];
@@ -442,21 +477,22 @@ function parseClashProxies(text) {
       finishNode();
       current = {};
       stack = [];
-
       if (rest.charAt(0) === "{") {
         var flow = parseFlow(rest);
         current = flow && typeof flow === "object" ? flow : {};
         finishNode();
         continue;
       }
-
       var mm = rest.match(/^([^:]+):\s*(.*)$/);
       if (mm) {
         var k = mm[1].trim();
         var v = mm[2].trim();
         if (v.charAt(0) === "{" || v.charAt(0) === "[") {
           var pv = parseFlow(v);
-          if (pv !== null) { current[k] = pv; continue; }
+          if (pv !== null) {
+            current[k] = pv;
+            continue;
+          }
         }
         current[k] = yamlScalar(v);
       }
@@ -482,7 +518,10 @@ function parseClashProxies(text) {
         }
         if (value.charAt(0) === "{" || value.charAt(0) === "[") {
           var pv2 = parseFlow(value);
-          if (pv2 !== null) { lastItem[key] = pv2; continue; }
+          if (pv2 !== null) {
+            lastItem[key] = pv2;
+            continue;
+          }
         }
         lastItem[key] = yamlScalar(value);
       }
@@ -495,12 +534,13 @@ function parseClashProxies(text) {
       stack.push({ indent: indent, key: key, isSeq: false, pending: true });
       continue;
     }
-
     if (stack.length) stack[stack.length - 1].pending = false;
-
     if (value.charAt(0) === "{" || value.charAt(0) === "[") {
       var parsed = parseFlow(value);
-      if (parsed !== null) { holder[key] = parsed; continue; }
+      if (parsed !== null) {
+        holder[key] = parsed;
+        continue;
+      }
     }
     holder[key] = yamlScalar(value);
   }
@@ -508,7 +548,6 @@ function parseClashProxies(text) {
   return nodes;
 }
 
-/** 判断文本是否像 Clash YAML */
 /**
  * 只认 proxies 段。proxy-providers 是另一套机制（订阅里只有它时解析不出任何节点），
  * 原先一并匹配会让这类文件先做一次注定失败的 YAML 解析，再回退别的格式。
@@ -572,7 +611,6 @@ function clashToLoonBody(n) {
   var skip = optBool("skip-cert-verify", n["skip-cert-verify"]);
   var sni = pick(n.sni, n.servername);
   var opts = [];
-
   // WireGuard 的 server/port 藏在 peers 里，单独校验
   if (type !== "wireguard" && (!server || !port)) return null;
 
@@ -607,9 +645,9 @@ function clashToLoonBody(n) {
 
   /* ---------- ShadowsocksR ---------- */
   if (type === "ssr") {
-    var ssrBase = "ShadowsocksR," + server + "," + port + "," + pick(n.cipher) + "," + q(pick(n.password)) + ","
-      + "protocol=" + pick(n.protocol, "origin") + ","
-      + "obfs=" + pick(n.obfs, "plain");
+    var ssrBase = "ShadowsocksR," + server + "," + port + "," + pick(n.cipher) + "," + q(pick(n.password)) + "," +
+      "protocol=" + pick(n.protocol, "origin") + "," +
+      "obfs=" + pick(n.obfs, "plain");
     var pp = pick(n["protocol-param"], n.protocolparam, n["protocol_param"]);
     if (pp) opts.push("protocol-param=" + pp);
     var op = pick(n["obfs-param"], n.obfsparam, n["obfs_param"]);
@@ -771,7 +809,8 @@ function clashToLoonBody(n) {
     if (!Array.isArray(peers) || !peers.length) {
       if (n.server && n.port && (n["public-key"] || n.publicKey)) {
         peers = [{
-          server: n.server, port: n.port,
+          server: n.server,
+          port: n.port,
           "public-key": pick(n["public-key"], n.publicKey),
           "preshared-key": pick(n["preshared-key"], n.presharedKey),
           "allowed-ips": pick(n["allowed-ips"], n.allowedIps, "0.0.0.0/0"),
@@ -785,7 +824,6 @@ function clashToLoonBody(n) {
     var peerServer = pick(p0.server, p0.endpoint ? str(p0.endpoint).split(":")[0] : "");
     var peerPort = pick(p0.port, p0.endpoint && str(p0.endpoint).indexOf(":") > -1 ? str(p0.endpoint).split(":")[1] : "");
     if (!peerServer || !peerPort) return null;
-
     var wParts = ["wireguard"];
     if (n.ip) wParts.push("interface-ip=" + n.ip);
     if (n.ipv6 || n.ip6) wParts.push("interface-ipV6=" + pick(n.ipv6, n.ip6));
@@ -794,7 +832,6 @@ function clashToLoonBody(n) {
     var dns = pick(n.dns);
     if (dns) wParts.push("dns=" + (Array.isArray(dns) ? dns[0] : dns));
     if (n.keepalive) wParts.push("keepalive=" + n.keepalive);
-
     var peerSeg = [];
     peerSeg.push("public-key=" + q(pick(p0["public-key"], p0.publicKey)));
     if (p0["preshared-key"]) peerSeg.push("preshared-key=" + q(p0["preshared-key"]));
@@ -842,7 +879,7 @@ function splitLoonLine(line) {
   var s = str(line);
   var idx = s.indexOf(" = ");
   if (idx > 0) return { name: s.slice(0, idx).trim(), body: s.slice(idx + 3).trim() };
-  // 兼容无空格写法（name=shadowsocks,host,port）。
+  // 兼容无空格写法。
   // 必须要求 body 含逗号：否则整段 base64 会因为末尾的 padding "=" 被切开，
   // 变成一条名字是一长串乱码的假节点，真正的节点反而全丢了。
   idx = s.indexOf("=");
@@ -860,13 +897,19 @@ function parseLoonStyle(text) {
   var nodes = [];
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
-    if (!line) { slots.push({ kind: "keep", text: "" }); continue; }
+    if (!line) {
+      slots.push({ kind: "keep", text: "" });
+      continue;
+    }
     if (line.charAt(0) === "#" || line.charAt(0) === "[" || line.charAt(0) === ";") {
       slots.push({ kind: "keep", text: line });
       continue;
     }
     var kv = splitLoonLine(line);
-    if (!kv || !kv.body) { slots.push({ kind: "keep", text: line }); continue; }
+    if (!kv || !kv.body) {
+      slots.push({ kind: "keep", text: line });
+      continue;
+    }
     var proto = normProto(kv.body.split(",")[0]);
     slots.push({ kind: "node", node: makeNode({ index: nodes.length, name: kv.name, protocol: proto, body: kv.body, slot: slots.length }) });
     nodes.push(slots[slots.length - 1].node);
@@ -904,9 +947,17 @@ function parseVmessUri(line) {
   var decoded = base64DecodeUnicode(payload);
   if (!decoded) return null;
   var obj = null;
-  try { obj = JSON.parse(decoded); } catch (e) { return null; }
+  try {
+    obj = JSON.parse(decoded);
+  } catch (e) {
+    return null;
+  }
   if (!obj || typeof obj !== "object") return null;
-  return { obj: obj, name: pick(obj.ps, obj.remarks, obj.name, ""), suffix: hashPos > -1 ? rest.slice(hashPos) : "" };
+  return {
+    obj: obj,
+    name: pick(obj.ps, obj.remarks, obj.name, ""),
+    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
+  };
 }
 
 function vmessEncoder(obj, suffix) {
@@ -932,7 +983,12 @@ function parseSsrUri(line) {
   var name = decodeFragment(m[1]);
   var inner = base64DecodeUnicode(name);
   if (inner && !/[\u0000-\u0008\u000E-\u001F]/.test(inner)) name = inner;
-  return { decoded: decoded, name: name, urlSafe: /[-_]/.test(payload), suffix: hashPos > -1 ? rest.slice(hashPos) : "" };
+  return {
+    decoded: decoded,
+    name: name,
+    urlSafe: /[-_]/.test(payload),
+    suffix: hashPos > -1 ? rest.slice(hashPos) : ""
+  };
 }
 
 function ssrEncoder(decoded, urlSafe, suffix) {
@@ -956,12 +1012,16 @@ function parseUriList(text) {
   var protoHits = 0;
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
-    if (!line) { slots.push({ kind: "keep", text: "" }); continue; }
-    if (line.charAt(0) === "#") { slots.push({ kind: "keep", text: line }); continue; }
-
+    if (!line) {
+      slots.push({ kind: "keep", text: "" });
+      continue;
+    }
+    if (line.charAt(0) === "#") {
+      slots.push({ kind: "keep", text: line });
+      continue;
+    }
     var proto = uriProto(line);
     if (proto) protoHits++;
-
     var hashPos = line.lastIndexOf("#");
     if (hashPos > -1 && hashPos < line.length - 1) {
       var left = line.slice(0, hashPos + 1);
@@ -970,7 +1030,6 @@ function parseUriList(text) {
       nodes.push(slots[slots.length - 1].node);
       continue;
     }
-
     // vmess:// 的名字在 base64 JSON 的 ps 字段里
     if (proto === "vmess") {
       var vm = parseVmessUri(line);
@@ -980,7 +1039,6 @@ function parseUriList(text) {
         continue;
       }
     }
-
     // ssr:// 的名字在 base64 明文的 remarks 参数里
     if (proto === "ssr") {
       var sm = parseSsrUri(line);
@@ -990,14 +1048,12 @@ function parseUriList(text) {
         continue;
       }
     }
-
     var remark = extractRemarkName(line);
     if (remark) {
       slots.push({ kind: "node", node: makeNode({ index: nodes.length, name: remark, protocol: proto, prefix: line + "#", slot: slots.length }) });
       nodes.push(slots[slots.length - 1].node);
       continue;
     }
-
     slots.push({ kind: "keep", text: line });
   }
   // 一条都不像 URI 时不认为解析成功
@@ -1040,7 +1096,11 @@ function parseSip008(text) {
   var trimmed = str(text).trim();
   if (trimmed.charAt(0) !== "{") return null;
   var data = null;
-  try { data = JSON.parse(trimmed); } catch (e) { return null; }
+  try {
+    data = JSON.parse(trimmed);
+  } catch (e) {
+    return null;
+  }
   if (!data || !Array.isArray(data.servers) || !data.servers.length) return null;
   var nodes = [];
   for (var i = 0; i < data.servers.length; i++) {
@@ -1120,10 +1180,21 @@ function splitEscaped(s, sep) {
   s = str(s);
   for (var i = 0; i < s.length; i++) {
     var ch = s.charAt(i);
-    if (esc) { cur += "\\" + ch; esc = false; continue; }
-    if (ch === "\\") { esc = true; continue; }
-    if (ch === sep) { out.push(cur); cur = ""; }
-    else { cur += ch; }
+    if (esc) {
+      cur += "\\" + ch;
+      esc = false;
+      continue;
+    }
+    if (ch === "\\") {
+      esc = true;
+      continue;
+    }
+    if (ch === sep) {
+      out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
   }
   if (esc) cur += "\\";
   out.push(cur);
@@ -1135,8 +1206,14 @@ function indexOfUnescaped(s, ch) {
   s = str(s);
   for (var i = 0; i < s.length; i++) {
     var c = s.charAt(i);
-    if (esc) { esc = false; continue; }
-    if (c === "\\") { esc = true; continue; }
+    if (esc) {
+      esc = false;
+      continue;
+    }
+    if (c === "\\") {
+      esc = true;
+      continue;
+    }
     if (c === ch) return i;
   }
   return -1;
@@ -1157,8 +1234,14 @@ function lastIndexOfUnescaped(s, ch) {
   s = str(s);
   for (var i = 0; i < s.length; i++) {
     var c = s.charAt(i);
-    if (esc) { esc = false; continue; }
-    if (c === "\\") { esc = true; continue; }
+    if (esc) {
+      esc = false;
+      continue;
+    }
+    if (c === "\\") {
+      esc = true;
+      continue;
+    }
     if (c === ch) found = i;
   }
   return found;
@@ -1166,10 +1249,10 @@ function lastIndexOfUnescaped(s, ch) {
 
 /**
  * 语法：
- * 香港:HK                 子串替换
- * exact:原名:新名          整名精确匹配
- * regex:/pattern/flags:新串 正则替换（to 留空即删除）
- * regex:pattern:新串       不带斜杠时按正则处理
+ *   香港:HK          子串替换
+ *   exact:原名:新名  整名精确匹配
+ *   regex:/pattern/flags:新串  正则替换（to 留空即删除）
+ *   regex:pattern:新串  不带斜杠时按正则处理
  */
 function parseRenameRules(raw) {
   renameRules = [];
@@ -1178,7 +1261,6 @@ function parseRenameRules(raw) {
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
     if (!item) continue;
-
     // 正则模式：自己解析 pattern / flags / to，避免标记冒号被当成分隔符
     if (item.indexOf("regex:") === 0) {
       var rest = item.slice(6);
@@ -1205,14 +1287,15 @@ function parseRenameRules(raw) {
       pattern = unescapeText(pattern).trim();
       if (!pattern) continue;
       var re = null;
-      try { re = new RegExp(pattern, flags); } catch (e2) {
+      try {
+        re = new RegExp(pattern, flags);
+      } catch (e2) {
         log("[解析器] rename 的正则表达式非法，已跳过：" + pattern + "（" + e2.message + "）");
         re = null;
       }
       if (re) renameRules.push({ mode: "regex", re: re, to: unescapeText(to) });
       continue;
     }
-
     var isExact = item.indexOf("exact:") === 0;
     var body = isExact ? item.slice(6) : item;
     var idx = indexOfUnescaped(body, ":");
@@ -1295,29 +1378,53 @@ function filterNodes(nodes, cfg) {
     if (cfg.filter.length) {
       var hit = false;
       for (var a = 0; a < cfg.filter.length; a++) {
-        if (matchKeyword(name, cfg.filter[a])) { hit = true; break; }
+        if (matchKeyword(name, cfg.filter[a])) {
+          hit = true;
+          break;
+        }
       }
-      if (!hit) { dropFilter++; continue; }
+      if (!hit) {
+        dropFilter++;
+        continue;
+      }
     }
     if (cfg.exclude.length) {
       var dropped = false;
       for (var b = 0; b < cfg.exclude.length; b++) {
-        if (matchKeyword(name, cfg.exclude[b])) { dropped = true; break; }
+        if (matchKeyword(name, cfg.exclude[b])) {
+          dropped = true;
+          break;
+        }
       }
-      if (dropped) { dropExclude++; continue; }
+      if (dropped) {
+        dropExclude++;
+        continue;
+      }
     }
     if (cfg.filterRegex) {
       try {
-        if (!new RegExp(cfg.filterRegex).test(name)) { dropFilter++; continue; }
+        if (!new RegExp(cfg.filterRegex).test(name)) {
+          dropFilter++;
+          continue;
+        }
       } catch (e) {}
     }
     if (cfg.excludeRegex) {
       try {
-        if (new RegExp(cfg.excludeRegex).test(name)) { dropExclude++; continue; }
+        if (new RegExp(cfg.excludeRegex).test(name)) {
+          dropExclude++;
+          continue;
+        }
       } catch (e) {}
     }
-    if (cfg.includeType.length && cfg.includeType.indexOf(n.protocol) === -1) { dropType++; continue; }
-    if (cfg.excludeType.length && cfg.excludeType.indexOf(n.protocol) !== -1) { dropType++; continue; }
+    if (cfg.includeType.length && cfg.includeType.indexOf(n.protocol) === -1) {
+      dropType++;
+      continue;
+    }
+    if (cfg.excludeType.length && cfg.excludeType.indexOf(n.protocol) !== -1) {
+      dropType++;
+      continue;
+    }
     out.push(n);
   }
   return { list: out, dropFilter: dropFilter, dropExclude: dropExclude, dropType: dropType };
@@ -1393,12 +1500,15 @@ function reportSortState(before, after, cfg, typeOrder, usingDefaultArea) {
   }
   var changed = false;
   for (var i = 0; i < before.length && i < after.length; i++) {
-    if (before[i] !== after[i]) { changed = true; break; }
+    if (before[i] !== after[i]) {
+      changed = true;
+      break;
+    }
   }
   if (cfg.sortBy === "keyword") {
     if (usingDefaultArea) {
-      log("[解析器] 排序：按内置默认地区顺序（未填 sort，如需自定义请填写「地区排序关键词」，"
-        + "例如 香港|日本|美国）");
+      log("[解析器] 排序：按内置默认地区顺序（未填 sort，如需自定义请填写「地区排序关键词」，" +
+        "例如 香港|日本|美国）");
     } else {
       log("[解析器] 排序：按自定义关键词顺序（" + cfg.sort.join(" ") + "）");
     }
@@ -1410,15 +1520,18 @@ function reportSortState(before, after, cfg, typeOrder, usingDefaultArea) {
   } else if (cfg.sortBy === "area") {
     var hasFlag = false;
     for (var j = 0; j < before.length; j++) {
-      if (extractFlag(before[j].name)) { hasFlag = true; break; }
+      if (extractFlag(before[j].name)) {
+        hasFlag = true;
+        break;
+      }
     }
     log("[解析器] 排序：按地区（" + (hasFlag ? "依据节点名中的国旗" : "节点名无国旗，已改用地区关键词") + "）。注意 emoji=true 会清除国旗，此时也走关键词");
   } else if (cfg.sortBy === "random") {
     log("[解析器] 排序：随机打乱（每次拉取订阅顺序都会变）");
   }
   if (!changed) {
-    log("[解析器] 排序：结果与原顺序相同——可能所有节点的排序依据都一样"
-      + "（例如全是同一地区、同一协议、或名称里没有匹配的关键词）");
+    log("[解析器] 排序：结果与原顺序相同——可能所有节点的排序依据都一样" +
+      "（例如全是同一地区、同一协议、或名称里没有匹配的关键词）");
   }
 }
 
@@ -1440,12 +1553,10 @@ function applyNameRules(nodes, cfg) {
   for (var i = 0; i < nodes.length; i++) {
     var n = nodes[i];
     var name = n.name;
-
     // 1) emoji
     if (cfg.emoji === "true") name = stripEmoji(name);
     else if (cfg.emoji === "flag") name = keepFlagOnly(name);
     name = tidyName(name);
-
     // 2) rename
     for (var r = 0; r < renameRules.length; r++) {
       var rule = renameRules[r];
@@ -1458,13 +1569,11 @@ function applyNameRules(nodes, cfg) {
         name = name.split(rule.from).join(rule.to);
       }
     }
-
     // 3) 模板变量（{index} 留到序列化时替换）
     if (cfg.pre.indexOf("{") > -1 || cfg.suf.indexOf("{") > -1 || name.indexOf("{") > -1) {
       var ctx = { name: n.name, proto: n.protocol, server: nodeServer(n), flag: extractFlag(name) };
       name = renderTemplate(name, ctx);
     }
-
     name = tidyName(name);
     if (!name) name = "node-" + (n.index + 1);
     n.name = name;
@@ -1580,21 +1689,17 @@ function processResource(content) {
 
   // 改名
   applyNameRules(nodes, CFG);
-
   // 去重
   var d = dedupNodes(nodes, CFG.dedup);
   nodes = d.list;
-
   // 过滤
   var f = filterNodes(nodes, CFG);
   nodes = f.list;
-
   // 排序
   if (CFG.sortBy === "random") {
     for (var i = 0; i < nodes.length; i++) nodes[i].__rand = Math.random();
   }
   nodes = sortNodes(nodes, CFG);
-
   // 截断
   if (CFG.limit > 0 && nodes.length > CFG.limit) nodes = nodes.slice(0, CFG.limit);
 
@@ -1616,7 +1721,6 @@ function processResource(content) {
   if (f.dropExclude) stats.push("命中黑名单 -" + f.dropExclude);
   if (f.dropType) stats.push("协议过滤 -" + f.dropType);
   log("[解析器] " + stats.join(" / "));
-
   return result;
 }
 
@@ -1687,7 +1791,10 @@ function processTextResource(content) {
   var seen = {};
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (!line.trim()) { out.push(line); continue; }
+    if (!line.trim()) {
+      out.push(line);
+      continue;
+    }
     var replaced = line;
     for (var r = 0; r < renameRules.length; r++) {
       var rule = renameRules[r];
@@ -1723,6 +1830,47 @@ var ARG_ORDER = ["exclude", "filter", "emoji", "rename", "pre", "suf", "sortBy",
 /* 全部合法参数名，用于拼写检查提示 */
 var KNOWN_KEYS = ["pre", "suf", "emoji", "rename", "filter", "exclude", "filterRegex", "excludeRegex", "includeType", "excludeType", "dedup", "sort", "sortBy", "sortOrder", "typeOrder", "limit", "indexStart", "ua", "refetch", "userAgent", "headers", "noCache", "retry", "timeout", "debug", "fallback", "text", "extra"];
 
+/* ===== ★ V2.1 新增：中文选项支持（配套汉化版插件 UI） =====
+   插件 [Argument] 的 select 下拉框选项已汉化，选中的中文值会原样传给脚本，
+   normCn 负责统一翻译回内部英文枚举，后续所有判断逻辑零改动。
+   映射表同时保留英文原值：旧配置、手写 argument、extra 里写英文全部兼容。 */
+function normCn(v, map) {
+  var s = str(v).trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(map, s) ? map[s] : s;
+}
+
+/* emoji：不动=false / 全部清除=true / 只保留旗帜=flag */
+var MAP_EMOJI = {
+  "不动": "false", "全部清除": "true", "只保留旗帜": "flag", "只保留国旗": "flag",
+  "false": "false", "true": "true", "flag": "flag"
+};
+
+/* sortBy：关键词顺序=keyword / 按节点名=name / 按协议=type / 按地区=area / 随机=random / 不排序=none */
+var MAP_SORTBY = {
+  "关键词顺序": "keyword", "按节点名": "name", "按协议": "type",
+  "按地区": "area", "随机": "random", "不排序": "none",
+  "keyword": "keyword", "name": "name", "type": "type",
+  "area": "area", "random": "random", "none": "none"
+};
+
+/* sortOrder：正序=asc / 倒序=desc */
+var MAP_ORDER = { "正序": "asc", "倒序": "desc", "asc": "asc", "desc": "desc" };
+
+/* dedup：不去重=off / 按节点名去重=name / 按地址去重=server / 按完整配置去重=strict */
+var MAP_DEDUP = {
+  "不去重": "off", "按节点名去重": "name", "按地址去重": "server", "按完整配置去重": "strict",
+  "按节点名": "name", "按地址": "server", "按完整配置": "strict",
+  "off": "off", "name": "name", "server": "server", "strict": "strict"
+};
+
+/* 内部枚举 → 中文显示名（仅用于日志输出，与插件 UI 选项保持一致） */
+var CN_LABEL = {
+  emoji: { "false": "不动", "true": "全部清除", "flag": "只保留旗帜" },
+  sortBy: { "keyword": "关键词顺序", "name": "按节点名", "type": "按协议", "area": "按地区", "random": "随机", "none": "不排序" },
+  sortOrder: { "asc": "正序", "desc": "倒序" },
+  dedup: { "off": "不去重", "name": "按节点名去重", "server": "按地址去重", "strict": "按完整配置去重" }
+};
+
 /** 解析 k=v&k=v 形式（extra 高级参数、手写 argument 均用此格式） */
 function parseKV(s) {
   var out = {};
@@ -1739,7 +1887,6 @@ function parseKV(s) {
 function readArgument() {
   var arg = typeof $argument !== "undefined" ? $argument : null;
   var obj = null;
-
   if (arg && typeof arg === "object") {
     /* Loon 插件 argument=[{x}] 的标准传入形式：对象（官方示例即 $argument.参数名 取值） */
     obj = arg;
@@ -1766,7 +1913,9 @@ function readArgument() {
   if (obj && obj.extra !== undefined && obj.extra !== null && str(obj.extra).trim()) {
     var ex = str(obj.extra).trim();
     var eo = null;
-    if (ex.charAt(0) === "{") { try { eo = JSON.parse(ex); } catch (e2) { eo = null; } }
+    if (ex.charAt(0) === "{") {
+      try { eo = JSON.parse(ex); } catch (e2) { eo = null; }
+    }
     if (!eo) eo = parseKV(ex);
     for (var k in eo) {
       if (Object.prototype.hasOwnProperty.call(eo, k)) obj[k] = eo[k];
@@ -1792,17 +1941,25 @@ function readArgument() {
     return undefined;
   };
 
+  /* ============ ★ V2.1：中文选项 → 内部枚举（汉化插件 UI 配套） ============ */
+
   CFG.pre = str(g("pre"));
   CFG.suf = str(g("suf"));
 
-  var emojiRaw = str(g("emoji")).trim().toLowerCase();
+  /* emoji：不动=false / 全部清除=true / 只保留旗帜=flag */
+  var emojiRaw = normCn(g("emoji"), MAP_EMOJI);
   if (emojiRaw === "flag" || emojiRaw === "keep-flag" || emojiRaw === "keepflag") CFG.emoji = "flag";
   else if (emojiRaw === "true" || emojiRaw === "1" || emojiRaw === "yes" || emojiRaw === "on") CFG.emoji = "true";
   else CFG.emoji = "false";
 
   CFG.sort = list(g("sort"));
-  CFG.sortBy = str(g("sortBy")).trim().toLowerCase() || "keyword";
-  CFG.sortOrder = str(g("sortOrder")).trim().toLowerCase() === "desc" ? "desc" : "asc";
+
+  /* sortBy：关键词顺序=keyword / 按节点名=name / 按协议=type / 按地区=area / 随机=random / 不排序=none */
+  CFG.sortBy = normCn(g("sortBy"), MAP_SORTBY) || "keyword";
+
+  /* sortOrder：正序=asc / 倒序=desc */
+  CFG.sortOrder = normCn(g("sortOrder"), MAP_ORDER) === "desc" ? "desc" : "asc";
+
   CFG.typeOrder = list(g("typeOrder"));
   CFG.filter = list(g("filter"));
   CFG.exclude = list(g("exclude"));
@@ -1810,13 +1967,16 @@ function readArgument() {
   CFG.excludeRegex = str(g("excludeRegex"));
   CFG.includeType = normalizeTypes(g("includeType"));
   CFG.excludeType = normalizeTypes(g("excludeType"));
-  CFG.dedup = str(g("dedup")).trim().toLowerCase() || "off";
+
+  /* dedup：不去重=off / 按节点名去重=name / 按地址去重=server / 按完整配置去重=strict */
+  CFG.dedup = normCn(g("dedup"), MAP_DEDUP) || "off";
+
   CFG.limit = parseInt(g("limit"), 10);
   if (isNaN(CFG.limit) || CFG.limit < 0) CFG.limit = 0;
   CFG.indexStart = parseInt(g("indexStart"), 10);
   if (isNaN(CFG.indexStart)) CFG.indexStart = 1;
-
-  CFG.refetch = bool(g("refetch", "ua"));   /* ua 为旧参数名，保持兼容 */
+  /* ua 为旧参数名，保持兼容 */
+  CFG.refetch = bool(g("refetch", "ua"));
   CFG.userAgent = str(g("userAgent"));
   CFG.headers = str(g("headers"));
   CFG.noCache = bool(g("noCache"));
@@ -1825,20 +1985,19 @@ function readArgument() {
   /* 与 $httpClient 保持一致，单位是毫秒 */
   CFG.timeout = parseInt(g("timeout"), 10);
   if (isNaN(CFG.timeout) || CFG.timeout <= 0) CFG.timeout = 8000;
-
   DEBUG = bool(g("debug"));
   CFG.fallback = g("fallback") === undefined ? true : bool(g("fallback"));
   CFG.text = bool(g("text"));
   parseRenameRules(str(g("rename")));
   ARG_EMPTY = !obj;
 
-  /* 非法枚举值兜底：给出正确写法提示 */
+  /* 非法枚举值兜底（此时已归一化为英文枚举），提示同时给出中文写法 */
   if (["keyword", "name", "type", "area", "random", "none"].indexOf(CFG.sortBy) === -1) {
-    log("[解析器] sortBy 取值非法: " + CFG.sortBy + "，可选 keyword/name/type/area/random/none，已回退 keyword");
+    log("[解析器] sortBy 取值非法: " + CFG.sortBy + "，可选 关键词顺序/按节点名/按协议/按地区/随机/不排序（或 keyword/name/type/area/random/none），已回退 关键词顺序");
     CFG.sortBy = "keyword";
   }
   if (["off", "name", "server", "strict"].indexOf(CFG.dedup) === -1) {
-    log("[解析器] dedup 取值非法: " + CFG.dedup + "，可选 off/name/server/strict，已回退 off");
+    log("[解析器] dedup 取值非法: " + CFG.dedup + "，可选 不去重/按节点名去重/按地址去重/按完整配置去重（或 off/name/server/strict），已回退 不去重");
     CFG.dedup = "off";
   }
 }
@@ -1852,7 +2011,7 @@ function reportArgumentState() {
   var on = [];
   if (CFG.pre) on.push("pre");
   if (CFG.suf) on.push("suf");
-  if (CFG.emoji !== "false") on.push("emoji=" + CFG.emoji);
+  if (CFG.emoji !== "false") on.push("emoji=" + (CN_LABEL.emoji[CFG.emoji] || CFG.emoji));
   if (CFG.filter.length) on.push("filter");
   if (CFG.exclude.length) on.push("exclude");
   if (CFG.includeType.length) on.push("includeType");
@@ -1860,8 +2019,8 @@ function reportArgumentState() {
   if (CFG.filterRegex) on.push("filterRegex");
   if (CFG.excludeRegex) on.push("excludeRegex");
   if (renameRules.length) on.push("rename×" + renameRules.length);
-  if (CFG.dedup !== "off") on.push("dedup=" + CFG.dedup);
-  if (CFG.sortBy !== "keyword") on.push("sortBy=" + CFG.sortBy);
+  if (CFG.dedup !== "off") on.push("dedup=" + (CN_LABEL.dedup[CFG.dedup] || CFG.dedup));
+  if (CFG.sortBy !== "keyword") on.push("sortBy=" + (CN_LABEL.sortBy[CFG.sortBy] || CFG.sortBy));
   if (CFG.sort.length) on.push("sort");
   if (CFG.sortOrder === "desc") on.push("倒序");
   if (CFG.limit > 0) on.push("limit=" + CFG.limit);
