@@ -1,5 +1,5 @@
 #!name=Loon 节点订阅解析器
-#!desc=用于节点名称处理与排序，支持前后缀、去除 Emoji、文本替换、自定义排序及自定义UA拉取订阅，如果自定义UA获取不到节点可以开启禁用缓存试试。文本替换格式为 旧文本:新文本，多个规则用英文逗号分隔，例如 香港:HK,日本:JP；如需匹配英文冒号、逗号、反斜杠，分别写作 \:、\,、\\。节点排序按关键词先后顺序排序，使用英文逗号分隔，例如 香港,日本,新加坡,美国。在订阅管理界面对订阅进行单独配置。
+#!desc = 资源解析器，在节点订阅页选择本插件后生效。参数填法：exclude 黑名单填 剩余流量|过期|官网；filter 白名单填 香港|日本|美国；emoji 选 true 清全部表情或 flag 只留国旗；pre 改名前缀填 {flag}；suf 改名后缀填 {index}；rename 替换规则填 香港:HK,美国:US（多条用英文逗号分隔，正则写法 regex:/^\d+[.].+/:，冒号逗号前加反斜杠转义）；sort 地区顺序填 香港|日本|美国（sortBy 为 keyword 时生效）；sortBy 排序可选 name 按节点名 / type 按协议 / area 按国旗 / random 随机；dedup 去重可选 name 按名 / server 按地址 / strict 完整配置；limit 上限填数字如 100；refetch 开启后 userAgent 填订阅商要求的 UA 如 clash-verge/v1.5.11；extra 高级参数填 k=v&k=v，支持 filterRegex includeType typeOrder indexStart retry timeout headers text，示例 indexStart=10&fallback=false；完整说明见脚本文件头注释；排错先开 debug 再到日志页搜「解析器」
 #!author=mc2u[https://github.com/mc2u]
 #!tag=解析器,节点,订阅
 #!system=
