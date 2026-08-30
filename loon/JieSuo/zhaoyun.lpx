@@ -4,25 +4,10 @@
 #!homepage = https://t.me/ddm1023
 #!icon = https://raw.githubusercontent.com/chxm1023/Script_X/main/icon/zyyad.png
 #!system = iOS
-#!loon_version = 3.5.1(983)
+#!loon_version = 3.5.0(969)
 #!tag = 游戏,辅助
-#!type = normal
-
-# ==============================================================================
-# 说明：本插件使用 Loon 3.5.1(983) 起的新版 Script 语法
-#       request / response 统一为：<阶段> if <条件> then script(<路径>, <参数>) with <属性>
-#       插件参数以 ${参数名} 引用，对象参数 {${a},${b}} 会作为 $argument Object 传入脚本
-#       如仍在使用 3.5.1(982) 及更早版本，请改用旧语法（script-path=..., argument=[{a},{b}]）
-# ==============================================================================
 
 [Argument]
-
-# ============================================================
-# 总开关
-# ============================================================
-
-ddm_app_switch = switch,true,tag=⚡ 脚本总开关,desc=关闭后本插件内所有脚本都不执行
-
 
 # ============================================================
 # 基础模块开关
@@ -38,13 +23,13 @@ ddm_zyyad_enableavatar = switch,true,tag=🖼️ 头像模块,desc=解锁全部�
 
 
 # ============================================================
-# 数值设置（type=number，脚本内直接拿到数字，无需再转换）
+# 数值设置
 # ============================================================
 
-ddm_zyyad_gold = input,9999999,type=number,tag=金币数量,desc=目标金币数量
-ddm_zyyad_level = input,999,type=number,tag=等级,desc=目标角色等级
-ddm_zyyad_registerday = input,7,type=number,tag=注册天数,desc=设置为距今天指定天数以前注册
-ddm_zyyad_weaponcount = input,50,type=number,tag=武器碎片数量,desc=仅在「补充已有武器」模式下生效，作为碎片下限
+ddm_zyyad_gold = input,"9999999",tag=金币数量,desc=目标金币数量
+ddm_zyyad_level = input,"999",tag=等级,desc=目标角色等级
+ddm_zyyad_registerday = input,"7",tag=注册天数,desc=设置为距今天指定天数以前注册
+ddm_zyyad_weaponcount = input,"50",tag=武器碎片数量,desc=武器碎片目标数量
 
 
 # ============================================================
@@ -76,25 +61,20 @@ ddm_zyyad_passive6 = select,"摸金校尉","关闭","降妖符","农民","招贤
 
 [Script]
 
-# ==============================================================================
-# 脚本统一说明
-#   · 脚本路径如需国内可访问，可把 raw.githubusercontent.com 地址替换为：
-#     https://cdn.jsdelivr.net/gh/CDKe-2022/Loon-learn@main/loon/JieSuo/zhaoyun.js
-#   · {${...}} 为插件对象参数，脚本内通过 $argument.ddm_zyyad_gold 等方式读取
-#   · enable=${ddm_app_switch} 由「⚡ 脚本总开关」控制，可一键停用全部规则
-# ==============================================================================
+# ============================================================
+# 脚本总开关（由 ddm_app_switch 控制）
+# 在 [Argument] 中声明 ddm_app_switch = switch,false,tag=⚡ 脚本总开关
+# 此处通过 enable={ddm_app_switch} 引用
+# ============================================================
 
 # 登录响应
-response if ${url} ~= /^https?:\/\/.*\.mihuangame\.com\/api\/v\d+\/sys\/user\/login/i then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js", {${ddm_zyyad_forcevalue},${ddm_zyyad_enablegold},${ddm_zyyad_gold},${ddm_zyyad_enablelevel},${ddm_zyyad_level},${ddm_zyyad_enableregister},${ddm_zyyad_registerday},${ddm_zyyad_enableweapon},${ddm_zyyad_weaponmode},${ddm_zyyad_weaponcount},${ddm_zyyad_enableskill},${ddm_zyyad_enableavatar},${ddm_zyyad_active1},${ddm_zyyad_active2},${ddm_zyyad_passive1},${ddm_zyyad_passive2},${ddm_zyyad_passive3},${ddm_zyyad_passive4},${ddm_zyyad_passive5},${ddm_zyyad_passive6}}) with enable=${ddm_app_switch}, tag="赵云与阿斗-登录", requires_body=true
-
+http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/login script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-登录,enable={ddm_app_switch}
 # 用户数据请求体
-request if ${url} ~= /^https?:\/\/.*\.mihuangame\.com\/api\/v\d+\/sys\/user\/data/i then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js", {${ddm_zyyad_forcevalue},${ddm_zyyad_enablegold},${ddm_zyyad_gold},${ddm_zyyad_enablelevel},${ddm_zyyad_level},${ddm_zyyad_enableregister},${ddm_zyyad_registerday},${ddm_zyyad_enableweapon},${ddm_zyyad_weaponmode},${ddm_zyyad_weaponcount},${ddm_zyyad_enableskill},${ddm_zyyad_enableavatar},${ddm_zyyad_active1},${ddm_zyyad_active2},${ddm_zyyad_passive1},${ddm_zyyad_passive2},${ddm_zyyad_passive3},${ddm_zyyad_passive4},${ddm_zyyad_passive5},${ddm_zyyad_passive6}}) with enable=${ddm_app_switch}, tag="赵云与阿斗-数据请求", requires_body=true
-
+http-request ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-数据请求,enable={ddm_app_switch}
 # 用户数据响应体
-response if ${url} ~= /^https?:\/\/.*\.mihuangame\.com\/api\/v\d+\/sys\/user\/data/i then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js", {${ddm_zyyad_forcevalue},${ddm_zyyad_enablegold},${ddm_zyyad_gold},${ddm_zyyad_enablelevel},${ddm_zyyad_level},${ddm_zyyad_enableregister},${ddm_zyyad_registerday},${ddm_zyyad_enableweapon},${ddm_zyyad_weaponmode},${ddm_zyyad_weaponcount},${ddm_zyyad_enableskill},${ddm_zyyad_enableavatar},${ddm_zyyad_active1},${ddm_zyyad_active2},${ddm_zyyad_passive1},${ddm_zyyad_passive2},${ddm_zyyad_passive3},${ddm_zyyad_passive4},${ddm_zyyad_passive5},${ddm_zyyad_passive6}}) with enable=${ddm_app_switch}, tag="赵云与阿斗-数据响应", requires_body=true
-
+http-response ^https?:\/\/.*\.mihuangame\.com\/api\/v\d\/sys\/user\/data script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-数据响应,enable={ddm_app_switch}
 # 分享接口
-response if ${url} ~= /^https?:\/\/.*\.mihuangame\.com\/toutiaoGame\/ZhaoYunAndADou/i then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js", {${ddm_zyyad_forcevalue},${ddm_zyyad_enablegold},${ddm_zyyad_gold},${ddm_zyyad_enablelevel},${ddm_zyyad_level},${ddm_zyyad_enableregister},${ddm_zyyad_registerday},${ddm_zyyad_enableweapon},${ddm_zyyad_weaponmode},${ddm_zyyad_weaponcount},${ddm_zyyad_enableskill},${ddm_zyyad_enableavatar},${ddm_zyyad_active1},${ddm_zyyad_active2},${ddm_zyyad_passive1},${ddm_zyyad_passive2},${ddm_zyyad_passive3},${ddm_zyyad_passive4},${ddm_zyyad_passive5},${ddm_zyyad_passive6}}) with enable=${ddm_app_switch}, tag="赵云与阿斗-分享", requires_body=true
+http-response ^https?:\/\/.*\.mihuangame\.com\/toutiaoGame\/ZhaoYunAndADou script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/zhaoyun.js,requires-body=true,argument=[{ddm_zyyad_forcevalue},{ddm_zyyad_enablegold},{ddm_zyyad_gold},{ddm_zyyad_enablelevel},{ddm_zyyad_level},{ddm_zyyad_enableregister},{ddm_zyyad_registerday},{ddm_zyyad_enableweapon},{ddm_zyyad_weaponmode},{ddm_zyyad_weaponcount},{ddm_zyyad_enableskill},{ddm_zyyad_enableavatar},{ddm_zyyad_active1},{ddm_zyyad_active2},{ddm_zyyad_passive1},{ddm_zyyad_passive2},{ddm_zyyad_passive3},{ddm_zyyad_passive4},{ddm_zyyad_passive5},{ddm_zyyad_passive6}],tag=赵云与阿斗-分享,enable={ddm_app_switch}
 
 [Mitm]
 hostname = *.mihuangame.com
