@@ -13,7 +13,7 @@
 [Argument]
 exclude = input,"",tag=①过滤黑名单关键词，多项用竖线分隔,desc=命中即剔除；多项用竖线分隔：剩余流量|过期|官网
 filter = input,"",tag=①保留白名单关键词，多项用竖线分隔,desc=只保留命中节点；多项用竖线分隔：香港|日本|美国
-emoji = select,"不动","清除全部","只留旗帜",tag=①emoji 处理false=不动；true=清除全部，flag=只保留国旗,desc=false=不动；true=清除全部emoji；flag=只保留国旗（改名模板用 flag 时选 flag）
+emoji = select,"false","true","flag",tag=①emoji 处理false=不动；true=清除全部，flag=只保留国旗,desc=false=不动；true=清除全部emoji；flag=只保留国旗（改名模板用 flag 时选 flag）
 rename = input,"",tag=②改名·替换规则,desc=多条规则用英文逗号分隔；普通 香港:HK ；精确 exact:原名:新名 ；正则 regex:/^\d+[.].+/: ；冒号和逗号需转义（前面加反斜杠）
 pre = input,"",tag=②改名·统一前缀,desc=支持模板 {flag} {index} {name} {type} {server}；示例 {flag}
 suf = input,"",tag=②改名·统一后缀,desc=支持模板 {index} {name} {type} {server} {flag}；示例 {index}
