@@ -23,6 +23,6 @@ debug = switch,false,tag=调试日志
 
 [Script]
 
-cron ${cron} then script("WorkBuddy-Trae-Checkin-V2.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="自动签到"
+cron ${cron} then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/sign-work.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="自动签到"
 
-generic then script("WorkBuddy-Trae-Checkin-V2.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="手动签到"
+generic then script("https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/sign-work.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="手动签到"
