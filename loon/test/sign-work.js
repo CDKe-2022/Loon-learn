@@ -1,0 +1,28 @@
+#!name = WorkBuddy + Trae 自动签到 V2
+#!desc = WorkBuddy + Trae 多账号自动签到、Token刷新、签到复查、积分查询
+#!author = Ke Huang
+#!homepage = https://github.com/iicookies/auto-checkin
+#!loon_version = 3.5.1(983)
+
+[Argument]
+
+enabled = switch,true,tag=⚡ 自动签到总开关
+
+workbuddy_enabled = switch,true,tag=WorkBuddy
+workbuddy_accounts = input,"[]",tag=WorkBuddy账号 JSON
+
+trae_enabled = switch,true,tag=Trae
+trae_accounts = input,"[]",tag=Trae账号 JSON
+
+cron = input,"5 9 * * *",tag=每日执行时间
+
+random_delay = input,"0",tag=账号间随机延迟秒数
+
+notify = switch,true,tag=签到通知
+debug = switch,false,tag=调试日志
+
+[Script]
+
+cron ${cron} then script("WorkBuddy-Trae-Checkin-V2.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="自动签到"
+
+generic then script("WorkBuddy-Trae-Checkin-V2.js", {${enabled}, ${workbuddy_enabled}, ${workbuddy_accounts}, ${trae_enabled}, ${trae_accounts}, ${random_delay}, ${notify}, ${debug}}) with enable=${enabled}, timeout=300, tag="手动签到"
