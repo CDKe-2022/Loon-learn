@@ -37,6 +37,8 @@
 | 6 | [Semporia库 ](https://github.com/Semporia/Hand-Painted-icon) | Semporia |
 
 ### 一部分大佬的插件
+| 插件名 | 插件链接 | 
+| :----: | :---- |
 |pixiv|[插件](https://raw.githubusercontent.com/TomCatXue/MyCookieCenter/main/loon/PixivEnhanced.plugin)|
 |微信读书|[插件](https://raw.githubusercontent.com/TomCatXue/MyCookieCenter/refs/heads/main/loon/WeReadEnhance.plugin)|
 |微信读书奖励|[插件](https://raw.githubusercontent.com/TomCatXue/MyCookieCenter/main/loon/CookieCenter.plugin)|
