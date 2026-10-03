@@ -1,11 +1,14 @@
+#!name = 刺客信条燎原
+#!desc = 使用方法：夸克登录网页版抓包，路径https://drive.quark.cn/1/clouddrive/file
+#!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKe.plugin
+#!author = @小白脸
+#!tag = 网盘
+#!loon_version = 3.2.1(745)
+#!icon = https://raw.githubusercontent.com/githubdulong/Script/master/Images/Fileball.json
+#!date = 2026-10-03
+
 [General]
 force-http-engine-hosts = %APPEND% quark.example.com:0
 
 [Script]
 夸克网盘 = type=http-request,pattern=^http:\/\/quark\.example\.com,requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/githubdulong/Script/master/quark.js,debug=0
-
-作者：@小白脸
-使用方法： 
-夸克登录网页版抓包，路径https://drive.quark.cn/1/clouddrive/file
-
-Fileball挂载图标：https://raw.githubusercontent.com/githubdulong/Script/master/Images/Fileball.json
