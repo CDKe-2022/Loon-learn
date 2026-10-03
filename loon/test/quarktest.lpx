@@ -1,14 +1,19 @@
-#!name = 夸克网盘
-#!desc = 使用方法：夸克登录网页版抓包，路径https://drive.quark.cn/1/clouddrive/file
-#!openUrl = https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/JieSuo/CiKe.plugin
-#!author = @小白脸
-#!tag = 网盘
-#!loon_version = 3.2.1(745)
-#!icon = https://raw.githubusercontent.com/githubdulong/Script/master/Images/Fileball.json
-#!date = 2026-10-03
-
+#!name = 夸克网盘 Fileball 挂载
+#!desc = 通过 Filebar/Fileball 客户端挂载夸克网盘
+#!author = 小白脸(原脚本), githubdulong(脚本仓库), hepsontam(插件模板)
+#!homepage = https://github.com/githubdulong/Script
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/80px/Fileball.png
+#!tag = 网盘,Fileball
+#!system = iOS,iPadOS,tvOS
+#!loon_version = 3.2.1(733)
+[Argument]
+# 可选: 在 Loon 插件参数界面填 Cookie
+# 但原版脚本主要靠 Filebar 客户端的"密码"字段传 Cookie, 这个参数不是必须的
+# quarkCookie = input, "", tag=夸克Cookie, desc=在 Filebar 客户端连接设置的"密码"字段填 Cookie 即可,无需在此填写
 [General]
+# 关键: 让 Loon 对非标端口 5000 强制做 HTTP 引擎识别, 否则二进制响应会丢失
 force-http-engine-hosts = %APPEND% quark.example.com:0
-
 [Script]
-夸克网盘 = type=http-request,pattern=^http:\/\/quark\.example\.com,requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/githubdulong/Script/master/quark.js,debug=0
+夸克网盘挂载 = type=http-request,pattern="^http:\/\/quark\.example\.com",requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/githubdulong/Script/master/quark.js,script-update-interval=0,timeout=120
+[Mitm]
+hostname = %APPEND% quark.example.com
