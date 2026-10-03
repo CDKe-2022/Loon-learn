@@ -1,40 +1,32 @@
 #!name = 夸克网盘 Fileball 挂载
 #!desc = 通过 Filebar/Fileball 客户端挂载夸克网盘。Filebar 连接:地址 quark.example.com,端口 5000,账号任意,密码填夸克 Cookie。需提前在 Loon MitM 里生成并信任 CA 证书。
-#!author = 小白脸, githubdulong[https://github.com/githubdulong/Script], Loon0x00[https://github.com/Loon0x00/LoonExampleConfig]
+#!openUrl = https://github.com/githubdulong/Script
+#!author = 小白脸[https://github.com/githubdulong/Script], lodepuly[https://gitlab.com/lodepuly/vpn_tool]
 #!homepage = https://github.com/githubdulong/Script
-#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/master/App_icon/80px/Fileball.png
+#!icon = https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/80px/Fileball.png
 #!tag = 网盘,Fileball,Quark
-#!system = iOS,iPadOS,tvOS
-#!system_version = 15
-#!loon_version = 3.5.1(983)
+#!loon_version = 3.5.1(978)
 #!date = 2026-10-03
-#!type = normal
 
 [Argument]
-debug_switch = switch,false,tag=调试日志,desc=开启后 Loon 控制台输出详细日志(排错用,平时建议关闭)
+QuarkDebug = switch, false, tag=调试日志, desc=开启后 Loon 控制台输出详细日志(排错用,平时关闭)
 
 [General]
-# 关键配置:强制 Loon 对 quark.example.com 的所有端口做 HTTP 引擎识别。
-# 缺少这一行时,Loon 在 TUN Only 模式下只会对 TCP 80 端口做 HTTP 识别,
-# 其他端口都当 TCP 原始数据转发 → 脚本返回的二进制响应被静默丢弃
-# → 表现为"保存图片空白 / 列表无缩略图 / 视频无法播放"
-# 语法:
-#   quark.example.com:0   → 该域名任意端口
-#   quark.example.com:5000 → 仅该域名+端口
-#   :8080                  → 所有域名的 8080 端口
-#   *.baidu.com:8080       → 通配符域名+端口
-force-http-engine-hosts = quark.example.com:0
+# 关键:强制 Loon 对 quark.example.com 做完整 HTTP 引擎识别
+# 缺失时 Loon 在 TUN 模式下只对 80 端口做 HTTP 识别,
+# 其他端口的请求被当 TCP 原始数据转发 → 脚本返回的二进制响应被静默丢弃
+# → 保存图片空白 / 列表无缩略图 / 视频无法播放
+# 用 %APPEND% 追加到主配置已有列表,不覆盖其他插件的 force-http-engine-hosts
+force-http-engine-hosts = %APPEND% quark.example.com:0
 
 [Script]
-# Loon 3.5.1+ 新语法 (Script v2):
-#   request if <condition> then script(<path>, <argument>) with <options>
-# 匹配虚拟域名下的所有请求, 转给社区 quark.js 处理
-# requires_body=true   → 等待完整请求体, Filebar 的 POST(Thumb/List)必需
-# timeout=120          → 大目录列表/大文件下载给足时间 (默认 20 秒不够)
-# debug=${debug_switch} → 从 [Argument] 动态读开关, 在插件详情界面切换
-request if ${url} ~= /^http:\/\/quark\.example\.com/i then script("https://raw.githubusercontent.com/githubdulong/Script/master/quark.js") with tag="Quark Fileball", timeout=120, requires_body=true, debug=${debug_switch}
+# legacy 语法(官方文档 [Script] 段指定语法)
+# requires-body=true  → Filebar 的 POST 请求(Thumb/List)需要把 body 传给脚本
+# timeout=120         → 大目录列表 / 大文件下载给足时间(默认 10 秒不够)
+# binary-body-mode=false → body 以 String 传入(quark.js 原作者按 String 解析)
+http-request ^http:\/\/quark\.example\.com script-path=https://raw.githubusercontent.com/githubdulong/Script/master/quark.js, requires-body=true, binary-body-mode=false, timeout=120, tag=夸克网盘挂载, img-url=https://gitlab.com/lodepuly/iconlibrary/-/raw/main/App_icon/80px/Fileball.png, argument="debug={QuarkDebug}", enable=true
 
 [Mitm]
-# 仅拦截这个虚拟域名, 不影响其他 HTTPS 流量
-# MITM 证书必须在 Loon「MitM」页生成 → 安装 → 在系统"证书信任设置"里启用
-hostname = quark.example.com
+# MITM 证书必须在 Loon「MitM」页生成 → 安装 → 在系统"证书信任设置"里启用完全信任
+# 多插件的 hostname 会自动合并,不需要 %APPEND%(写上也行)
+hostname = %APPEND% quark.example.com
