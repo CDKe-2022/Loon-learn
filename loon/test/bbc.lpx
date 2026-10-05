@@ -1,11 +1,11 @@
 #!name = BBC News Translate
-#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页与文章。双语显示、缓存去重、漏翻自动补翻、正文样式链接保护。
+#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页与文章。双语显示、缓存去重、漏翻自动补翻、正文样式链接保护。v1.3 文章稳定版：当前文章优先、超长段落自动切段、谷歌三节点并行竞速。
 #!author = adapted from Discord Translate v1.6
 #!icon = https://www.bbc.co.uk/favicon.ico
 
 [Argument]
 enabled = switch, true, tag=启用翻译, desc=关闭后所有响应原样放行
-debug = switch, false, tag=调试日志, desc=在 Loon 日志查看每条翻译过程
+debug = switch, false, tag=调试日志, desc=在 Loon 日志查看翻译统计(字段/缓存/成功/失败/切段/跳过)
 target_lang = select, "zh-CN", "zh-TW", "zh", "ja", "ko", tag=目标语言, desc=译文语言
 engine = select, "google", "ai", tag=翻译引擎, desc=google=免费谷歌接口; ai=需填 API Key
 provider = select, "openai", "openrouter", "自定义端点", tag=AI供应商, desc=仅 engine=ai 时生效
@@ -14,18 +14,22 @@ model = input, tag=模型名, desc=留空自动探测(gpt-4o-mini 优先)
 custom_base_url = input, tag=自定义端点URL, desc=provider 选"自定义端点"时填写
 custom_prompt = input, tag=AI翻译风格, desc=留空用内置默认风格
 cache_on = switch, true, tag=启用缓存, desc=相同原文不重复请求; 首页与文章共享
-maxmsgs = input, 0, tag=单次最大翻译条数, desc=0=不限制(推荐)
-maxcalls = input, 0, tag=单次最大网络调用, desc=0=不限制, 由超时参数兜底
-concurrency = input, 6, tag=并发数, desc=同时进行的翻译请求; 卡顿调小, 提速可调到10
+maxmsgs = input, 0, tag=首页最大翻译条数, desc=0=不限制(推荐); 仅首页生效
+maxcalls = input, 0, tag=单次最大网络调用, desc=0=不限制; 截断时优先保当前文章
+concurrency = input, 6, tag=首页并发数, desc=同时进行的翻译请求; 卡顿调小, 提速可调到10
 bilingual = switch, true, tag=双语显示, desc=原文在上译文在下; 正文段落强制开启
-deadline = input, 12000, tag=翻译超时(毫秒), desc=到点立即返回已完成部分
-queue_flush = input, 15, tag=每次顺带补翻条数, desc=翻上一轮没翻完的文本, 0=关闭
+deadline = input, 12000, tag=首页兜底超时(毫秒), desc=最后保命; 首页建议 12000, 不要设太小
 translate_article = switch, true, tag=翻译文章详情页, desc=文章正文段落翻译; 关闭则文章秒开不翻译
-article_maxlen = input, 1200, tag=文章单段长度上限, desc=超过此长度的段落不翻, 防止长文拖慢
+queue_flush = input, 15, tag=每次顺带补翻条数, desc=翻上一轮没翻完的文本, 0=关闭
+article_maxlen = input, 1200, tag=文章单段切分阈值, desc=超过此长度的段落自动按标点切段翻译(不再丢弃)
+article_deadline = input, 30000, tag=文章兜底超时(毫秒), desc=文章页专用; 建议 25000-30000
+article_maxmsgs = input, 0, tag=文章最大翻译条数, desc=0=不限制(推荐); 设非0会导致长文被截断
+article_concurrency = input, 6, tag=文章并发数, desc=文章页专用并发; 卡顿调小到 4, 提速可到 8
+gg_request_timeout = input, 6000, tag=谷歌单请求超时(毫秒), desc=单个 Google 请求超时; 首页用 5000, 文章用 6000
+article_total_maxlen = input, 6000, tag=文章单字段总长上限, desc=超过此长度才整体放弃; 防止病态超长文本
 
 [Script]
-http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, enable={enabled}, argument=[{enabled},{debug},{target_lang},{engine},{provider},{api_key},{model},{custom_base_url},{custom_prompt},{cache_on},{maxmsgs},{maxcalls},{concurrency},{bilingual},{deadline},{translate_article},{queue_flush},{article_maxlen}]
-
+http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, enable={enabled}, argument=[{enabled},{debug},{target_lang},{engine},{provider},{api_key},{model},{custom_base_url},{custom_prompt},{cache_on},{maxmsgs},{maxcalls},{concurrency},{bilingual},{deadline},{translate_article},{queue_flush},{article_maxlen},{article_deadline},{article_maxmsgs},{article_concurrency},{gg_request_timeout},{article_total_maxlen}]
 
 [MITM]
 hostname = %APPEND% news-app.api.bbc.co.uk
