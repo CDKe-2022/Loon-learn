@@ -1,0 +1,12 @@
+#!name = BBC News Translate
+#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页/话题/文章接口的新闻标题、摘要、栏目标题。引擎: Google 免费端点 / OpenAI 兼容 AI。
+#!author = adapted from Discord Translate v1.6
+#!icon = https://www.bbc.co.uk/favicon.ico
+#!arguments = enabled,debug,target_lang,engine,provider,api_key,model,custom_base_url,custom_prompt,cache_on,maxmsgs,maxcalls,concurrency,bilingual
+#!arguments-desc = enabled: 总开关 (true/false)\ndebug: 输出详细日志\ntarget_lang: 目标语言 (zh-CN/zh-TW/ja/ko...)\nengine: auto / google / ai\nprovider: ai供应商 openai/openrouter/自定义端点\napi_key: AI 的 API Key (留空自动用 Google)\nmodel: 模型名 (留空自动探测)\ncustom_base_url: 自定义端点\ncustom_prompt: AI 翻译风格\ncache_on: 缓存 (true/false)\nmaxmsgs: 单次响应最多翻译条数 (默认40)\nmaxcalls: 单次响应最多网络调用数 (默认30)\nconcurrency: 并发数 (默认6)\nbilingual: 双语显示 原文+译文 (true/false)
+
+[Script]
+http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= ,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, argument=enabled=true&debug=false&target_lang=zh-CN&engine=google&cache_on=true&maxmsgs=40&maxcalls=30&concurrency=6&bilingual=false
+
+[MITM]
+hostname = %APPEND% news-app.api.bbc.co.uk
