@@ -2,6 +2,7 @@
 #!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页与文章。双语显示、缓存去重、漏翻自动补翻、正文样式链接保护。v1.3 文章稳定版：当前文章优先、超长段落自动切段、谷歌三节点并行竞速。
 #!author = adapted from Discord Translate v1.6
 #!icon = https://www.bbc.co.uk/favicon.ico
+#!date = 2026-10-05 17:59:00
 
 [Argument]
 enabled = switch, true, tag=启用翻译, desc=关闭后所有响应原样放行
