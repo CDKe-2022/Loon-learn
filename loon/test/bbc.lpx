@@ -1,5 +1,5 @@
 #!name = BBC News Translate
-#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 的新闻标题/摘要。双语显示、缓存去重、漏翻自动补翻队列。
+#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页与文章。双语显示、缓存去重、漏翻自动补翻、正文样式链接保护。
 #!author = adapted from Discord Translate v1.6
 #!icon = https://www.bbc.co.uk/favicon.ico
 
@@ -13,17 +13,19 @@ api_key = input, tag=API Key, desc=AI 引擎必填; 留空则自动回退 google
 model = input, tag=模型名, desc=留空自动探测(gpt-4o-mini 优先)
 custom_base_url = input, tag=自定义端点URL, desc=provider 选"自定义端点"时填写
 custom_prompt = input, tag=AI翻译风格, desc=留空用内置默认风格
-cache_on = switch, true, tag=启用缓存, desc=相同原文不重复请求
-maxmsgs = input, 0, tag=单次最大翻译条数, desc=0=不限制(推荐); 设小会导致后排漏翻
+cache_on = switch, true, tag=启用缓存, desc=相同原文不重复请求; 首页与文章共享
+maxmsgs = input, 0, tag=单次最大翻译条数, desc=0=不限制(推荐)
 maxcalls = input, 0, tag=单次最大网络调用, desc=0=不限制, 由超时参数兜底
-concurrency = input, 6, tag=并发数, desc=同时进行的翻译请求; 卡顿就调小
-bilingual = switch, true, tag=双语显示, desc=英文原文在上中文在下
+concurrency = input, 6, tag=并发数, desc=同时进行的翻译请求; 卡顿调小, 提速可调到10
+bilingual = switch, true, tag=双语显示, desc=原文在上译文在下; 正文段落强制开启
 deadline = input, 12000, tag=翻译超时(毫秒), desc=到点立即返回已完成部分
 queue_flush = input, 15, tag=每次顺带补翻条数, desc=翻上一轮没翻完的文本, 0=关闭
-translate_article = switch, false, tag=翻译文章详情页, desc=默认关闭, 避免拖慢打开文章
+translate_article = switch, true, tag=翻译文章详情页, desc=文章正文段落翻译; 关闭则文章秒开不翻译
+article_maxlen = input, 1200, tag=文章单段长度上限, desc=超过此长度的段落不翻, 防止长文拖慢
 
 [Script]
-http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, enable={enabled}, argument=[{enabled},{debug},{target_lang},{engine},{provider},{api_key},{model},{custom_base_url},{custom_prompt},{cache_on},{maxmsgs},{maxcalls},{concurrency},{bilingual},{deadline},{translate_article},{queue_flush}]
+http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, enable={enabled}, argument=[{enabled},{debug},{target_lang},{engine},{provider},{api_key},{model},{custom_base_url},{custom_prompt},{cache_on},{maxmsgs},{maxcalls},{concurrency},{bilingual},{deadline},{translate_article},{queue_flush},{article_maxlen}]
+
 
 [MITM]
 hostname = %APPEND% news-app.api.bbc.co.uk
