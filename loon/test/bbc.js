@@ -10,7 +10,8 @@
   - AI 引擎把多条文本用 @@SEG@@ 合并成一次调用 (每组最多 8 条)
 */
 var ARG_ORDER = ["enabled","debug","target_lang","engine","provider","api_key","model",
-                 "custom_base_url","custom_prompt","cache_on","maxmsgs","maxcalls","concurrency","bilingual"];
+                 "custom_base_url","custom_prompt","cache_on","maxmsgs","maxcalls",
+                 "concurrency","bilingual","deadline","translate_article"];
 
 function bool(v, dflt) {
   if (v === true || v === false) return v;
