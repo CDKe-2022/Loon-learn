@@ -1,12 +1,30 @@
 #!name = BBC News Translate
-#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 首页/话题/文章接口的新闻标题、摘要、栏目标题。引擎: Google 免费端点 / OpenAI 兼容 AI。
+#!desc = 翻译 BBC News App (news-app.api.bbc.co.uk) 的新闻标题/摘要/栏目标题。双语显示、缓存去重、Google/AI 双引擎。
 #!author = adapted from Discord Translate v1.6
 #!icon = https://www.bbc.co.uk/favicon.ico
-#!arguments = enabled,debug,target_lang,engine,provider,api_key,model,custom_base_url,custom_prompt,cache_on,maxmsgs,maxcalls,concurrency,bilingual
-#!arguments-desc = enabled: 总开关 (true/false)\ndebug: 输出详细日志\ntarget_lang: 目标语言 (zh-CN/zh-TW/ja/ko...)\nengine: auto / google / ai\nprovider: ai供应商 openai/openrouter/自定义端点\napi_key: AI 的 API Key (留空自动用 Google)\nmodel: 模型名 (留空自动探测)\ncustom_base_url: 自定义端点\ncustom_prompt: AI 翻译风格\ncache_on: 缓存 (true/false)\nmaxmsgs: 单次响应最多翻译条数 (默认40)\nmaxcalls: 单次响应最多网络调用数 (默认30)\nconcurrency: 并发数 (默认6)\nbilingual: 双语显示 原文+译文 (true/false)
+#!open_url = https://www.bbc.co.uk/news
+
+[Argument]
+enabled = switch, true, tag=启用翻译, desc=关闭后所有响应原样放行
+debug = switch, false, tag=调试日志, desc=在 Loon 日志查看每条翻译过程
+target_lang = select, "zh-CN", "zh-TW", "zh", "ja", "ko", tag=目标语言, desc=译文语言
+engine = select, "google", "ai", tag=翻译引擎, desc=google=免费谷歌接口; ai=需填 API Key
+provider = select, "openai", "openrouter", "自定义端点", tag=AI供应商, desc=仅 engine=ai 时生效
+api_key = input, tag=API Key, desc=AI 引擎必填; 留空则引擎自动回退 google
+model = input, tag=模型名, desc=留空自动探测(gpt-4o-mini 优先)
+custom_base_url = input, tag=自定义端点URL, desc=provider 选"自定义端点"时填写
+custom_prompt = input, tag=AI翻译风格, desc=留空用内置默认风格
+cache_on = switch, true, tag=启用缓存, desc=相同原文不重复请求
+maxmsgs = input, 40, tag=单次最大翻译条数, desc=一屏新闻太多时防止过载
+maxcalls = input, 30, tag=单次最大网络调用, desc=每响应最多发出的翻译请求数
+concurrency = input, 6, tag=并发数, desc=同时进行的翻译请求; 卡顿就调小
+bilingual = switch, true, tag=双语显示, desc=英文原文在上中文在下; 关闭则只显示译文
+deadline = input, 9000, tag=翻译超时(毫秒), desc=到点立即返回已完成部分, 防止 App 等待过久
+translate_article = switch, false, tag=翻译文章详情页, desc=默认关闭; 文章正文长, 开启可能拖慢打开速度
 
 [Script]
-http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, argument=enabled=true&debug=false&target_lang=zh-CN&engine=google&cache_on=true&maxmsgs=40&maxcalls=30&concurrency=6&bilingual=false
+http-response ^https?:\/\/news-app\.api\.bbc\.co\.uk\/fd\/ script-path= https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/test/bbc.js,requires-body=1, max-size=0, timeout=60, tag=BBC翻译, enable={enabled}, argument=[{enabled},{debug},{target_lang},{engine},{provider},{api_key},{model},{custom_base_url},{custom_prompt},{cache_on},{maxmsgs},{maxcalls},{concurrency},{bilingual},{deadline},{translate_article}]
+
 
 [MITM]
 hostname = %APPEND% news-app.api.bbc.co.uk
