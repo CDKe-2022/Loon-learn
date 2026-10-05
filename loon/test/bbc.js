@@ -1,17 +1,14 @@
 (function () {
 /*
- BBC News Translate v1.0 — Loon / Shadowrocket 响应改写脚本
- 改写 news-app.api.bbc.co.uk/fd/app-topic-api | app-article-api | app-front-page 的 JSON。
-
- 与 Discord 版的差异:
-  - BBC 响应是嵌套树, 用「递归遍历 + 字段白名单」收集文本 (不碰 link/trackers/url)
-  - 相同原文跨位置去重, 只翻译一次 (首页 "Most Read" 与头条区大量重复)
-  - 缓存键带目标语言, 切换语言不会串缓存
-  - AI 引擎把多条文本用 @@SEG@@ 合并成一次调用 (每组最多 8 条)
+ BBC News Translate v1.1 — Loon 响应改写脚本
+ v1.1:
+  - 不再翻译 attribution.name / metadata.name / location.name (name 从白名单移除, attribution 子树跳过)
+  - maxmsgs/maxcalls 默认 0=不限制, 靠 deadline 兜底
+  - 补翻队列 BBCNTQueue:<lang>: 本轮没翻完的文本入队, 下次任一 BBC 响应经过时优先补翻入缓存
 */
 var ARG_ORDER = ["enabled","debug","target_lang","engine","provider","api_key","model",
                  "custom_base_url","custom_prompt","cache_on","maxmsgs","maxcalls",
-                 "concurrency","bilingual","deadline","translate_article"];
+                 "concurrency","bilingual","deadline","translate_article","queue_flush"];
 
 function bool(v, dflt) {
   if (v === true || v === false) return v;
@@ -75,7 +72,7 @@ function bodyText(b) {
   try { return String(b); } catch (e4) { return null; }
 }
 
-/* ---------- 语言判断 (同 Discord 版): 已是目标语言就不送翻 ---------- */
+/* ---------- 语言判断 ---------- */
 var _KANA = /[\u3040-\u30FF]/;
 var _HANGUL = /[\uAC00-\uD7AF\u1100-\u11FF]/;
 function isTargetLang(s, tl) {
@@ -92,9 +89,12 @@ function isTargetLang(s, tl) {
   return false;
 }
 
-/* ---------- 字段收集: 递归 + 白名单 ---------- */
+/* ---------- 字段收集: 递归 + 白名单 ----------
+   注意: 不含 "name" —— attribution.name(UK/Politics 等栏目标签)、
+   metadata.name(页面标题)、location.name(E1) 均不翻译。
+   attribution/link/trackers 三个子树整棵跳过。 */
 var FIELD_KEYS = ["text", "subtext", "caption", "altText", "summary", "headline",
-                  "description", "subtitle", "title", "period", "name"];
+                  "description", "subtitle", "title", "period"];
 
 function pushField(obj, key, fields) {
   var v = obj[key];
@@ -109,13 +109,13 @@ function walk(node, fields) {
   if (!node || typeof node !== "object") return;
   for (var fi = 0; fi < FIELD_KEYS.length; fi++) pushField(node, FIELD_KEYS[fi], fields);
   for (var k in node) {
-    if (k === "link" || k === "trackers") continue;   /* 跳过链接与埋点 */
+    if (k === "link" || k === "trackers" || k === "attribution") continue;
     var v = node[k];
     if (v && typeof v === "object") walk(v, fields);
   }
 }
 
-/* ---------- 谷歌翻译 (3 个免费端点轮换, 与 Discord 版同款) ---------- */
+/* ---------- 谷歌翻译 ---------- */
 var GG_HOSTS = [
   "https://translate.googleapis.com/translate_a/single?client=gtx",
   "https://clients5.google.com/translate_a/single?client=dict-chrome-ex",
@@ -152,7 +152,7 @@ function translateGoogle(text, targetLang, done) {
   tryNext();
 }
 
-/* ---------- AI 翻译 (OpenAI 兼容) ---------- */
+/* ---------- AI 翻译 ---------- */
 function lanDirect(url) {
   var mh = url.match(/^https?:\/\/([^\/:]+)/i);
   return !!(mh && /^(localhost$|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(mh[1]));
@@ -173,7 +173,7 @@ function fetchAIModel(cfg, callback) {
   var opts = { url: url, headers: { "Authorization": "Bearer " + cfg.apiKey, "Accept": "application/json" }, timeout: 10000 };
   if (lanDirect(url)) { opts.node = "DIRECT"; opts.policy = "DIRECT"; }
   $httpClient.get(opts, function (err, resp, data) {
-    if (err) { callback(null, "MODELS ERR " + String(err).slice(0, 120)); return; }
+    if (err) { callback(null, "MODELS ERR"); return; }
     try {
       var out = JSON.parse(data);
       if (out.error && out.error.message) { callback(null, String(out.error.message).slice(0, 140)); return; }
@@ -206,7 +206,7 @@ function translateAI(text, targetLang, cfg, done) {
         var c = out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content;
         if (typeof c === "string" && c.trim()) done(c.trim(), null);
         else done(null, "AI BAD " + (out.error && out.error.message || "").slice(0, 120));
-      } catch (e) { done(null, "AI PARSE " + String(data || "").slice(0, 120)); }
+      } catch (e) { done(null, "AI PARSE"); }
     });
   };
   if (cfg.model) { finish(); return; }
@@ -228,26 +228,18 @@ function translateAI(text, targetLang, cfg, done) {
     var reqUrl = $request ? $request.url : "";
     if (!/news-app\.api\.bbc\.co\.uk\/fd\//i.test(reqUrl)) { doneOnce({}); return; }
 
-    /* 文章详情接口默认直接放行 —— 它是"点进新闻"的第二个请求,
-       文本量大、翻译慢会卡住文章打开。想翻文章把 translate_article=true */
     var isArticle = /app-article-api/i.test(reqUrl);
-    if (isArticle && !bool(CFG.translate_article, false)) {
-      probeLog("文章接口", "直接放行");
-      doneOnce({}); return;
-    }
+    if (isArticle && !bool(CFG.translate_article, false)) { probeLog("文章接口", "放行"); doneOnce({}); return; }
 
     var body = bodyText($response ? $response.body : null);
     if (!body) { doneOnce({}); return; }
-
     var root = null;
     try { root = JSON.parse(body); } catch (e) { doneOnce({}); return; }
     if (!root || typeof root !== "object") { doneOnce({}); return; }
 
-    /* 1. 递归收集白名单字段 */
+    /* 1. 收集 + 去重 */
     var fields = [];
     walk(root, fields);
-
-    /* 2. 去重 + 语言过滤; 文章页只翻短文本(标题/摘要), 长正文不动 */
     var groups = {}, order = [];
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
@@ -257,12 +249,15 @@ function translateAI(text, targetLang, cfg, done) {
       groups[f.text] = [f]; order.push(f.text);
     }
 
-    /* 3. 查缓存 */
+    /* 2. 缓存 + 补翻队列 */
     var cacheKey = "BBCNTCache:" + TL;
     var CACHE = {};
     if (bool(CFG.cache_on, true)) {
       try { CACHE = JSON.parse($persistentStore.read(cacheKey) || "{}") || {}; } catch (e) { }
     }
+    var QUEUE_KEY = "BBCNTQueue:" + TL;
+    var QUEUE = {};
+    try { QUEUE = JSON.parse($persistentStore.read(QUEUE_KEY) || "{}") || {}; } catch (e) { }
 
     var changed = 0, firstErr = null;
     var BI = bool(CFG.bilingual, true);
@@ -273,6 +268,7 @@ function translateAI(text, targetLang, cfg, done) {
       }
     }
 
+    /* 3. 当前响应的待翻文本; 缓存命中的直接回填 */
     var todo = [];
     for (var oi = 0; oi < order.length; oi++) {
       var tx = order[oi];
@@ -280,55 +276,86 @@ function translateAI(text, targetLang, cfg, done) {
       else todo.push(tx);
     }
 
-    var maxmsgs = num(CFG.maxmsgs, 40);
+    /* 4. 队列补翻: 从上一轮欠账里挑一批(不在本次响应中的)翻掉写缓存 */
+    var flushN = num(CFG.queue_flush, 15);
+    var flushing = [];
+    if (flushN > 0) {
+      for (var qk in QUEUE) {
+        if (groups[qk] !== undefined) continue;   /* 本次响应自己会翻, 不重复 */
+        flushing.push(qk);
+        if (flushing.length >= flushN) break;
+      }
+    }
+
+    var maxmsgs = num(CFG.maxmsgs, 0);           /* 0 = 不限制 */
     if (maxmsgs > 0 && todo.length > maxmsgs) { todo = todo.slice(0, maxmsgs); probeLog("截断", "超出 maxmsgs"); }
 
-    /* 4. 组装翻译单元 */
+    /* 5. 组装单元: 补翻在前保证队列推进, 当前响应在后 */
     var engine = str(CFG.engine, "auto");
     if (engine === "auto") engine = str(CFG.api_key, "") ? "ai" : "google";
 
-    var units = [];
+    var cfgAI = null;
     if (engine === "ai") {
-      var cfgAI = {
+      cfgAI = {
         provider: str(CFG.provider, ""), apiKey: str(CFG.api_key, ""),
         model: str(CFG.model, ""), customBase: str(CFG.custom_base_url, ""),
         customPrompt: str(CFG.custom_prompt, "")
       };
       cfgAI.base = providerBase(cfgAI.provider, cfgAI.customBase);
-      for (var b = 0; b < todo.length; b += 8) units.push({ kind: "a", texts: todo.slice(b, b + 8), cfg: cfgAI });
-    } else {
-      for (var g = 0; g < todo.length; g++) units.push({ kind: "g", text: todo[g] });
     }
-    var maxcalls = num(CFG.maxcalls, 30);
-    if (units.length > maxcalls) units = units.slice(0, maxcalls);
+
+    var units = [];
+    function pushUnits(texts) {
+      if (engine === "ai") {
+        for (var b = 0; b < texts.length; b += 8) units.push({ kind: "a", texts: texts.slice(b, b + 8), cfg: cfgAI });
+      } else {
+        for (var g = 0; g < texts.length; g++) units.push({ kind: "g", text: texts[g] });
+      }
+    }
+    pushUnits(flushing);
+    pushUnits(todo);
+
+    var maxcalls = num(CFG.maxcalls, 0);
+    if (maxcalls > 0 && units.length > maxcalls) units = units.slice(0, maxcalls);
 
     var T0 = Date.now();
     var FINISHED = false;
     function safeFinish() {
       if (FINISHED) return; FINISHED = true;
+      /* 更新补翻队列: 没翻成的留在队里, 下轮再试 */
+      var q2 = {};
+      for (var fk in QUEUE) q2[fk] = true;                 /* 成功的已在回调里 delete */
+      for (var ti = 0; ti < todo.length; ti++) {
+        if (!CACHE[todo[ti]]) q2[todo[ti]] = true;         /* 本响应里没翻成的入队 */
+      }
+      var ks = Object.keys(q2);
+      if (ks.length > 300) { q2 = {}; for (var k2 = ks.length - 300; k2 < ks.length; k2++) q2[ks[k2]] = true; }
+      try { $persistentStore.write(JSON.stringify(q2), QUEUE_KEY); } catch (e) { }
+
       if (bool(CFG.cache_on, true)) {
         try {
-          var ks = Object.keys(CACHE);
-          if (ks.length > 800) { for (var d = 0; d < ks.length - 600; d++) delete CACHE[ks[d]]; }
+          var cks = Object.keys(CACHE);
+          if (cks.length > 800) { for (var d = 0; d < cks.length - 600; d++) delete CACHE[cks[d]]; }
           $persistentStore.write(JSON.stringify(CACHE), cacheKey);
         } catch (e) { }
       }
       if (changed === 0 && firstErr) {
-        probeLog("失败", firstErr);
         try { $notification.post("BBC Translate", "", "翻译失败: " + firstErr); } catch (ne) { }
       }
-      probeLog("完成", "new=" + changed + " 耗时=" + (Date.now() - T0) + "ms");
+      probeLog("完成", "new=" + changed + " 队列余=" + ks.length + " 耗时=" + (Date.now() - T0) + "ms");
       doneOnce(changed ? { body: JSON.stringify(root) } : {});
     }
 
-    /* 硬性 deadline: 到点立刻返回已完成部分, 不让 App 干等 */
-    try { setTimeout(safeFinish, num(CFG.deadline, 9000)); } catch (e) { }
+    try { setTimeout(safeFinish, num(CFG.deadline, 12000)); } catch (e) { }
 
     function startUnit(u, onDone) {
       if (u.kind === "g") {
         translateGoogle(u.text, TL, function (tr, er) {
           if (er && !firstErr) firstErr = er;
-          if (tr) { CACHE[u.text] = tr; apply(groups[u.text], tr); changed++; }
+          if (tr) {
+            CACHE[u.text] = tr; delete QUEUE[u.text];
+            apply(groups[u.text], tr); changed++;
+          }
           onDone();
         });
       } else {
@@ -340,7 +367,10 @@ function translateAI(text, targetLang, cfg, done) {
             if (parts.length === u.texts.length) {
               for (var p = 0; p < u.texts.length; p++) {
                 var t2 = parts[p].trim();
-                if (t2) { CACHE[u.texts[p]] = t2; apply(groups[u.texts[p]], t2); changed++; }
+                if (t2) {
+                  CACHE[u.texts[p]] = t2; delete QUEUE[u.texts[p]];
+                  apply(groups[u.texts[p]], t2); changed++;
+                }
               }
             } else probeLog("AI分段失配", "期望 " + u.texts.length + " 实得 " + parts.length);
           }
@@ -349,7 +379,6 @@ function translateAI(text, targetLang, cfg, done) {
       }
     }
 
-    /* 5. 有界并发 */
     var CONC = Math.max(1, num(CFG.concurrency, engine === "ai" ? 3 : 6));
     var nextIdx = 0, running = 0, doneN = 0;
     var total = units.length;
