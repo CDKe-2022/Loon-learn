@@ -1,14 +1,19 @@
 (function () {
 /*
- BBC News Translate v1.1 — Loon 响应改写脚本
+ BBC News Translate v1.2 — Loon 响应改写脚本 (首页 + 文章)
+ v1.2:
+  - 支持文章详情接口(app-article-api): 递归遍历天然覆盖正文段落
+  - 带 spans(链接/加粗/斜体偏移)的段落强制双语 —— 原文在前保证偏移不错位, 链接可点
+  - 文章段落长度上限 article_maxlen(默认1200)取代之前硬编码的 220
  v1.1:
-  - 不再翻译 attribution.name / metadata.name / location.name (name 从白名单移除, attribution 子树跳过)
+  - 不翻 attribution.name / metadata.name / location.name (name 移出白名单, attribution 子树跳过)
   - maxmsgs/maxcalls 默认 0=不限制, 靠 deadline 兜底
-  - 补翻队列 BBCNTQueue:<lang>: 本轮没翻完的文本入队, 下次任一 BBC 响应经过时优先补翻入缓存
+  - 补翻队列 BBCNTQueue:<lang>: 本轮没翻完入队, 下次任一 BBC 响应经过时优先补翻
 */
 var ARG_ORDER = ["enabled","debug","target_lang","engine","provider","api_key","model",
                  "custom_base_url","custom_prompt","cache_on","maxmsgs","maxcalls",
-                 "concurrency","bilingual","deadline","translate_article","queue_flush"];
+                 "concurrency","bilingual","deadline","translate_article",
+                 "queue_flush","article_maxlen"];
 
 function bool(v, dflt) {
   if (v === true || v === false) return v;
@@ -90,9 +95,9 @@ function isTargetLang(s, tl) {
 }
 
 /* ---------- 字段收集: 递归 + 白名单 ----------
-   注意: 不含 "name" —— attribution.name(UK/Politics 等栏目标签)、
-   metadata.name(页面标题)、location.name(E1) 均不翻译。
-   attribution/link/trackers 三个子树整棵跳过。 */
+   白名单不含 "name" —— attribution.name / metadata.name / topic.name 均不翻。
+   link / trackers / attribution 子树整棵跳过。
+   spanned: 该对象含 spans 数组(样式偏移), 回填时强制双语。 */
 var FIELD_KEYS = ["text", "subtext", "caption", "altText", "summary", "headline",
                   "description", "subtitle", "title", "period"];
 
@@ -100,7 +105,8 @@ function pushField(obj, key, fields) {
   var v = obj[key];
   if (typeof v === "string" && v.length >= 2 && v.length <= 3000 &&
       !/^https?:\/\//i.test(v) && !/^[\d\s.:%\/-]+$/.test(v)) {
-    fields.push({ obj: obj, key: key, text: v });
+    var sp = obj.spans;
+    fields.push({ obj: obj, key: key, text: v, spanned: !!(sp && sp.length) });
   }
 }
 
@@ -229,13 +235,16 @@ function translateAI(text, targetLang, cfg, done) {
     if (!/news-app\.api\.bbc\.co\.uk\/fd\//i.test(reqUrl)) { doneOnce({}); return; }
 
     var isArticle = /app-article-api/i.test(reqUrl);
-    if (isArticle && !bool(CFG.translate_article, false)) { probeLog("文章接口", "放行"); doneOnce({}); return; }
+    if (isArticle && !bool(CFG.translate_article, true)) { probeLog("文章接口", "放行"); doneOnce({}); return; }
 
     var body = bodyText($response ? $response.body : null);
     if (!body) { doneOnce({}); return; }
     var root = null;
     try { root = JSON.parse(body); } catch (e) { doneOnce({}); return; }
     if (!root || typeof root !== "object") { doneOnce({}); return; }
+
+    var ART_MAX = num(CFG.article_maxlen, 1200);
+    var LEN_MAX = isArticle ? ART_MAX : 3000;
 
     /* 1. 收集 + 去重 */
     var fields = [];
@@ -245,11 +254,11 @@ function translateAI(text, targetLang, cfg, done) {
       var f = fields[i];
       if (groups[f.text]) { groups[f.text].push(f); continue; }
       if (isTargetLang(f.text, TL)) continue;
-      if (isArticle && f.text.length > 220) continue;
+      if (f.text.length > LEN_MAX) continue;
       groups[f.text] = [f]; order.push(f.text);
     }
 
-    /* 2. 缓存 + 补翻队列 */
+    /* 2. 缓存 + 补翻队列 (首页与文章共享) */
     var cacheKey = "BBCNTCache:" + TL;
     var CACHE = {};
     if (bool(CFG.cache_on, true)) {
@@ -264,11 +273,14 @@ function translateAI(text, targetLang, cfg, done) {
     function apply(refs, tr) {
       if (!refs) return;
       for (var j = 0; j < refs.length; j++) {
-        refs[j].obj[refs[j].key] = BI ? (refs[j].text + "\n" + tr) : tr;
+        /* 带 spans 的段落(链接/加粗/斜体偏移)强制双语: 原文在前,
+           span 的 startIndex/length 相对原文依然有效, 链接可点 */
+        var bi = refs[j].spanned ? true : BI;
+        refs[j].obj[refs[j].key] = bi ? (refs[j].text + "\n" + tr) : tr;
       }
     }
 
-    /* 3. 当前响应的待翻文本; 缓存命中的直接回填 */
+    /* 3. 当前响应待翻文本; 缓存命中直接回填 */
     var todo = [];
     for (var oi = 0; oi < order.length; oi++) {
       var tx = order[oi];
@@ -276,21 +288,21 @@ function translateAI(text, targetLang, cfg, done) {
       else todo.push(tx);
     }
 
-    /* 4. 队列补翻: 从上一轮欠账里挑一批(不在本次响应中的)翻掉写缓存 */
+    /* 4. 队列补翻 */
     var flushN = num(CFG.queue_flush, 15);
     var flushing = [];
     if (flushN > 0) {
       for (var qk in QUEUE) {
-        if (groups[qk] !== undefined) continue;   /* 本次响应自己会翻, 不重复 */
+        if (groups[qk] !== undefined) continue;
         flushing.push(qk);
         if (flushing.length >= flushN) break;
       }
     }
 
-    var maxmsgs = num(CFG.maxmsgs, 0);           /* 0 = 不限制 */
+    var maxmsgs = num(CFG.maxmsgs, 0);
     if (maxmsgs > 0 && todo.length > maxmsgs) { todo = todo.slice(0, maxmsgs); probeLog("截断", "超出 maxmsgs"); }
 
-    /* 5. 组装单元: 补翻在前保证队列推进, 当前响应在后 */
+    /* 5. 组装翻译单元: 补翻在前, 当前响应在后 */
     var engine = str(CFG.engine, "auto");
     if (engine === "auto") engine = str(CFG.api_key, "") ? "ai" : "google";
 
@@ -322,11 +334,10 @@ function translateAI(text, targetLang, cfg, done) {
     var FINISHED = false;
     function safeFinish() {
       if (FINISHED) return; FINISHED = true;
-      /* 更新补翻队列: 没翻成的留在队里, 下轮再试 */
       var q2 = {};
-      for (var fk in QUEUE) q2[fk] = true;                 /* 成功的已在回调里 delete */
+      for (var fk in QUEUE) q2[fk] = true;              /* 成功的在回调里已 delete */
       for (var ti = 0; ti < todo.length; ti++) {
-        if (!CACHE[todo[ti]]) q2[todo[ti]] = true;         /* 本响应里没翻成的入队 */
+        if (!CACHE[todo[ti]]) q2[todo[ti]] = true;      /* 本响应没翻成的入队 */
       }
       var ks = Object.keys(q2);
       if (ks.length > 300) { q2 = {}; for (var k2 = ks.length - 300; k2 < ks.length; k2++) q2[ks[k2]] = true; }
