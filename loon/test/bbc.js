@@ -222,129 +222,152 @@ function translateAI(text, targetLang, cfg, done) {
 
 /* ---------- 主流程 ---------- */
 (function main() {
-  if (bool(CFG.enabled, true) === false) { doneOnce({}); return; }
-  var reqUrl = $request ? $request.url : "";
-  if (!/news-app\.api\.bbc\.co\.uk\/fd\//i.test(reqUrl)) { doneOnce({}); return; }
-  var body = bodyText($response ? $response.body : null);
-  if (!body) { doneOnce({}); return; }
+  try {
+    if (bool(CFG.enabled, true) === false) { doneOnce({}); return; }
+    var reqUrl = $request ? $request.url : "";
+    if (!/news-app\.api\.bbc\.co\.uk\/fd\//i.test(reqUrl)) { doneOnce({}); return; }
 
-  var root = null;
-  try { root = JSON.parse(body); } catch (e) { doneOnce({}); return; }
-  if (!root || typeof root !== "object") { doneOnce({}); return; }
-
-  /* 1. 递归收集所有白名单字段 */
-  var fields = [];
-  walk(root, fields);
-
-  /* 2. 按原文去重 (同一条新闻出现在 头条区/Most Read 多处, 只翻一次) */
-  var groups = {}, order = [];
-  for (var i = 0; i < fields.length; i++) {
-    var f = fields[i];
-    if (groups[f.text]) { groups[f.text].push(f); continue; }
-    if (isTargetLang(f.text, TL)) continue;
-    groups[f.text] = [f]; order.push(f.text);
-  }
-
-  /* 3. 查缓存 */
-  var cacheKey = "BBCNTCache:" + TL;
-  var CACHE = {};
-  if (bool(CFG.cache_on, true)) {
-    try { CACHE = JSON.parse($persistentStore.read(cacheKey) || "{}") || {}; } catch (e) { }
-  }
-
-  var changed = 0, firstErr = null;
-  function apply(refs, tr) {
-    if (!refs) return;
-    var bi = bool(CFG.bilingual, false);
-    for (var j = 0; j < refs.length; j++) {
-      refs[j].obj[refs[j].key] = bi ? (refs[j].text + "\n" + tr) : tr;
+    /* 文章详情接口默认直接放行 —— 它是"点进新闻"的第二个请求,
+       文本量大、翻译慢会卡住文章打开。想翻文章把 translate_article=true */
+    var isArticle = /app-article-api/i.test(reqUrl);
+    if (isArticle && !bool(CFG.translate_article, false)) {
+      probeLog("文章接口", "直接放行");
+      doneOnce({}); return;
     }
-  }
 
-  var todo = [];
-  for (var oi = 0; oi < order.length; oi++) {
-    var tx = order[oi];
-    if (CACHE[tx]) { apply(groups[tx], CACHE[tx]); changed++; }
-    else todo.push(tx);
-  }
+    var body = bodyText($response ? $response.body : null);
+    if (!body) { doneOnce({}); return; }
 
-  var maxmsgs = num(CFG.maxmsgs, 40);
-  if (maxmsgs > 0 && todo.length > maxmsgs) { todo = todo.slice(0, maxmsgs); probeLog("截断", "超出 maxmsgs"); }
+    var root = null;
+    try { root = JSON.parse(body); } catch (e) { doneOnce({}); return; }
+    if (!root || typeof root !== "object") { doneOnce({}); return; }
 
-  /* 4. 组装翻译单元: google=每条一次; ai=8条拼一块 @@SEG@@ 一次调用 */
-  var engine = str(CFG.engine, "auto");
-  if (engine === "auto") engine = str(CFG.api_key, "") ? "ai" : "google";
+    /* 1. 递归收集白名单字段 */
+    var fields = [];
+    walk(root, fields);
 
-  var units = [];
-  if (engine === "ai") {
-    var cfgAI = {
-      provider: str(CFG.provider, ""), apiKey: str(CFG.api_key, ""),
-      model: str(CFG.model, ""), customBase: str(CFG.custom_base_url, ""),
-      customPrompt: str(CFG.custom_prompt, "")
-    };
-    cfgAI.base = providerBase(cfgAI.provider, cfgAI.customBase);
-    for (var b = 0; b < todo.length; b += 8) units.push({ kind: "a", texts: todo.slice(b, b + 8), cfg: cfgAI });
-  } else {
-    for (var g = 0; g < todo.length; g++) units.push({ kind: "g", text: todo[g] });
-  }
-  var maxcalls = num(CFG.maxcalls, 30);
-  if (units.length > maxcalls) units = units.slice(0, maxcalls);
-
-  function startUnit(u, onDone) {
-    if (u.kind === "g") {
-      translateGoogle(u.text, TL, function (tr, er) {
-        if (er && !firstErr) firstErr = er;
-        if (tr) { CACHE[u.text] = tr; apply(groups[u.text], tr); changed++; probeLog("谷歌", u.text.slice(0, 20) + " → " + tr.slice(0, 20)); }
-        onDone();
-      });
-    } else {
-      var joined = u.texts.join("\n\n@@SEG@@\n\n");
-      translateAI(joined, TL, u.cfg, function (tr, er) {
-        if (er && !firstErr) firstErr = er;
-        if (tr) {
-          var parts = tr.split("@@SEG@@");
-          if (parts.length === u.texts.length) {
-            for (var p = 0; p < u.texts.length; p++) {
-              var t2 = parts[p].trim();
-              if (t2) { CACHE[u.texts[p]] = t2; apply(groups[u.texts[p]], t2); changed++; }
-            }
-          } else probeLog("AI分段失配", "期望 " + u.texts.length + " 实得 " + parts.length);
-        }
-        onDone();
-      });
+    /* 2. 去重 + 语言过滤; 文章页只翻短文本(标题/摘要), 长正文不动 */
+    var groups = {}, order = [];
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i];
+      if (groups[f.text]) { groups[f.text].push(f); continue; }
+      if (isTargetLang(f.text, TL)) continue;
+      if (isArticle && f.text.length > 220) continue;
+      groups[f.text] = [f]; order.push(f.text);
     }
-  }
 
-  function finish() {
+    /* 3. 查缓存 */
+    var cacheKey = "BBCNTCache:" + TL;
+    var CACHE = {};
     if (bool(CFG.cache_on, true)) {
-      try {
-        var ks = Object.keys(CACHE);
-        if (ks.length > 800) { for (var d = 0; d < ks.length - 600; d++) delete CACHE[ks[d]]; }
-        $persistentStore.write(JSON.stringify(CACHE), cacheKey);
-      } catch (e) { }
+      try { CACHE = JSON.parse($persistentStore.read(cacheKey) || "{}") || {}; } catch (e) { }
     }
-    if (changed === 0 && firstErr) {
-      probeLog("失败", firstErr);
-      try { $notification.post("BBC Translate", "", "翻译失败: " + firstErr); } catch (ne) { }
-    }
-    probeLog("完成", "new=" + changed);
-    doneOnce(changed ? { body: JSON.stringify(root) } : {});
-  }
 
-  /* 5. 有界并发执行 */
-  var CONC = Math.max(1, num(CFG.concurrency, engine === "ai" ? 3 : 6));
-  var nextIdx = 0, running = 0, doneN = 0;
-  var total = units.length;
-  function pump() {
-    while (running < CONC && nextIdx < total) {
-      var u = units[nextIdx++];
-      running++;
-      startUnit(u, function () {
-        running--; doneN++;
-        if (doneN >= total) finish(); else pump();
-      });
+    var changed = 0, firstErr = null;
+    var BI = bool(CFG.bilingual, true);
+    function apply(refs, tr) {
+      if (!refs) return;
+      for (var j = 0; j < refs.length; j++) {
+        refs[j].obj[refs[j].key] = BI ? (refs[j].text + "\n" + tr) : tr;
+      }
     }
+
+    var todo = [];
+    for (var oi = 0; oi < order.length; oi++) {
+      var tx = order[oi];
+      if (CACHE[tx]) { apply(groups[tx], CACHE[tx]); changed++; }
+      else todo.push(tx);
+    }
+
+    var maxmsgs = num(CFG.maxmsgs, 40);
+    if (maxmsgs > 0 && todo.length > maxmsgs) { todo = todo.slice(0, maxmsgs); probeLog("截断", "超出 maxmsgs"); }
+
+    /* 4. 组装翻译单元 */
+    var engine = str(CFG.engine, "auto");
+    if (engine === "auto") engine = str(CFG.api_key, "") ? "ai" : "google";
+
+    var units = [];
+    if (engine === "ai") {
+      var cfgAI = {
+        provider: str(CFG.provider, ""), apiKey: str(CFG.api_key, ""),
+        model: str(CFG.model, ""), customBase: str(CFG.custom_base_url, ""),
+        customPrompt: str(CFG.custom_prompt, "")
+      };
+      cfgAI.base = providerBase(cfgAI.provider, cfgAI.customBase);
+      for (var b = 0; b < todo.length; b += 8) units.push({ kind: "a", texts: todo.slice(b, b + 8), cfg: cfgAI });
+    } else {
+      for (var g = 0; g < todo.length; g++) units.push({ kind: "g", text: todo[g] });
+    }
+    var maxcalls = num(CFG.maxcalls, 30);
+    if (units.length > maxcalls) units = units.slice(0, maxcalls);
+
+    var T0 = Date.now();
+    var FINISHED = false;
+    function safeFinish() {
+      if (FINISHED) return; FINISHED = true;
+      if (bool(CFG.cache_on, true)) {
+        try {
+          var ks = Object.keys(CACHE);
+          if (ks.length > 800) { for (var d = 0; d < ks.length - 600; d++) delete CACHE[ks[d]]; }
+          $persistentStore.write(JSON.stringify(CACHE), cacheKey);
+        } catch (e) { }
+      }
+      if (changed === 0 && firstErr) {
+        probeLog("失败", firstErr);
+        try { $notification.post("BBC Translate", "", "翻译失败: " + firstErr); } catch (ne) { }
+      }
+      probeLog("完成", "new=" + changed + " 耗时=" + (Date.now() - T0) + "ms");
+      doneOnce(changed ? { body: JSON.stringify(root) } : {});
+    }
+
+    /* 硬性 deadline: 到点立刻返回已完成部分, 不让 App 干等 */
+    try { setTimeout(safeFinish, num(CFG.deadline, 9000)); } catch (e) { }
+
+    function startUnit(u, onDone) {
+      if (u.kind === "g") {
+        translateGoogle(u.text, TL, function (tr, er) {
+          if (er && !firstErr) firstErr = er;
+          if (tr) { CACHE[u.text] = tr; apply(groups[u.text], tr); changed++; }
+          onDone();
+        });
+      } else {
+        var joined = u.texts.join("\n\n@@SEG@@\n\n");
+        translateAI(joined, TL, u.cfg, function (tr, er) {
+          if (er && !firstErr) firstErr = er;
+          if (tr) {
+            var parts = tr.split("@@SEG@@");
+            if (parts.length === u.texts.length) {
+              for (var p = 0; p < u.texts.length; p++) {
+                var t2 = parts[p].trim();
+                if (t2) { CACHE[u.texts[p]] = t2; apply(groups[u.texts[p]], t2); changed++; }
+              }
+            } else probeLog("AI分段失配", "期望 " + u.texts.length + " 实得 " + parts.length);
+          }
+          onDone();
+        });
+      }
+    }
+
+    /* 5. 有界并发 */
+    var CONC = Math.max(1, num(CFG.concurrency, engine === "ai" ? 3 : 6));
+    var nextIdx = 0, running = 0, doneN = 0;
+    var total = units.length;
+    function pump() {
+      if (FINISHED) return;
+      while (running < CONC && nextIdx < total) {
+        var u = units[nextIdx++];
+        running++;
+        startUnit(u, function () {
+          running--; doneN++;
+          if (doneN >= total) safeFinish(); else pump();
+        });
+      }
+    }
+    if (!total) safeFinish(); else pump();
+
+  } catch (fatal) {
+    probeLog("异常", String(fatal));
+    doneOnce({});
   }
-  if (!total) finish(); else pump();
 })();
 })();
