@@ -1,0 +1,22 @@
+#!name=本机开发服务回环
+#!desc=为本机开发工具提供 LocalDevVPN 的 IPv4 回环机制：将发往 10.7.0.1 的数据包收进 TUN，交换源、目的 IP 后交回本机协议栈，不进入常规规则、不走代理、不转发出网。本插件会关闭整个 TUN 的 IPv6 VIF，适用于只识别无 IPv6 地址 utun 接口的工具。本机服务仍需实际监听；插件不会创建服务或将目标地址映射为 127.0.0.1。需要 Loon Build 1007+。
+#!loon_version=3.5.3(1007)
+#!date=2026-10-10
+#!system=iOS,iPadOS,tvOS,macOS
+#!tag=开发工具,本机回环
+#!type=normal
+
+# 使用方法：启用本插件，并将开发工具的目标地址设置为 10.7.0.1。
+# 如需修改目标 IP，请同时修改下面 include-tun 的 /32 路由和 IP Rewrite 的地址。
+# 当前只支持固定 IPv4 地址与 reflect、reject 或 drop。
+
+[General]
+# 关闭整个 TUN 的 IPv6 VIF；不需要兼容无 IPv6 地址接口的工具时，可以移除此行。
+ipv6-vif=off
+# /32 仅将 10.7.0.1 收进 TUN，不为 TUN 额外绑定接口地址。
+# 与 bypass-tun 的地址和掩码完全相同时，本包含路由优先。
+# 本行也可放在主配置；主配置与所有启用插件的包含路由合并去重。
+include-tun=10.7.0.1/32
+
+[IP Rewrite]
+10.7.0.1=reflect
