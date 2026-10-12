@@ -22,9 +22,15 @@
 const KEY_RT = "wb_refresh_token";
 const KEY_AT = "wb_access_token";
 const KEY_AT_EXP = "wb_access_token_exp";
+const NS = "wb_token";              // 通知去重/冷却用的键前缀
 const MAX_BODY = 2 * 1024 * 1024;   // 超过 2MB 不扫描
 const MAX_NODES = 4000;             // 遍历节点上限，防超大 JSON
 const MAX_DEPTH = 8;
+
+/* 抓取成功时是否发通知；任意两次通知的最小间隔（秒）
+ * 说明：令牌若随每次请求轮换，会造成通知轰炸，故与 wb-cookie 同样加冷却与去重 */
+const ENABLE_CAPTURE_NOTIFY = true;
+const NOTIFY_MIN_INTERVAL = 60;
 
 function fmt(ts) {
   const d = new Date(ts * 1000);
@@ -33,11 +39,28 @@ function fmt(ts) {
     p(d.getHours()) + ":" + p(d.getMinutes());
 }
 
-function saveIfChanged(key, value, subtitle, body) {
+/* 按「身份」去重 + 冷却期 的通知 */
+function notifyOnce(id, subtitle, body) {
+  if (!ENABLE_CAPTURE_NOTIFY) return false;
+  const now = Math.floor(Date.now() / 1000);
+  const lastId = $persistentStore.read(NS + "_nid") || "";
+  const lastAt = parseInt($persistentStore.read(NS + "_nat"), 10) || 0;
+  if (id && id === lastId) return false;
+  if (now - lastAt < NOTIFY_MIN_INTERVAL) {
+    console.log("wb-token: 通知处于冷却期，已抑制（距上次 " + (now - lastAt) + "s）");
+    return false;
+  }
+  $notification.post("WorkBuddy 签到助手", subtitle, body);
+  if (id) $persistentStore.write(id, NS + "_nid");
+  $persistentStore.write(String(now), NS + "_nat");
+  return true;
+}
+
+/* 仅当值变化时写盘 */
+function saveIfChanged(key, value) {
   const old = $persistentStore.read(key) || "";
   if (old === value) return false;
   $persistentStore.write(value, key);
-  $notification.post("WorkBuddy 签到助手", subtitle, body);
   return true;
 }
 
@@ -102,12 +125,14 @@ function findTokens(root) {
     }
 
     if (found.rt) {
-      saveIfChanged(KEY_RT, found.rt, "已捕获长效令牌",
-        "签到已可脱离浏览器会话运行");
+      saveIfChanged(KEY_RT, found.rt);
+      notifyOnce("rt:" + found.rt.slice(0, 12) + ":" + found.rt.length,
+        "已捕获长效令牌", "签到已可脱离浏览器会话运行");
     }
     if (found.at) {
-      saveIfChanged(KEY_AT, found.at, "已捕获接口令牌",
-        found.exp ? ("有效期至 " + fmt(found.exp)) : "已存入本机");
+      saveIfChanged(KEY_AT, found.at);
+      notifyOnce("at:" + found.at.slice(0, 12) + ":" + found.at.length,
+        "已捕获接口令牌", found.exp ? ("有效期至 " + fmt(found.exp)) : "已存入本机");
       if (found.exp) $persistentStore.write(String(found.exp), KEY_AT_EXP);
     }
   } catch (e) {
