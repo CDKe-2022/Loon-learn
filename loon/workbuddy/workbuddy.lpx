@@ -26,20 +26,20 @@ hostname = www.workbuddy.cn, copilot.tencent.com
 [Script]
 # ① 抓取网页会话凭据（http-request）：在 Safari 访问 workbuddy.cn 时自动保存
 #    只在内容变化时写盘；且有「有效期单调保护」，不会被残留旧标签页的会话冲掉
-http-request ^https?:\/\/www\.workbuddy\.cn\/(console|v2|activity|api) script-path=<COOKIE_URL>,tag=WorkBuddy凭据,enable=true
+http-request ^https?:\/\/www\.workbuddy\.cn\/(console|v2|activity|api) script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/workbuddy/wb-cookie.js,tag=WorkBuddy凭据,enable=true
 
 # ② 自动发现长效令牌（http-response）：被动扫描响应体里的 refreshToken
 #    若该站点确实在用长效令牌，访问一次就会弹「已捕获长效令牌」，之后签到不再依赖浏览器
 #    扫不到则静默退出，不影响任何响应内容
-http-response ^https?:\/\/(www\.workbuddy\.cn|copilot\.tencent\.com)\/ script-path=<TOKEN_URL>,tag=WorkBuddy令牌,enable=true
+http-response ^https?:\/\/(www\.workbuddy\.cn|copilot\.tencent\.com)\/ script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/workbuddy/wb-token.js,tag=WorkBuddy令牌,enable=true
 
 # ③ 每日自动签到 + 派猫猫旅行（cron）：每天 09:00 执行
 #    想改时间就改 "0 9 * * *" 这 5 个字段（分 时 日 月 周）
 #    例如每天 8:30 → "30 8 * * *"；每天 9 点和 20 点 → "0 9,20 * * *"
-cron "0 9 * * *" script-path=<CHECKIN_URL>,tag=WorkBuddy签到,timeout=60,enable=true
+cron "0 9 * * *" script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/workbuddy/wb-checkin.js,tag=WorkBuddy签到,timeout=60,enable=true
 
 # ④ 手动立刻签到（generic）：在 Loon → 脚本 里点一下即可运行，方便调试
-generic script-path=<CHECKIN_URL>,tag=WorkBuddy立即签到,enable=true
+generic script-path=https://raw.githubusercontent.com/CDKe-2022/Loon-learn/refs/heads/main/loon/workbuddy/wb-checkin.js,tag=WorkBuddy立即签到,enable=true
 
 
 # ==========================================================================
