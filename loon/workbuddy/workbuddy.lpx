@@ -28,7 +28,7 @@
 # ==========================================================================
 
 
-[MITM]
+[Mitm]
 # 若你配置里已有 [MITM] 段，请把这两个域名追加到已有 hostname 列表，不要新起一段
 # copilot.tencent.com 用于捕获长效令牌（刷新接口所在域）
 hostname = www.workbuddy.cn, copilot.tencent.com
