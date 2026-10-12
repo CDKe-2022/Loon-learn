@@ -1,3 +1,14 @@
+#!name = workbuddy签到
+#!desc = 每日workbuddy签到以及Cookie获取
+#!author = CDKe-2022
+#!openUrl = https://github.com/CDKe-2022/Loon-learn
+#!homepage = https://github.com/CDKe-2022/Loon-learn
+#!icon =
+#!system = iOS, iPadOS, tvOS, macOS
+#!system_version = 26
+#!loon_version = 3.5.3(1007)
+#!tag = 签到
+#!date = 2026-10-12
 # ==========================================================================
 # WorkBuddy 签到助手 · Loon 配置片段
 # ==========================================================================
