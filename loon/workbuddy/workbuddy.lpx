@@ -1,0 +1,100 @@
+# ==========================================================================
+# WorkBuddy 签到助手 · Loon 配置片段
+# ==========================================================================
+# 把下面的 [MITM] 与 [Script] 两段合并进你的 Loon 配置
+# （Loon → 配置 → 编辑当前配置），或者：
+#   · 另存为一个 .conf 文件放到 GitHub（raw 链接）后用「插件」方式订阅
+#   · 或直接在 Loon → 配置 → 脚本 里手动添加每一条
+#
+# ★ 先替换三个占位符为脚本的真实 URL（见文件末尾「脚本托管」说明）：
+#     <COOKIE_URL>   → wb-cookie.js   的 URL
+#     <TOKEN_URL>    → wb-token.js    的 URL
+#     <CHECKIN_URL>  → wb-checkin.js  的 URL
+#
+# 凭据两档，签到脚本会自动择优（无需配置）：
+#   ① 长效令牌 wb_refresh_token —— 寿命最长、不绑定 UA（若能抓到则优先用）
+#   ② 网页会话 wb_checkin_cookie —— 兜底，寿命约 3 天，绑定 UA
+# ==========================================================================
+
+
+[MITM]
+# 若你配置里已有 [MITM] 段，请把这两个域名追加到已有 hostname 列表，不要新起一段
+# copilot.tencent.com 用于捕获长效令牌（刷新接口所在域）
+hostname = www.workbuddy.cn, copilot.tencent.com
+
+
+[Script]
+# ① 抓取网页会话凭据（http-request）：在 Safari 访问 workbuddy.cn 时自动保存
+#    只在内容变化时写盘；且有「有效期单调保护」，不会被残留旧标签页的会话冲掉
+http-request ^https?:\/\/www\.workbuddy\.cn\/(console|v2|activity|api) script-path=<COOKIE_URL>,tag=WorkBuddy凭据,enable=true
+
+# ② 自动发现长效令牌（http-response）：被动扫描响应体里的 refreshToken
+#    若该站点确实在用长效令牌，访问一次就会弹「已捕获长效令牌」，之后签到不再依赖浏览器
+#    扫不到则静默退出，不影响任何响应内容
+http-response ^https?:\/\/(www\.workbuddy\.cn|copilot\.tencent\.com)\/ script-path=<TOKEN_URL>,tag=WorkBuddy令牌,enable=true
+
+# ③ 每日自动签到 + 派猫猫旅行（cron）：每天 09:00 执行
+#    想改时间就改 "0 9 * * *" 这 5 个字段（分 时 日 月 周）
+#    例如每天 8:30 → "30 8 * * *"；每天 9 点和 20 点 → "0 9,20 * * *"
+cron "0 9 * * *" script-path=<CHECKIN_URL>,tag=WorkBuddy签到,timeout=60,enable=true
+
+# ④ 手动立刻签到（generic）：在 Loon → 脚本 里点一下即可运行，方便调试
+generic script-path=<CHECKIN_URL>,tag=WorkBuddy立即签到,enable=true
+
+
+# ==========================================================================
+# 脚本托管（二选一）
+# ==========================================================================
+#
+# 【方案 A · Loon 本地脚本，最简单、不依赖任何外部服务】
+#   1. 把 wb-cookie.js / wb-token.js / wb-checkin.js 传到 iPhone 的「文件」App
+#      （iCloud 云盘根目录即可）
+#   2. Loon → 配置 → 脚本 → 右上角「+」→ 选择本地文件导入这三个脚本
+#   3. 导入后把上面配置里的 script-path 改成文件名即可：
+#        script-path=wb-cookie.js
+#        script-path=wb-token.js
+#        script-path=wb-checkin.js
+#
+# 【方案 B · URL 托管，便于后续更新】
+#   · GitHub Gist：新建 gist，把三个 .js 内容贴进去，保存后点 Raw 取链接
+#     （形式：https://gist.githubusercontent.com/<用户>/<id>/raw/wb-checkin.js）
+#   · 或用你自己的 Cloudflare Pages 项目：把三个 .js 放进仓库，部署后即得
+#     https://<你的域名>/wb-checkin.js
+#   注意：Loon 要求远程脚本 URL 为 http/https 直链；用 GitHub 时建议 raw.githubusercontent.com。
+#
+#
+# ==========================================================================
+# 使用前必做
+# ==========================================================================
+#
+#   1. 启用 MitM 并信任证书：Loon → 工具 → MitM → 打开「启用 MitM」，
+#      确认 www.workbuddy.cn 与 copilot.tencent.com 都在主机名列表里，
+#      且 Loon 的根证书已在「设置 → 通用 → 关于本机 → 证书信任设置」完全信任。
+#
+#   2. 在 iPhone 的 Safari 里打开 https://www.workbuddy.cn 并登录
+#      （与电脑上是同一个账号）。正常访问几秒后应弹出「凭据已捕获」通知，
+#      说明 wb-cookie.js 生效了。
+#
+#   3. 点一下配置里的「WorkBuddy立即签到」手动跑一次，确认能收到签到通知。
+#      如果随后收到「已捕获长效令牌」，说明自动升级到了更好的凭据档位。
+#
+#
+# ==========================================================================
+# 注意事项（已实测）
+# ==========================================================================
+#
+#   · 网页会话有效期约 3 天，且**不会被访问行为续期**（实测：主站页面与 API 调用
+#     都不下发新 session）。到期只能重新登录一次，凭据会自动重新捕获。
+#     想彻底摆脱这一点，就等 wb-token.js 抓到长效令牌。
+#
+#   · 长效令牌（若有）经官方接口每次自动轮换，脚本会把新令牌回写本机，实现自续；
+#     该刷新接口不校验 User-Agent，因此是最稳的一档凭据。
+#
+#   · Loon 需要保持运行（VPN 处于连接状态）cron 才会触发。iOS 上 Loon 作为
+#     网络扩展可长时间后台驻留，但若被系统回收或你手动关闭 VPN，
+#     当天那次定时就不会执行 —— 建议把 cron 设成你手机通常在线的时间。
+#
+#   · 凭据只保存在 Loon 的本机持久化存储中，脚本不打印、不外传，
+#     也不含任何硬编码的账号信息。
+#
+# ==========================================================================
