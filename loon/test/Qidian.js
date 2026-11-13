@@ -219,13 +219,23 @@ function getTasks(d) {
           id: id, label: m.label, type: m.type, reward: !!m.reward,
           taskType: t.TaskType, raw: t.TaskRawId || '',
           total: total, process: process,
-          slots: 0, pendingSlots: 0, names: []
+          slots: 0, pendingSlots: 0, unclaimed: 0, names: [], detail: []
         };
       }
       task.total = Math.max(task.total, total);
       task.process = Math.max(task.process, process);
       task.slots += 1;
       if (!done) task.pendingSlots += 1;
+
+      // v2.1：逐条留痕。IsFinished=1 但 IsReceived=0 是「已解锁未领取」，
+      //       不是「已完成」，两者在 App 里是不同状态，必须分开统计。
+      let status;
+      if (!done) status = '待完成';
+      else if (t.IsReceived === 1 || t.IsReceived === true) status = '已完成已领取';
+      else status = '已完成未领取';
+      if (status === '已完成未领取') task.unclaimed += 1;
+      task.detail.push({ no: task.slots, name: name, status: status });
+
       if (task.names.indexOf(name) < 0) task.names.push(name);
     });
   });
@@ -234,7 +244,8 @@ function getTasks(d) {
   Object.keys(map).forEach(function (k) {
     const t = map[k];
     t.finished = t.pendingSlots === 0;
-    t.name = t.names[0] + (t.names.length > 1 ? ' 等' + t.names.length + '项' : '');
+    // 多条目（奖励位清单）直接报数量，避免「惊喜礼包 等3项」这种糊在一起的名字
+    t.name = t.slots > 1 ? (t.slots + ' 个奖励位') : t.names[0];
 
     if (t.finished) {
       t.times = 0;
@@ -301,13 +312,26 @@ async function doAdvJobs(cookie, ctx) {
 
   console.log('任务合计 ' + tasks.length + ' 项 | 待执行 ' + pending.length + ' 项 / 已完成 ' + done.length + ' 项');
 
+  // 多条目模块（激励任务这种奖励位清单）逐条打印，方便对账「一共几个、每个什么状态」
+  function printDetail(t, indent) {
+    if (!t.detail || t.detail.length < 2) return;
+    t.detail.forEach(function (x) {
+      const mark = x.status === '待完成' ? '○' : (x.status === '已完成未领取' ? '◐' : '●');
+      console.log(indent + String(x.no).padStart(2) + '. ' + mark + ' ' + x.name + '  ' + x.status);
+    });
+  }
+
   if (done.length) {
     console.log('── 已完成任务（跳过）──');
     done.forEach(function (t) {
       const p = t.total > 0 ? '（' + t.process + '/' + t.total + '）' : ('（' + t.slots + '项）');
-      console.log('   ✓ [' + t.label + '] ' + t.name + p);
+      console.log('   ✓ [' + t.label + '] ' + t.name + p
+        + (t.unclaimed ? '  其中 ' + t.unclaimed + ' 项未领取' : ''));
+      printDetail(t, '      ');
     });
-    out.push('已跳过 ' + done.length + ' 项已完成：' + done.map(function (t) { return t.name; }).join('、'));
+    out.push('已跳过 ' + done.length + ' 项：' + done.map(function (t) {
+      return t.name + (t.unclaimed ? '（' + t.unclaimed + '项未领取）' : '');
+    }).join('、'));
   }
 
   let firstCall = true;
@@ -317,7 +341,9 @@ async function doAdvJobs(cookie, ctx) {
     const times = t.times;
     const altType = (t.taskType && String(t.taskType) !== String(t.type)) ? String(t.taskType) : '';
     console.log('── [' + t.label + '] ' + t.name
-      + '（进度 ' + t.process + '/' + t.total + '，本次执行 ' + times + ' 次，type=' + t.type + '）');
+      + '（共 ' + t.slots + ' 条：待完成 ' + t.pendingSlots + ' / 已完成 ' + (t.slots - t.pendingSlots)
+      + '，本次执行 ' + times + ' 次，type=' + t.type + '）');
+    printDetail(t, '     ');
 
     let okCount = 0, rewardCount = 0, lastMsg = '';
     for (let i = 0; i < times; i++) {
@@ -348,10 +374,12 @@ async function doAdvJobs(cookie, ctx) {
       }
     }
 
+    const claimNote = t.unclaimed ? '（另有' + t.unclaimed + '项待领取）' : '';
     if (okCount === times) {
-      out.push('[' + t.label + '] ' + t.name + ' ' + times + '/' + times + ' 完成' + (rewardCount ? '（奖励×' + rewardCount + '）' : ''));
+      out.push('[' + t.label + '] ' + t.name + ' ' + times + '/' + times + ' 完成'
+        + (rewardCount ? '（奖励×' + rewardCount + '）' : '') + claimNote);
     } else {
-      out.push('[' + t.label + '] ' + t.name + ' ' + okCount + '/' + times + '（' + lastMsg + '）');
+      out.push('[' + t.label + '] ' + t.name + ' ' + okCount + '/' + times + '（' + lastMsg + '）' + claimNote);
     }
   }
 
