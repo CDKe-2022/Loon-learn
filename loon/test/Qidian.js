@@ -47,7 +47,7 @@ const LOTTERY_URL = 'https://h5.if.qidian.com/argus/api/v2/checkin/lottery';
 
 const ABTEST_GZIP = 'H4sIAAAAAAAAA6uuBQBDv6ajAgAAAA==';
 
-const MAX_TIMES = 3;      // 单个任务单次最多执行次数（防风控）
+const MAX_TIMES = 12;     // 单个任务单次最多执行次数（激励任务按未完成奖励位数跑，最多 9 个，留 3 个余量）
 const TYPE_FALLBACK = true; // 参数类报错时用 TaskType 重试一次（关掉可省请求）
 
 // 模块注册表：key 必须与 mainPage Data 下的字段名一致
@@ -219,7 +219,7 @@ function getTasks(d) {
           id: id, label: m.label, type: m.type, reward: !!m.reward,
           taskType: t.TaskType, raw: t.TaskRawId || '',
           total: total, process: process,
-          slots: 0, pendingSlots: 0, unclaimed: 0, names: [], detail: []
+          slots: 0, pendingSlots: 0, names: [], detail: []
         };
       }
       task.total = Math.max(task.total, total);
@@ -227,13 +227,9 @@ function getTasks(d) {
       task.slots += 1;
       if (!done) task.pendingSlots += 1;
 
-      // v2.1：逐条留痕。IsFinished=1 但 IsReceived=0 是「已解锁未领取」，
-      //       不是「已完成」，两者在 App 里是不同状态，必须分开统计。
-      let status;
-      if (!done) status = '待完成';
-      else if (t.IsReceived === 1 || t.IsReceived === true) status = '已完成已领取';
-      else status = '已完成未领取';
-      if (status === '已完成未领取') task.unclaimed += 1;
+      // v2.2：不再用 IsReceived 区分「已领取/未领取」——实测它常驻 0，
+      //       而 finishWatch 当场返回 RewardList 即已发奖，没有二次领取环节。
+      const status = done ? '已完成' : '待完成';
       task.detail.push({ no: task.slots, name: name, status: status });
 
       if (task.names.indexOf(name) < 0) task.names.push(name);
@@ -316,7 +312,7 @@ async function doAdvJobs(cookie, ctx) {
   function printDetail(t, indent) {
     if (!t.detail || t.detail.length < 2) return;
     t.detail.forEach(function (x) {
-      const mark = x.status === '待完成' ? '○' : (x.status === '已完成未领取' ? '◐' : '●');
+      const mark = x.status === '待完成' ? '○' : '●';
       console.log(indent + String(x.no).padStart(2) + '. ' + mark + ' ' + x.name + '  ' + x.status);
     });
   }
@@ -324,14 +320,11 @@ async function doAdvJobs(cookie, ctx) {
   if (done.length) {
     console.log('── 已完成任务（跳过）──');
     done.forEach(function (t) {
-      const p = t.total > 0 ? '（' + t.process + '/' + t.total + '）' : ('（' + t.slots + '项）');
-      console.log('   ✓ [' + t.label + '] ' + t.name + p
-        + (t.unclaimed ? '  其中 ' + t.unclaimed + ' 项未领取' : ''));
+      const p = t.total > 0 ? '（' + t.process + '/' + t.total + '）' : (t.slots > 1 ? '' : '（1项）');
+      console.log('   ✓ [' + t.label + '] ' + t.name + p);
       printDetail(t, '      ');
     });
-    out.push('已跳过 ' + done.length + ' 项：' + done.map(function (t) {
-      return t.name + (t.unclaimed ? '（' + t.unclaimed + '项未领取）' : '');
-    }).join('、'));
+    out.push('已跳过 ' + done.length + ' 项：' + done.map(function (t) { return t.name; }).join('、'));
   }
 
   let firstCall = true;
@@ -374,12 +367,14 @@ async function doAdvJobs(cookie, ctx) {
       }
     }
 
-    const claimNote = t.unclaimed ? '（另有' + t.unclaimed + '项待领取）' : '';
+    if (t.reward && t.pendingSlots > times) {
+      console.log('   ↳ 该模块仍有 ' + (t.pendingSlots - times) + ' 个箱位未解锁，超过单次上限 ' + MAX_TIMES + ' 时下次继续');
+    }
     if (okCount === times) {
       out.push('[' + t.label + '] ' + t.name + ' ' + times + '/' + times + ' 完成'
-        + (rewardCount ? '（奖励×' + rewardCount + '）' : '') + claimNote);
+        + (rewardCount ? '（奖励×' + rewardCount + '）' : ''));
     } else {
-      out.push('[' + t.label + '] ' + t.name + ' ' + okCount + '/' + times + '（' + lastMsg + '）' + claimNote);
+      out.push('[' + t.label + '] ' + t.name + ' ' + okCount + '/' + times + '（' + lastMsg + '）');
     }
   }
 
@@ -410,7 +405,7 @@ async function doSurpriseBenefit(cookie, ctx, d) {
 
   if (Number(sb.IntervalTime) < 0) {
     const mins = Math.round(Math.abs(Number(sb.IntervalTime)) / 60000);
-    console.log('── [惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）');
+    console.log('── [惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟，依据 IntervalTime）');
     return '[惊喜福利] ' + name + ' 冷却中（约' + mins + '分钟）';
   }
 
@@ -474,7 +469,7 @@ async function doLottery(cookie, ctx) {
     console.log('[抽奖] 成功' + prize);
     return '抽奖成功' + prize;
   }
-  if (/无抽奖|次数|没有|不足|no.*(lottery|draw)|not.*enough/i.test(msg)) { console.log('[抽奖] 暂无次数: ' + msg); return '暂无可抽次数'; }
+  if (/无抽奖|次数|没有|不足|用完|已用|机会|no.*(lottery|draw)|not.*enough/i.test(msg)) { console.log('[抽奖] 暂无次数: ' + msg); return '暂无可抽次数'; }
   console.log('[抽奖] 失败: ' + msg);
   return '抽奖失败(' + msg + ')';
 }
