@@ -1,9 +1,9 @@
 /*
- * 起点读书 · 福利中心 — 主脚本（cron 定时任务，多账号版）
+ * 起点读书 · 福利中心 — 主脚本 v2（cron 定时任务，多账号版）
  * ──────────────────────────────────────────────────────────
  * 流程：
  *   1) 读取 QDREADER_COOKIE（多账号 JSON）→ 逐账号执行
- *   2) 每账号：mainPage 拿任务 → finishWatch 看广告（含惊喜福利）→ 签到 → 抽奖
+ *   2) 每账号：mainPage 拉取任务 → finishWatch 看广告（含惊喜福利）→ 签到 → 抽奖
  *   3) 汇总所有账号结果推送通知
  *
  * 签名机制：每个起点请求先调第三方签名网关 api.120399.xyz/qdreader/sign
@@ -15,11 +15,24 @@
  *
  * 依赖：持久化存储 QDREADER_COOKIE，值为 JSON：
  *      {"uid1":"cookie串1","uid2":"cookie串2"}
- *      配合上面的 Cookie 获取脚本自动写入。
  *
  * ── 迭代记录 ─────────────────────────────────────────────
- * [多账号] readAllAccounts 读取所有账号；主流程遍历执行；账号间随机等待2-4秒；
- *          通知按账号分组汇总；单账号异常不影响其他账号
+ * v1  [多账号] readAllAccounts 读取所有账号；主流程遍历执行；账号间随机等待2-4秒。
+ *
+ * v2  [适配 2026-11 新版 mainPage] 抓包发现三处结构变动，逐条修正：
+ *     1) 「加点·广告」更名为「广告·加点！」——脚本按模块 key 匹配，标题改名不影响；
+ *        新增 SubTaskId，TaskId 已等于 SubTaskId，另加 /^\d{6,}$/ 数字校验，
+ *        防止误用模块级 TaskId（T2026051906 这种原始 ID）。
+ *     2) DailyBenefitModule.TaskList 实为「奖励位清单」：9 条共用同一 TaskId，
+ *        Total/Process 恒为 0。旧逻辑会把它当 9 个独立任务，日志/通知里出现
+ *        「惊喜礼包、10-3点订阅券、10点章节卡…」一堆同名条目；当前只有 1 条未完成
+ *        看似没事，一旦多条未完成就会对同一 ID 连发请求。
+ *        现改为按 模块+TaskId 聚合：未完成条目数 = 需要看广告的次数。
+ *     3) VideoRewardTab 出现 IsFinished=0 但 Process==Total 且 IsReceived=1 的条目
+ *        （奖励已领）。完成判定改为 IsFinished / IsReceived / Process>=Total 三选一。
+ *     4) mainPage 增加 Result!==0 / 解析失败 的显式分支，Cookie 失效不再静默成"0 项待办"。
+ *     5) finishWatch 失败且报错疑似参数类时，用任务自带 TaskType 再试一次（可关）。
+ *     6) 通知与日志按聚合后的任务输出，不再出现「惊喜礼包 ×4」这种重复行。
  */
 
 // ===== 配置区 =====
@@ -33,6 +46,17 @@ const CHECKIN_URL = 'https://h5.if.qidian.com/argus/api/v3/checkin/checkin';
 const LOTTERY_URL = 'https://h5.if.qidian.com/argus/api/v2/checkin/lottery';
 
 const ABTEST_GZIP = 'H4sIAAAAAAAAA6uuBQBDv6ajAgAAAA==';
+
+const MAX_TIMES = 3;      // 单个任务单次最多执行次数（防风控）
+const TYPE_FALLBACK = true; // 参数类报错时用 TaskType 重试一次（关掉可省请求）
+
+// 模块注册表：key 必须与 mainPage Data 下的字段名一致
+// reward:true 表示该模块 TaskList 是「奖励位清单」（同 TaskId 多条），执行次数按未完成条目数算
+const MODULES = [
+  { key: 'DailyBenefitModule',    label: '激励任务',   type: '0', reward: true  },
+  { key: 'ReadingPageTaskModule', label: '广告·加点', type: '1', reward: false },
+  { key: 'VideoRewardTab',        label: '额外任务',   type: '0', reward: false }
+];
 
 // ===== 工具函数 =====
 function parseCookie(cookie) {
@@ -129,36 +153,6 @@ function randomWait(minSec, maxSec) {
   return new Promise(function (r) { setTimeout(function () { r(s); }, s * 1000); });
 }
 
-// ===== 从 mainPage 响应里抽取任务 =====
-function getTasks(mpBody) {
-  const tasks = [];
-  let obj;
-  try { obj = JSON.parse(mpBody); } catch (e) { return tasks; }
-  const d = obj.Data || {};
-  const modules = [
-    { mod: d.DailyBenefitModule,    type: '0', label: '激励任务' },
-    { mod: d.ReadingPageTaskModule, type: '1', label: '加点·广告' },
-    { mod: d.VideoRewardTab,        type: '0', label: '额外任务' },
-  ];
-  modules.forEach(function (m) {
-    if (!m.mod || !Array.isArray(m.mod.TaskList)) return;
-    m.mod.TaskList.forEach(function (t) {
-      if (!t || !t.TaskId) return;
-      tasks.push({
-        id: String(t.TaskId),
-        name: t.Title || t.Desc || t.Subtitle || ('任务' + String(t.TaskId).slice(-4)),
-        label: m.label,
-        raw: t.TaskRawId || '',
-        total: Number(t.Total) || 1,
-        process: Number(t.Process) || 0,
-        type: m.type,
-        finished: t.IsFinished === 1,
-      });
-    });
-  });
-  return tasks;
-}
-
 function findValueByKey(obj, keySubstr) {
   const lower = keySubstr.toLowerCase();
   let found;
@@ -182,38 +176,148 @@ function isAlreadyCheckedIn(obj) {
       || d.IsTodayCheckin === 1 || d.IsTodayCheckin === true;
 }
 
-// ===== 看广告=====
-// 请求体按抓包为 3 参数；旧参数注释保留（fwData 与 fwBody 必须同步改）
+// ===== 任务完成判定（v2）=====
+// IsFinished=1 / IsReceived=1 / Process>=Total 任一条成立即视为已完成。
+// 新版 VideoRewardTab 会出现 IsFinished=0 但 IsReceived=1 的已领奖条目。
+function isTaskFinished(t) {
+  if (t.IsFinished === 1 || t.IsFinished === true) return true;
+  if (t.IsReceived === 1 || t.IsReceived === true) return true;
+  const total = Number(t.Total) || 0;
+  const process = Number(t.Process) || 0;
+  if (total > 0 && process >= total) return true;
+  return false;
+}
+
+// ===== 从 mainPage 的 Data 里抽取任务（v2 聚合版）=====
+// 返回 [{ id, name, label, type, taskType, total, process, times, finished }]
+function getTasks(d) {
+  const map = {};
+
+  MODULES.forEach(function (m) {
+    const mod = d[m.key];
+    if (!mod || !Array.isArray(mod.TaskList)) return;
+
+    mod.TaskList.forEach(function (t) {
+      if (!t) return;
+
+      // v2：TaskId 优先，SubTaskId 兜底；必须是纯数字，排除 T2026051906 这类模块级原始 ID
+      const id = String(t.TaskId || t.SubTaskId || '');
+      if (!/^\d{6,}$/.test(id)) {
+        console.log('  [跳过] ' + m.label + ' 无有效数字 TaskId（' + id + '）');
+        return;
+      }
+
+      const done = isTaskFinished(t);
+      const total = Number(t.Total) || 0;
+      const process = Number(t.Process) || 0;
+      const name = t.Title || t.Desc || t.Subtitle || ('任务' + id.slice(-4));
+      const key = m.label + '|' + id;
+
+      let task = map[key];
+      if (!task) {
+        task = map[key] = {
+          id: id, label: m.label, type: m.type, reward: !!m.reward,
+          taskType: t.TaskType, raw: t.TaskRawId || '',
+          total: total, process: process,
+          slots: 0, pendingSlots: 0, names: []
+        };
+      }
+      task.total = Math.max(task.total, total);
+      task.process = Math.max(task.process, process);
+      task.slots += 1;
+      if (!done) task.pendingSlots += 1;
+      if (task.names.indexOf(name) < 0) task.names.push(name);
+    });
+  });
+
+  const list = [];
+  Object.keys(map).forEach(function (k) {
+    const t = map[k];
+    t.finished = t.pendingSlots === 0;
+    t.name = t.names[0] + (t.names.length > 1 ? ' 等' + t.names.length + '项' : '');
+
+    if (t.finished) {
+      t.times = 0;
+    } else {
+      // 奖励位清单：一个未完成条目 = 一次广告
+      // 普通任务：剩余进度 = 需要执行的次数
+      const left = t.reward ? t.pendingSlots : (t.total > 0 ? (t.total - t.process) : 1);
+      t.times = Math.min(MAX_TIMES, Math.max(1, left));
+    }
+    list.push(t);
+  });
+
+  return list;
+}
+
+// ===== 单次 finishWatch =====
+async function finishWatch(cookie, ctx, taskId, type) {
+  const data = { h5: '0', taskId: String(taskId), type: String(type) };
+  const sign = await getSign(FW_URL, 'post', data, ctx);
+  const headers = baseHeaders(cookie, sign, true);
+  if (ctx.qdh) headers['qdh'] = ctx.qdh;
+  const body = 'h5=0&taskId=' + taskId + '&type=' + type;
+
+  const r = await httpReq('POST', FW_URL, headers, body);
+  let j = null, ok = false, msg = 'HTTP ' + r.status;
+  try {
+    j = JSON.parse(r.body);
+    ok = !!(j && j.Result === 0);
+    msg = (j && (j.Message || j.message)) || msg;
+  } catch (e) {}
+  const rewards = (j && j.Data && Array.isArray(j.Data.RewardList)) ? j.Data.RewardList.length : 0;
+  return { ok: ok, msg: msg, rewards: rewards, json: j };
+}
+
+// ===== 看广告（含惊喜福利）=====
 async function doAdvJobs(cookie, ctx) {
   const out = [];
   const mpSign = await getSign(MP_URL, 'get', {}, ctx);
   const mpHeaders = baseHeaders(cookie, mpSign, false);
   const mpRes = await httpReq('GET', MP_URL, mpHeaders, null);
-  const mpBody = mpRes.body;
-  const tasks = getTasks(mpBody);
 
+  let obj = null;
+  try { obj = JSON.parse(mpRes.body); } catch (e) {}
+  if (!obj) {
+    console.log('[mainPage] 解析失败 status=' + mpRes.status + ' body=' + String(mpRes.body).slice(0, 120));
+    out.push('mainPage 解析失败（HTTP ' + mpRes.status + '）');
+    return { lines: out, count: 0, fatal: true };
+  }
+  if (obj.Result !== 0) {
+    console.log('[mainPage] Result=' + obj.Result + ' Message=' + (obj.Message || ''));
+    out.push('接口异常（Result=' + obj.Result + ' ' + (obj.Message || '') + '），Cookie 可能已失效');
+    return { lines: out, count: 0, fatal: true };
+  }
+
+  const d = obj.Data || {};
+  const nick = d.NickName || ctx.uid || '-';
+  const dbm = d.DailyBenefitModule;
+  console.log('mainPage status=' + mpRes.status + ' 账号=' + nick
+    + (dbm && dbm.Count !== undefined ? ' | 激励任务进度 ' + (dbm.Process || 0) + '/' + dbm.Count : ''));
+
+  const tasks = getTasks(d);
   const pending = tasks.filter(function (t) { return !t.finished; });
   const done = tasks.filter(function (t) { return t.finished; });
 
-  let nick = '';
-  try { nick = ((JSON.parse(mpBody).Data) || {}).NickName || ''; } catch (e) {}
-  console.log('mainPage status=' + mpRes.status + ' 账号=' + (nick || ctx.uid || '-')
-    + ' | 待执行 ' + pending.length + ' 项 / 已完成 ' + done.length + ' 项');
+  console.log('任务合计 ' + tasks.length + ' 项 | 待执行 ' + pending.length + ' 项 / 已完成 ' + done.length + ' 项');
 
   if (done.length) {
     console.log('── 已完成任务（跳过）──');
     done.forEach(function (t) {
-      console.log('   ✓ [' + t.label + '] ' + t.name + '（' + t.process + '/' + t.total + '）');
+      const p = t.total > 0 ? '（' + t.process + '/' + t.total + '）' : ('（' + t.slots + '项）');
+      console.log('   ✓ [' + t.label + '] ' + t.name + p);
     });
-    out.push('已跳过已完成任务 ' + done.length + ' 项：' + done.map(function (t) { return t.name; }).join('、'));
+    out.push('已跳过 ' + done.length + ' 项已完成：' + done.map(function (t) { return t.name; }).join('、'));
   }
 
   let firstCall = true;
   let totalWaited = 0;
 
   for (const t of pending) {
-    const times = Math.min(3, Math.max(1, (t.total - t.process)));
-    console.log('── [' + t.label + '] ' + t.name + '（进度 ' + t.process + '/' + t.total + '，本次执行 ' + times + ' 次）');
+    const times = t.times;
+    const altType = (t.taskType && String(t.taskType) !== String(t.type)) ? String(t.taskType) : '';
+    console.log('── [' + t.label + '] ' + t.name
+      + '（进度 ' + t.process + '/' + t.total + '，本次执行 ' + times + ' 次，type=' + t.type + '）');
 
     let okCount = 0, rewardCount = 0, lastMsg = '';
     for (let i = 0; i < times; i++) {
@@ -225,24 +329,21 @@ async function doAdvJobs(cookie, ctx) {
       }
       firstCall = false;
 
-      const fwData = { h5: '0', taskId: t.id, type: (t.type || '0') };
-      const fwSign = await getSign(FW_URL, 'post', fwData, ctx);
-      const fwHeaders = baseHeaders(cookie, fwSign, true);
-      if (ctx.qdh) fwHeaders['qdh'] = ctx.qdh;
-      const fwBody = 'h5=0&taskId=' + t.id + '&type=' + (t.type || '0');
+      let r = await finishWatch(cookie, ctx, t.id, t.type);
 
-      const r = await httpReq('POST', FW_URL, fwHeaders, fwBody);
-      let ok = false, msg = '', j = null;
-      try { j = JSON.parse(r.body); ok = j && j.Result === 0; msg = (j && j.Message) || ('HTTP ' + r.status); } catch (e) { msg = 'HTTP ' + r.status; }
-      const hasReward = !!(j && j.Data && j.Data.RewardList && j.Data.RewardList.length);
+      // v2：参数类报错时用任务自带 TaskType 重试一次
+      if (!r.ok && TYPE_FALLBACK && altType && /(参数|type|签名|sign|非法|invalid|illegal)/i.test(r.msg)) {
+        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ↻ type=' + t.type + ' 失败（' + r.msg + '），改用 type=' + altType + ' 重试');
+        r = await finishWatch(cookie, ctx, t.id, altType);
+      }
 
-      if (ok) {
+      if (r.ok) {
         okCount++;
-        if (hasReward) rewardCount += j.Data.RewardList.length;
-        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✓ ' + (hasReward ? '完成（奖励×' + j.Data.RewardList.length + '）' : '进度+1'));
+        if (r.rewards) rewardCount += r.rewards;
+        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✓ ' + (r.rewards ? '完成（奖励×' + r.rewards + '）' : '进度+1'));
       } else {
-        lastMsg = msg;
-        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✗ 失败（' + msg + '）');
+        lastMsg = r.msg;
+        console.log('   第' + (i + 1) + '/' + times + '次' + waitNote + ' ✗ 失败（' + r.msg + '）');
         break; // 失败即停该任务
       }
     }
@@ -256,20 +357,18 @@ async function doAdvJobs(cookie, ctx) {
 
   if (totalWaited > 0) console.log('[随机等待] 广告任务累计等待 ' + totalWaited.toFixed(1) + ' 秒');
 
-  // 惊喜福利（复用同一个 mpBody）
+  // 惊喜福利
   try {
-    const sbResult = await doSurpriseBenefit(cookie, ctx, mpBody);
+    const sbResult = await doSurpriseBenefit(cookie, ctx, d);
     if (sbResult) out.push(sbResult);
   } catch (e) { console.log('surprise benefit error: ' + e); }
 
-  return { lines: out, count: pending.length };
+  return { lines: out, count: pending.length, fatal: false };
 }
 
-// ===== 惊喜福利=====
-async function doSurpriseBenefit(cookie, ctx, mpBody) {
-  let obj;
-  try { obj = JSON.parse(mpBody); } catch (e) { return null; }
-  const sb = obj.Data && obj.Data.SurpriseBenefit;
+// ===== 惊喜福利 =====
+async function doSurpriseBenefit(cookie, ctx, d) {
+  const sb = d && d.SurpriseBenefit;
   if (!sb || !sb.TaskId) {
     console.log('── [惊喜福利] 无任务');
     return null;
@@ -288,21 +387,13 @@ async function doSurpriseBenefit(cookie, ctx, mpBody) {
   }
 
   const waited = await randomWait(1, 3);
-  const fwData = { h5: '0', taskId: String(sb.TaskId), type: '0' };
-  const fwSign = await getSign(FW_URL, 'post', fwData, ctx);
-  const fwHeaders = baseHeaders(cookie, fwSign, true);
-  if (ctx.qdh) fwHeaders['qdh'] = ctx.qdh;
-  const fwBody = 'h5=0&taskId=' + sb.TaskId + '&type=0';
-
-  const r = await httpReq('POST', FW_URL, fwHeaders, fwBody);
-  let ok = false, j = null;
-  try { j = JSON.parse(r.body); ok = j && j.Result === 0; } catch (e) {}
-  const hasReward = !!(j && j.Data && j.Data.RewardList && j.Data.RewardList.length);
-  console.log('── [惊喜福利] ' + name + '（等待' + waited + 's）' + (ok ? ' ✓ 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '') : ' ✗ 失败'));
-  return '[惊喜福利] ' + name + (ok ? (' 成功' + (hasReward ? '（奖励×' + j.Data.RewardList.length + '）' : '')) : ' 失败');
+  const r = await finishWatch(cookie, ctx, sb.TaskId, '0');
+  console.log('── [惊喜福利] ' + name + '（等待' + waited + 's）'
+    + (r.ok ? ' ✓ 成功' + (r.rewards ? '（奖励×' + r.rewards + '）' : '') : ' ✗ 失败（' + r.msg + '）'));
+  return '[惊喜福利] ' + name + (r.ok ? (' 成功' + (r.rewards ? '（奖励×' + r.rewards + '）' : '')) : ' 失败');
 }
 
-// ===== 签到=====
+// ===== 签到 =====
 async function doCheckin(cookie, ctx) {
   const wcSign = await getSign(WEEK_CHECKIN_URL, 'get', {}, ctx);
   const wcHeaders = baseHeaders(cookie, wcSign, false);
@@ -332,7 +423,7 @@ async function doCheckin(cookie, ctx) {
   return '签到失败(' + msg + ')';
 }
 
-// ===== 抽奖=====
+// ===== 抽奖 =====
 async function doLottery(cookie, ctx) {
   const waited = await randomWait(1, 3);
   console.log('[抽奖] 执行（等待' + waited + 's）...');
@@ -364,7 +455,6 @@ async function doLottery(cookie, ctx) {
 (async function () {
   const started = Date.now();
 
-  // [多账号] 读取所有账号
   const accounts = readAllAccounts();
   if (!accounts.length) {
     $notification.post('起点读书', '未配置 Cookie', '请在持久化存储写入 QDREADER_COOKIE（格式 {"uid":"cookie串"}）\n或用 Cookie 获取脚本自动捕获');
@@ -374,9 +464,8 @@ async function doLottery(cookie, ctx) {
   }
   console.log('共 ' + accounts.length + ' 个账号待执行：' + accounts.map(function (a) { return a.uid; }).join(', '));
 
-  const allResults = []; // [{uid, lines, parts}]
+  const allResults = [];
 
-  // [多账号] 逐账号执行
   for (let a = 0; a < accounts.length; a++) {
     const acct = accounts[a];
     console.log('\n########## 账号 ' + (a + 1) + '/' + accounts.length + '（uid=' + acct.uid + '）##########');
@@ -392,7 +481,7 @@ async function doLottery(cookie, ctx) {
     try {
       const adv = await doAdvJobs(acct.cookie, ctx);
       adv.lines.forEach(function (l) { results.push(l); });
-      parts.push(adv.count ? ('看广告' + adv.count + '项') : '无看广告待办');
+      parts.push(adv.fatal ? '接口异常' : (adv.count ? ('看广告' + adv.count + '项') : '无看广告待办'));
     } catch (e) { results.push('看广告异常: ' + (e && e.message || e)); }
 
     // 2) 签到
@@ -411,14 +500,12 @@ async function doLottery(cookie, ctx) {
 
     allResults.push({ uid: acct.uid, lines: results, parts: parts });
 
-    // [多账号] 账号间随机等待 2-4 秒，避免请求过密
     if (a < accounts.length - 1) {
       const gap = await randomWait(2, 4);
       console.log('[多账号] 切换下一账号前等待 ' + gap + 's');
     }
   }
 
-  // [多账号] 汇总通知：按账号分组
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
   console.log('\n===== 全部账号执行结束，总耗时 ' + elapsed + ' 秒 =====');
 
